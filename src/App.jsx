@@ -26,6 +26,24 @@ import {
 } from 'lucide-react'
 
 const park = { lng: 85.3239042, lat: 27.7836311 }
+const weatherLabels = {
+  0: 'Clear',
+  1: 'Mainly clear',
+  2: 'Partly cloudy',
+  3: 'Cloudy',
+  45: 'Foggy',
+  48: 'Foggy',
+  51: 'Light drizzle',
+  53: 'Drizzle',
+  55: 'Heavy drizzle',
+  61: 'Light rain',
+  63: 'Rain',
+  65: 'Heavy rain',
+  80: 'Rain showers',
+  81: 'Rain showers',
+  82: 'Heavy showers',
+  95: 'Thunderstorm',
+}
 const directionsUrl =
   'https://www.google.com/maps/dir//Magic+Land+Family+Fun+Park,+Q836%2B95P,+Tarakeshwar+44600/@27.7184512,85.3381417,14z/data=!3m1!4b1!4m8!4m7!1m0!1m5!1m1!1s0x39eb1ff50274c9b9:0x2acfcb4719ba6c9d!2m2!1d85.3239042!2d27.7836311'
 
@@ -41,6 +59,11 @@ const img = {
   dining: 'https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?auto=format&fit=crop&w=900&q=80',
   birthday: 'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?auto=format&fit=crop&w=1100&q=80',
   parade: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1100&q=80',
+  vrBike: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?auto=format&fit=crop&w=900&q=80',
+  vrCar: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80',
+  vrShooting: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=80',
+  pool: 'https://images.unsplash.com/photo-1604079628040-94301bb21b91?auto=format&fit=crop&w=900&q=80',
+  familyGames: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=80',
 }
 
 const nav = [
@@ -62,35 +85,44 @@ const moreNav = [
   { id: 'contact', label: 'Contact', icon: Mail },
 ]
 
-const attractions = [
-  { name: 'Dragon Coaster', category: 'High thrill', wait: '25 min', height: '48 in', image: img.coaster, copy: 'A fast outdoor coaster for older kids, teens, and brave parents.' },
-  { name: 'Starlight Carousel', category: 'Family', wait: '5 min', height: 'All ages', image: img.carousel, copy: 'A gentle classic ride for toddlers, families, photos, and first-time visitors.' },
-  { name: 'Splash Lagoon', category: 'Water play', wait: '15 min', height: '40 in', image: img.splash, copy: 'Cool water moments, bright family seating, and summer-friendly fun.' },
-  { name: 'Wonder Arcade', category: 'Indoor', wait: 'Open', height: 'All ages', image: img.arcade, copy: 'Indoor games, prize counters, and weather-proof entertainment.' },
-  { name: 'Wizard Theater', category: 'Live show', wait: '5:00 PM', height: 'All ages', image: img.parade, copy: 'Character performances, music, and the park’s signature evening moment.' },
+const attractionList = [
+  { name: 'VR Bike Racing', category: 'VR thrill', wait: '12 min', height: '8+ years', image: img.vrBike, copy: 'High-energy bike racing with motion seats, speed effects, and friendly competition.' },
+  { name: 'VR Car Simulator', category: 'Racing', wait: '15 min', height: '8+ years', image: img.vrCar, copy: 'Steer, drift, and race through immersive tracks made for kids, teens, and parents.' },
+  { name: 'VR Shooting Arena', category: 'Skill game', wait: '10 min', height: '10+ years', image: img.vrShooting, copy: 'Safe, interactive target games with scoreboards, missions, and replay-friendly challenges.' },
+  { name: 'Pool & Skill Games', category: 'Indoor', wait: 'Open', height: 'All ages', image: img.pool, copy: 'Pool tables, arcade games, prize moments, and relaxed indoor entertainment.' },
+  { name: 'Family Ride Court', category: 'Family', wait: '5 min', height: 'All ages', image: img.familyGames, copy: 'Gentle rides, playful corners, music, and photo moments for the whole family.' },
 ]
 
-const ticketTypes = [
-  { name: 'Day Pass', price: 1200, detail: 'One-day entry for rides and family attractions.' },
-  { name: 'VIP Pass', price: 2800, detail: 'Priority access, premium parade viewing, and photo perks.' },
-  { name: 'Family Bundle', price: 4200, detail: 'Two adults, two children, and a dining voucher.' },
-  { name: 'Gift Ticket', price: 1500, detail: 'A shareable ticket for friends and family celebrations.' },
+const ticketOptions = [
+  { name: 'One-Time Entry', price: 1500, detail: 'A single Magic Land visit for rides, VR games, arcade fun, and family attractions.' },
+  { name: 'Individual Fun Pass', price: 2999, detail: '3 months, 30 entries, and the smartest value for frequent visitors.' },
+  { name: 'Family Magic Pass', price: 9999, detail: '3 months for 4 members with 120 total entries and better per-visit value.' },
+  { name: 'Gift Ticket', price: 1500, detail: 'A shareable entry for birthdays, friends, and family celebrations.' },
 ]
 
-const memberPlans = [
-  ['Spark Pass', 'NPR 9,999 / year', ['Unlimited weekday visits', '10% dining discount', 'Member-only campaigns']],
-  ['Royal Pass', 'NPR 16,999 / year', ['Any-day visits', 'Birthday bonus tickets', 'Priority booking windows']],
-  ['Gifted Membership', 'Custom', ['Digital gifting', 'Easy ticket redemption', 'Personalized message']],
+const membershipPlans = [
+  {
+    name: 'Individual Fun Pass',
+    price: 'Rs. 2,999',
+    subtitle: '3 months membership',
+    entries: '30 entries',
+    perVisit: 'About Rs. 100 per entry',
+    regular: 'Rs. 45,000',
+    savings: 'Save Rs. 42,001',
+    bestFor: ['Kids who love visiting again and again', 'Weekend family outings', 'After-school playtime', 'Affordable entertainment for parents'],
+  },
+  {
+    name: 'Family Magic Pass',
+    price: 'Rs. 9,999',
+    subtitle: '3 months family membership',
+    entries: '4 members - 120 total entries',
+    perVisit: 'About Rs. 83 per visit',
+    regular: 'Rs. 180,000',
+    savings: 'Save Rs. 170,001',
+    bestFor: ['Families with children', 'Regular weekend visitors', 'Parents planning more family time', 'Groups who want better value per visit'],
+  },
 ]
 
-const schedule = [
-  ['10:00 AM', 'Park Gates Open', 'Main Entrance'],
-  ['11:30 AM', 'Magic Music Show', 'Midway Stage'],
-  ['02:00 PM', 'Birthday Celebration Slots', 'Party Hall'],
-  ['05:45 PM', 'Character Meet & Greet', 'Castle Plaza'],
-  ['08:30 PM', 'Grand Magic Parade', 'Main Boulevard'],
-  ['09:30 PM', 'Starlight Finale', 'Castle Plaza'],
-]
 
 function App() {
   const [page, setPage] = useState('home')
@@ -127,6 +159,44 @@ function App() {
   )
 }
 
+function useParkWeather() {
+  const [weather, setWeather] = useState({ temp: '24', label: 'Checking weather' })
+
+  useEffect(() => {
+    let active = true
+    const loadWeather = async () => {
+      try {
+        const params = new URLSearchParams({
+          latitude: String(park.lat),
+          longitude: String(park.lng),
+          current: 'temperature_2m,weather_code',
+          timezone: 'Asia/Kathmandu',
+        })
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`)
+        if (!response.ok) throw new Error('Weather unavailable')
+        const data = await response.json()
+        if (!active) return
+        const current = data.current ?? {}
+        const temp = Number(current.temperature_2m)
+        setWeather({
+          temp: Number.isFinite(temp) ? Math.round(temp).toString() : '24',
+          label: weatherLabels[current.weather_code] ?? 'Park weather',
+        })
+      } catch {
+        if (active) setWeather({ temp: '24', label: 'Park weather' })
+      }
+    }
+    loadWeather()
+    const timer = window.setInterval(loadWeather, 30 * 60 * 1000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  return weather
+}
+
 function Header({ page, setPage, menuOpen, setMenuOpen }) {
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(198,197,209,0.55)] bg-[rgba(251,248,255,0.94)] backdrop-blur-xl">
@@ -137,7 +207,7 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
           </span>
           <span>
             <span className="font-display block text-2xl font-bold text-[var(--primary)]">Magic Land</span>
-            <span className="hidden text-xs font-bold uppercase tracking-wider text-[var(--muted)] sm:block">Family Fun Park, Tarakeshwar</span>
+            <span className="hidden text-xs font-bold uppercase tracking-wider text-[var(--muted)] sm:block">Family Fun Park</span>
           </span>
         </button>
         <nav className="hidden items-center gap-1 xl:flex">
@@ -170,6 +240,7 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
 }
 
 function HomePage({ setPage }) {
+  const weather = useParkWeather()
   const quickActions = [
     [Ticket, 'My Tickets', '2 Active Passes', 'tickets'],
     [MapIcon, 'Interactive Map', 'Find your way', 'map'],
@@ -185,8 +256,8 @@ function HomePage({ setPage }) {
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl px-4 pb-8 md:px-8 md:pb-16">
           <div className="max-w-xl text-white">
             <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--gold-soft)]">Now open</p>
-            <h1 className="font-display text-6xl font-bold leading-tight">Step Into A World Of Pure Imagination</h1>
-            <p className="mt-5 max-w-lg text-lg leading-8 text-white/88">Plan a full family day with rides, shows, tickets, birthdays, dining, and directions.</p>
+            <h1 className="font-display text-6xl font-bold leading-tight">A Place Where Kids Laugh, Families Bond, and Memories Become Magic</h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/88">Welcome to Magic Land Family Fun Park, a joyful destination with VR games, rides, arcade fun, warm hospitality, and a welcoming experience for everyone.</p>
             <div className="mt-8 flex flex-wrap gap-4">
               <button className="sunset rounded-full px-8 py-4 text-lg font-extrabold shadow-xl" onClick={() => setPage('tickets')}>Book Quest</button>
               <button className="rounded-full border-2 border-white/40 bg-white/10 px-8 py-4 text-lg font-extrabold text-white backdrop-blur-sm" onClick={() => setPage('events')}>View Events</button>
@@ -200,7 +271,7 @@ function HomePage({ setPage }) {
           <img src={img.mobileHero} alt="Magic Land castle" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.82)] via-[rgba(3,13,70,0.2)] to-transparent" />
           <div className="absolute inset-x-0 bottom-0 space-y-4 p-4 pb-16 text-white">
-            <h1 className="font-display max-w-[290px] text-4xl font-bold leading-tight">Where Every Moment is Magic</h1>
+            <h1 className="font-display max-w-[320px] text-3xl font-bold leading-tight">Kids Laugh. Families Bond. Memories Become Magic.</h1>
             <button className="sunset inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-extrabold shadow-lg" onClick={() => setPage('attractions')}>
               Explore the Park
               <Sparkles size={18} />
@@ -223,8 +294,8 @@ function HomePage({ setPage }) {
               </div>
             </div>
             <div className="text-right">
-              <div className="font-display text-2xl font-bold text-[var(--primary)]">24C</div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Sunny Skies</p>
+              <div className="font-display text-2xl font-bold text-[var(--primary)]">{weather.temp}C</div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">{weather.label}</p>
             </div>
           </div>
         </div>
@@ -269,6 +340,7 @@ function HomePage({ setPage }) {
       <div className="md:hidden">
         <AttractionGrid compact />
       </div>
+      <MembershipTeaser setPage={setPage} />
       <div className="hidden md:block">
         <MapTeaser setPage={setPage} />
       </div>
@@ -276,7 +348,37 @@ function HomePage({ setPage }) {
   )
 }
 
+function MembershipTeaser({ setPage }) {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-14">
+      <div className="grid gap-5 rounded-[2rem] border border-[rgba(198,197,209,0.55)] bg-white p-5 shadow-sm md:grid-cols-[1fr_360px] md:p-8">
+        <div>
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership Program</p>
+          <h2 className="font-display mt-2 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">30 visits for Rs. 2,999.</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-base">More playtime, more laughter, and smarter savings for kids who love VR games, rides, pool, shooting games, and arcade moments.</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {['Rs. 100 per entry', '3 months access', 'VR and arcade fun'].map((item) => <span key={item} className="rounded-full bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]">{item}</span>)}
+          </div>
+        </div>
+        <div className="rounded-[1.5rem] bg-[var(--primary)] p-5 text-white">
+          <p className="text-sm font-extrabold uppercase text-[#ffdad6]">Family Magic Pass</p>
+          <p className="font-display mt-2 text-4xl font-bold">Rs. 9,999</p>
+          <p className="mt-2 text-sm font-semibold text-white/82">4 members, 120 total entries, about Rs. 83 per visit.</p>
+          <button className="sunset mt-5 w-full rounded-full px-5 py-3 font-extrabold" onClick={() => setPage('memberships')}>Compare Savings</button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function DesktopAttractions({ setPage }) {
+  const [selectedDay, setSelectedDay] = useState('Today')
+  const daySlots = {
+    Today: ['10:30 AM', '01:30 PM'],
+    Tomorrow: ['11:00 AM', '03:00 PM'],
+    '16 May': ['12:00 PM', '04:30 PM'],
+    '17 May': ['10:00 AM', '05:00 PM'],
+  }
   return (
     <section className="bg-[var(--surface-2)] py-14">
       <div className="mx-auto max-w-7xl px-8">
@@ -284,13 +386,13 @@ function DesktopAttractions({ setPage }) {
           <div>
             <div className="flex items-center gap-3 text-[var(--secondary)]">
               <Sparkles />
-              <h2 className="font-display text-4xl font-bold text-[var(--primary)]">Popular Attractions</h2>
+              <h2 className="font-display text-4xl font-bold text-[var(--primary)]">VR Games, Rides & Family Fun</h2>
             </div>
-            <p className="mt-3 text-[var(--muted)]">Rides, shows, and family zones guests ask about first.</p>
+            <p className="mt-3 text-[var(--muted)]">From VR bikes and cars to pool, shooting games, arcade challenges, and family-friendly rides.</p>
           </div>
           <div className="flex gap-2">
-            {['Today', 'Tomorrow', '16 May', '17 May'].map((day, index) => (
-              <button key={day} className={`rounded-lg px-5 py-3 text-sm font-bold ${index === 0 ? 'bg-[var(--primary)] text-white' : 'border border-[var(--line)] bg-white text-[var(--muted)]'}`}>
+            {Object.keys(daySlots).map((day) => (
+              <button key={day} onClick={() => setSelectedDay(day)} className={`rounded-lg px-5 py-3 text-sm font-bold ${selectedDay === day ? 'bg-[var(--primary)] text-white' : 'border border-[var(--line)] bg-white text-[var(--muted)]'}`}>
                 {day}
               </button>
             ))}
@@ -302,7 +404,7 @@ function DesktopAttractions({ setPage }) {
           <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[var(--line)]" /> Shows</span>
         </div>
         <div className="grid grid-cols-5 gap-5">
-          {attractions.map((ride) => (
+          {attractionList.map((ride) => (
             <button key={ride.name} onClick={() => setPage('attractions')} className="group text-left">
               <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-lg transition duration-300 group-hover:-translate-y-2">
                 <img src={ride.image} alt={ride.name} className="h-full w-full object-cover" />
@@ -311,7 +413,7 @@ function DesktopAttractions({ setPage }) {
               <h3 className="font-display mt-4 truncate text-2xl font-bold text-[var(--primary)]">{ride.name}</h3>
               <p className="mt-1 text-xs font-semibold text-[var(--muted)]">{ride.wait} | {ride.category}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-md border border-[var(--line)] px-3 py-1 text-xs font-bold text-[var(--primary)]">{ride.wait}</span>
+                {daySlots[selectedDay].map((slot) => <span key={slot} className="rounded-md border border-[var(--line)] px-3 py-1 text-xs font-bold text-[var(--primary)]">{slot}</span>)}
               </div>
             </button>
           ))}
@@ -322,13 +424,14 @@ function DesktopAttractions({ setPage }) {
 }
 
 function StatusStrip() {
+  const weather = useParkWeather()
   return (
     <section className="px-4 py-16 md:px-8">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 rounded-3xl border border-[rgba(198,197,209,0.55)] bg-white p-4 shadow-xl shadow-[rgba(27,36,90,0.08)] md:grid-cols-4 md:gap-4 md:p-5">
         {[
           ['Open', '10:00 AM - 9:00 PM', Clock3],
           ['Avg. Wait', '15-25 min', FerrisWheel],
-          ['Location', 'Tarakeshwar 44600', MapPin],
+          ['Weather', `${weather.temp}C - ${weather.label}`, MapPin],
           ['Next Show', '8:30 PM Parade', Sparkles],
         ].map(([label, value, Icon]) => (
           <div key={label} className="rounded-2xl bg-[var(--surface-2)] p-4">
@@ -346,7 +449,7 @@ function StatusStrip() {
 
 function AttractionsPage() {
   return (
-    <PageShell eyebrow="Attractions" title="Rides, play zones, and family-friendly adventures">
+    <PageShell eyebrow="Attractions" title="VR games, skill games, rides, and family fun">
       <AttractionGrid />
     </PageShell>
   )
@@ -355,15 +458,15 @@ function AttractionsPage() {
 function AttractionGrid({ compact = false }) {
   return (
     <section className={`mx-auto max-w-7xl px-4 ${compact ? 'py-12' : ''} md:px-8`}>
-      {compact && <SectionIntro eyebrow="Legendary attractions" title="Rides made for every age group" />}
+      {compact && <SectionIntro eyebrow="Attractions" title="VR games and rides for every age group" />}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        {attractions.map((ride, index) => (
+        {attractionList.map((ride, index) => (
           <article key={ride.name} className={`storybook-card group rounded-[2rem] p-4 shadow-sm transition hover:-translate-y-1 ${index === 1 ? 'lg:mt-8' : ''}`}>
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
               <img src={ride.image} alt={ride.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
               <span className="absolute right-3 top-3 rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white">{ride.category}</span>
             </div>
-            <h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)]">{ride.name}</h3>
+            <h3 className="font-display mt-4 text-xl font-bold text-[var(--primary)] md:text-2xl">{ride.name}</h3>
             <p className="mt-2 min-h-16 text-sm leading-6 text-[var(--muted)]">{ride.copy}</p>
             <div className="mt-4 flex justify-between border-t border-[var(--line)] pt-4 text-xs font-extrabold text-[var(--secondary)]">
               <span>{ride.wait}</span>
@@ -377,7 +480,7 @@ function AttractionGrid({ compact = false }) {
 }
 
 function TicketsPage() {
-  const [selected, setSelected] = useState(ticketTypes[0])
+  const [selected, setSelected] = useState(ticketOptions[0])
   const [qty, setQty] = useState(2)
   const [promo, setPromo] = useState('')
   const subtotal = selected.price * qty
@@ -385,14 +488,14 @@ function TicketsPage() {
   const total = subtotal - discount
 
   return (
-    <PageShell eyebrow="Tickets" title="Choose your pass and plan your visit">
+    <PageShell eyebrow="Tickets" title="Choose one visit or unlock three months of fun">
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="grid gap-4 md:grid-cols-2">
-          {ticketTypes.map((ticket) => (
+          {ticketOptions.map((ticket) => (
             <button key={ticket.name} onClick={() => setSelected(ticket)} className={`storybook-card rounded-[2rem] p-5 text-left transition ${selected.name === ticket.name ? 'ring-4 ring-[#bbc3ff]' : ''}`}>
               <Ticket className="text-[var(--secondary)]" />
               <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{ticket.name}</h3>
-              <p className="mt-2 text-2xl font-extrabold">NPR {ticket.price.toLocaleString()}</p>
+              <p className="mt-2 text-2xl font-extrabold">Rs. {ticket.price.toLocaleString()}</p>
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{ticket.detail}</p>
             </button>
           ))}
@@ -412,9 +515,9 @@ function TicketsPage() {
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input type="number" min="1" max="20" value={qty} onChange={(e) => setQty(Number(e.target.value) || 1)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Promo code<input value={promo} onChange={(e) => setPromo(e.target.value)} placeholder="Try MAGIC25" className="soft-field" /></label>
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
-              <Line label={selected.name} value={`NPR ${subtotal.toLocaleString()}`} />
-              <Line label="Discount" value={`NPR ${discount.toLocaleString()}`} />
-              <Line label="Total" value={`NPR ${total.toLocaleString()}`} strong />
+              <Line label={selected.name} value={`Rs. ${subtotal.toLocaleString()}`} />
+              <Line label="Discount" value={`Rs. ${discount.toLocaleString()}`} />
+              <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
             <button className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm">Continue</button>
             <p className="text-xs leading-5 text-[var(--muted)]">Your visit details will be kept ready for checkout.</p>
@@ -426,19 +529,80 @@ function TicketsPage() {
 }
 
 function MembershipPage() {
+  const [selectedPlan, setSelectedPlan] = useState(membershipPlans[0].name)
+  const activePlan = membershipPlans.find((plan) => plan.name === selectedPlan) ?? membershipPlans[0]
+  const choosePlan = (planName) => {
+    setSelectedPlan(planName)
+    window.requestAnimationFrame(() => document.getElementById('membership-booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
   return (
-    <PageShell eyebrow="Membership" title="Annual magic for regular guests and gifted family passes">
-      <div className="grid gap-5 md:grid-cols-3">
-        {memberPlans.map(([name, price, perks]) => (
-          <article key={name} className="storybook-card rounded-[2rem] p-6">
-            <Crown className="text-[var(--secondary)]" />
-            <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{name}</h3>
-            <p className="mt-2 text-xl font-extrabold">{price}</p>
-            <ul className="mt-5 space-y-3">
-              {perks.map((perk) => <li key={perk} className="flex gap-2 text-sm font-semibold text-[var(--muted)]"><ShieldCheck className="shrink-0 text-[var(--primary)]" size={18} />{perk}</li>)}
+    <PageShell eyebrow="Membership Program" title="More visits. More savings.">
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="rounded-[2rem] bg-[var(--primary)] p-6 text-white shadow-xl md:p-8">
+          <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffdad6]">Best value offer</p>
+          <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-5xl">Turn one regular visit into 30 magical memories.</h2>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">One regular entry is Rs. 1,500. With the Individual Fun Pass, guests get 30 entries for only Rs. 2,999 over 3 months. It is the easiest way to enjoy VR bikes, car simulators, shooting games, pool, arcade fun, and family attractions again and again.</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {['VR games included', 'Digital pass access', 'Great for weekends'].map((item) => (
+              <span key={item} className="rounded-2xl bg-white/12 px-4 py-3 text-sm font-extrabold text-white">{item}</span>
+            ))}
+          </div>
+        </div>
+        <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <Crown className="text-[var(--secondary)]" />
+          <h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)] md:text-3xl">Why become a member?</h3>
+          <div className="mt-5 space-y-3">
+            {['Huge savings compared to regular entry', 'More visits without worrying about ticket cost', 'Perfect for weekends, holidays, and after-school fun', 'Priority access to selected offers and events'].map((perk) => <p key={perk} className="text-sm font-bold leading-6 text-[var(--muted)]">- {perk}</p>)}
+          </div>
+        </aside>
+      </div>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        {membershipPlans.map((plan, index) => (
+          <article key={plan.name} className={`relative overflow-hidden rounded-[2rem] border p-6 shadow-sm ${index === 0 ? 'border-[#bbc3ff] bg-[var(--surface-3)]' : 'border-[var(--line)] bg-white'}`}>
+            {index === 0 && <span className="absolute right-5 top-5 rounded-full bg-[var(--secondary)] px-3 py-1 text-xs font-extrabold uppercase text-white">Best value</span>}
+            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{plan.subtitle}</p>
+            <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)] md:text-4xl">{plan.name}</h3>
+            <div className="mt-5 flex flex-wrap items-end gap-3">
+              <p className="font-display text-4xl font-bold text-[var(--primary)] md:text-5xl">{plan.price}</p>
+              <p className="pb-2 text-sm font-extrabold text-[var(--muted)]">{plan.entries}</p>
+            </div>
+            <div className="mt-5 rounded-2xl bg-white p-4 md:p-5">
+              <p className="font-display text-xl font-bold text-[var(--secondary)] md:text-2xl">{plan.perVisit}</p>
+              <p className="mt-2 text-sm font-semibold text-[var(--muted)]">Regular price value: {plan.regular}</p>
+              <p className="mt-1 text-lg font-extrabold text-[var(--primary)]">{plan.savings}</p>
+            </div>
+            <h4 className="font-display mt-5 text-xl font-bold text-[var(--primary)]">Perfect for</h4>
+            <ul className="mt-3 grid gap-2">
+              {plan.bestFor.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
             </ul>
+            <button className="sunset mt-6 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(plan.name)}>{index === 0 ? 'Buy Individual Fun Pass' : 'Buy Family Magic Pass'}</button>
           </article>
         ))}
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
+        <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Savings comparison</p>
+        <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">Why pay every time when the fun can continue?</h3>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <Line label="One regular entry" value="Rs. 1,500" strong />
+          <Line label="30 separate entries" value="Rs. 45,000" strong />
+          <Line label="Individual Fun Pass" value="Rs. 2,999" strong />
+        </div>
+        </div>
+        <form id="membership-booking" className="rounded-[2rem] border border-[#bbc3ff] bg-[var(--surface-3)] p-6 shadow-sm">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
+          <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
+          <div className="mt-5 grid gap-4">
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input className="soft-field" placeholder="Parent or member name" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input className="soft-field" placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input type="date" className="soft-field" /></label>
+            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-[var(--muted)]">{activePlan.entries} - {activePlan.price}</div>
+            <button type="button" className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm">Submit Booking Request</button>
+          </div>
+        </form>
       </div>
     </PageShell>
   )
@@ -472,7 +636,7 @@ function BookingForm() {
         <label className="grid gap-2 text-sm font-bold">Event date<input type="date" className="soft-field" /></label>
         <label className="grid gap-2 text-sm font-bold">Children attending<input type="number" value={kids} onChange={(e) => setKids(Number(e.target.value) || 1)} className="soft-field" /></label>
         <label className="grid gap-2 text-sm font-bold">Payment choice<select value={deposit} onChange={(e) => setDeposit(e.target.value)} className="soft-field"><option>Deposit</option><option>Full payment</option></select></label>
-        <div className="rounded-2xl bg-white p-4 text-sm font-bold">Draft package: {kids} children - {deposit}</div>
+        <div className="rounded-2xl bg-white p-4 text-sm font-bold">Estimated package: {kids} children - {deposit}</div>
         <button type="button" className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm">Save Reservation</button>
       </div>
     </form>
@@ -509,6 +673,7 @@ function MapLibreView() {
       maxZoom: 18,
       pitch: 64,
       bearing: -28,
+      attributionControl: false,
       style: {
         version: 8,
         sources: {
@@ -517,7 +682,6 @@ function MapLibreView() {
             tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
             maxzoom: 18,
-            attribution: 'OpenStreetMap contributors',
           },
         },
         layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
@@ -564,19 +728,47 @@ function zone(name, coords, height, color) {
 }
 
 function DiningPage() {
-  return <SimpleImagePage eyebrow="Dining" title="Family food, birthday catering, and mobile-order ready menus" image={img.dining} icon={Utensils} items={['Magic Cafe meals', 'Birthday catering add-ons', 'Voucher and partner offers', 'Future mobile ordering']} />
+  return <SimpleImagePage eyebrow="Dining" title="Snacks, meals, and celebration-friendly food for full family days" image={img.dining} icon={Utensils} items={['Magic Cafe meals', 'Birthday catering add-ons', 'Membership-friendly offers', 'Quick snacks between VR games and rides']} />
 }
 
 function EventsPage() {
+  const [selectedDate, setSelectedDate] = useState(15)
+  const eventSets = {
+    14: [
+      ['10:30 AM', 'VR Games Opening', 'Indoor Game Zone'],
+      ['01:00 PM', 'Family Pool Challenge', 'Pool & Skill Area'],
+      ['05:30 PM', 'Evening Ride Hour', 'Family Ride Court'],
+    ],
+    15: [
+      ['10:30 AM', 'Park Gates Open', 'Main Entrance'],
+      ['12:00 PM', 'VR Bike Racing Session', 'VR Zone'],
+      ['03:00 PM', 'VR Shooting Challenge', 'Game Arena'],
+      ['05:30 PM', 'Family Games Hour', 'Indoor Game Zone'],
+      ['08:30 PM', 'Magic Parade', 'Main Boulevard'],
+    ],
+    16: [
+      ['11:00 AM', 'VR Car Simulator Runs', 'VR Zone'],
+      ['02:00 PM', 'Birthday Celebration Slots', 'Party Hall'],
+      ['04:30 PM', 'Pool & Arcade Hour', 'Indoor Game Zone'],
+      ['08:30 PM', 'Magic Parade', 'Main Boulevard'],
+    ],
+  }
+  const selectedEvents = eventSets[selectedDate] ?? eventSets[15]
+
   return (
     <PageShell eyebrow="Calendar" title="Park hours, shows, parades, and seasonal events">
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         <div className="glass rounded-[2rem] p-6">
-          <h3 className="font-display text-2xl font-bold text-[var(--primary)]">Today</h3>
+          <h3 className="font-display text-2xl font-bold text-[var(--primary)]">May 2026</h3>
           <p className="mt-2 text-[var(--muted)]">Open 10:00 AM - 9:00 PM</p>
-          <div className="mt-5 grid grid-cols-7 gap-2 text-center text-sm font-bold">{Array.from({ length: 31 }, (_, i) => <span key={i} className={`rounded-full py-2 ${i + 1 === 14 ? 'bg-[var(--primary)] text-white' : 'bg-white text-[var(--muted)]'}`}>{i + 1}</span>)}</div>
+          <div className="mt-5 grid grid-cols-7 gap-2 text-center text-sm font-bold">
+            {Array.from({ length: 31 }, (_, i) => {
+              const day = i + 1
+              return <button key={day} onClick={() => setSelectedDate(day)} className={`rounded-full py-2 transition ${day === selectedDate ? 'bg-[var(--primary)] text-white' : 'bg-white text-[var(--muted)] hover:bg-[var(--surface-3)]'}`}>{day}</button>
+            })}
+          </div>
         </div>
-        <div className="space-y-3">{schedule.map(([time, title, place]) => <EventRow key={title} time={time} title={title} place={place} />)}</div>
+        <div className="space-y-3">{selectedEvents.map(([time, title, place]) => <EventRow key={`${selectedDate}-${title}`} time={time} title={title} place={place} />)}</div>
       </div>
     </PageShell>
   )
@@ -603,14 +795,14 @@ function AdminPage() {
     <PageShell eyebrow="Operations" title="Admin dashboard preview for sales, QR validation, and guest flow">
       <div className="grid gap-5 md:grid-cols-4">
         {[
-          ['Sales', 'NPR 461K'],
+        ['Sales', 'Rs. 461K'],
           ['Occupancy', '68%'],
           ['QR Scans', '1,248'],
           ['Promo Use', '24%'],
         ].map(([label, value]) => <div key={label} className="storybook-card rounded-[2rem] p-5"><p className="text-xs font-bold uppercase text-[var(--muted)]">{label}</p><p className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">{value}</p></div>)}
       </div>
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <QuickCard icon={QrCode} title="QR Validation" copy="Encrypted QR generation, turnstile scanner flow, duplicate-use prevention." />
+        <QuickCard icon={QrCode} title="QR Validation" copy="QR membership checks, ticket scans, and duplicate-use prevention." />
         <QuickCard icon={CreditCard} title="Payments" copy="Track ticket sales, deposits, refunds, and booking totals." />
         <QuickCard icon={ShieldCheck} title="Role Access" copy="Admin, scanner staff, finance, and content manager permissions." />
       </div>
@@ -675,7 +867,7 @@ function PhoneMock() {
   return (
     <div className="mx-auto max-w-[380px] rounded-[2.5rem] border-8 border-[var(--primary)] bg-[var(--surface)] p-4 shadow-2xl">
       <div className="flex items-center justify-between"><div><p className="text-xs font-bold text-[var(--muted)]">Good Morning,</p><h3 className="font-display text-2xl font-bold text-[var(--primary)]">Explorer!</h3></div><Bell /></div>
-      <div className="ticket-bg mt-5 rounded-[2rem] p-5 text-white"><p className="text-xs font-bold uppercase text-white/70">Up Next</p><h4 className="font-display text-2xl font-bold">Dragon Coaster</h4><p className="mt-2 text-sm">Lightning Lane - 11:45 AM</p><div className="mt-5 flex justify-between"><span className="rounded-xl bg-white/15 px-3 py-2 font-bold">2 Passes</span><QrCode size={44} /></div></div>
+      <div className="ticket-bg mt-5 rounded-[2rem] p-5 text-white"><p className="text-xs font-bold uppercase text-white/70">Up Next</p><h4 className="font-display text-2xl font-bold">VR Bike Racing</h4><p className="mt-2 text-sm">Member slot - 11:45 AM</p><div className="mt-5 flex justify-between"><span className="rounded-xl bg-white/15 px-3 py-2 font-bold">2 Passes</span><QrCode size={44} /></div></div>
       <div className="mt-5 grid grid-cols-2 gap-3">{[[Ticket, 'Tickets'], [MapIcon, 'Map'], [CalendarDays, 'Events'], [Utensils, 'Dining']].map(([Icon, label]) => <button key={label} className="rounded-2xl bg-white p-4 text-left shadow-sm"><Icon className="text-[var(--secondary)]" /><span className="mt-3 block text-sm font-extrabold">{label}</span></button>)}</div>
     </div>
   )
@@ -693,11 +885,11 @@ function MapTeaser({ setPage }) {
 }
 
 function SectionIntro({ eyebrow, title }) {
-  return <div className="mx-auto mb-8 mt-10 max-w-7xl px-4 md:mt-14 md:px-8"><p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{eyebrow}</p><h2 className="font-display mt-4 max-w-3xl text-4xl font-bold leading-tight text-[var(--primary)]">{title}</h2></div>
+  return <div className="mx-auto mb-8 mt-10 max-w-7xl px-4 md:mt-14 md:px-8"><p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{eyebrow}</p><h2 className="font-display mt-4 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">{title}</h2></div>
 }
 
 function PageShell({ eyebrow, title, children }) {
-  return <section className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16"><div className="mb-8 max-w-4xl"><p className="text-sm font-extrabold uppercase tracking-wider text-[var(--secondary)]">{eyebrow}</p><h1 className="font-display mt-2 text-4xl font-bold leading-tight text-[var(--primary)] md:text-6xl">{title}</h1></div>{children}</section>
+  return <section className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16"><div className="mb-8 max-w-4xl"><p className="text-sm font-extrabold uppercase tracking-wider text-[var(--secondary)]">{eyebrow}</p><h1 className="font-display mt-2 text-3xl font-bold leading-tight text-[var(--primary)] md:text-6xl">{title}</h1></div>{children}</section>
 }
 
 function QuickCard({ icon: Icon, title, copy, onClick }) {
@@ -717,7 +909,7 @@ function Footer({ setPage }) {
   return (
     <footer className="border-t border-[var(--line)] bg-[var(--surface-2)] px-4 py-12 text-[var(--ink)] md:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
-        <div><div className="flex items-center gap-3"><FerrisWheel className="text-[var(--secondary)]" /><h2 className="font-display text-2xl font-bold text-[var(--primary)]">Magic Land</h2></div><p className="mt-4 max-w-sm leading-7 text-[var(--muted)]">Magic Land Family Fun Park is a family destination for rides, birthdays, dining, events, and joyful days out.</p></div>
+        <div><div className="flex items-center gap-3"><FerrisWheel className="text-[var(--secondary)]" /><h2 className="font-display text-2xl font-bold text-[var(--primary)]">Magic Land</h2></div><p className="mt-4 max-w-sm leading-7 text-[var(--muted)]">A place where kids laugh, families bond, and memories become magic through VR games, rides, celebrations, and warm hospitality.</p></div>
         <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Visit</h3><div className="mt-4 grid gap-2">{nav.slice(0, 6).map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
         <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Guest Care</h3><p className="mt-4 text-[var(--muted)]">Privacy, terms, refund, cancellation, cookie policy, and FAQ information are available for guests.</p></div>
       </div>
