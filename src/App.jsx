@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
+  ArrowRight,
   Bell,
   CalendarDays,
   Clock3,
@@ -15,6 +16,7 @@ import {
   Map as MapIcon,
   MapPin,
   Menu,
+  Palette,
   PartyPopper,
   Phone,
   QrCode,
@@ -23,9 +25,11 @@ import {
   Ticket,
   Utensils,
   Wallet,
+  X,
 } from 'lucide-react'
 
 const park = { lng: 85.3239042, lat: 27.7836311 }
+const tokhaMunicipality = { lng: 85.32746, lat: 27.74526 }
 const weatherLabels = {
   0: 'Clear',
   1: 'Mainly clear',
@@ -44,8 +48,37 @@ const weatherLabels = {
   82: 'Heavy showers',
   95: 'Thunderstorm',
 }
-const directionsUrl =
-  'https://www.google.com/maps/dir//Magic+Land+Family+Fun+Park,+Q836%2B95P,+Tarakeshwar+44600/@27.7184512,85.3381417,14z/data=!3m1!4b1!4m8!4m7!1m0!1m5!1m1!1s0x39eb1ff50274c9b9:0x2acfcb4719ba6c9d!2m2!1d85.3239042!2d27.7836311'
+const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${park.lat},${park.lng}&destination_place_id=Magic+Land+Family+Fun+Park`
+const tokhaEmbedUrl = `https://www.google.com/maps?output=embed&saddr=Tokha+Bazar,+Kathmandu&daddr=${park.lat},${park.lng}`
+const routeToPark = [
+  [85.329556, 27.767264],
+  [85.330302, 27.767803],
+  [85.330233, 27.768763],
+  [85.329311, 27.769528],
+  [85.329252, 27.770201],
+  [85.329552, 27.770913],
+  [85.32975, 27.771522],
+  [85.330183, 27.772184],
+  [85.330419, 27.773571],
+  [85.330242, 27.774027],
+  [85.329655, 27.774658],
+  [85.328993, 27.775225],
+  [85.327934, 27.775444],
+  [85.327379, 27.776172],
+  [85.326851, 27.777065],
+  [85.325808, 27.777753],
+  [85.32572, 27.778661],
+  [85.325366, 27.779322],
+  [85.324175, 27.779864],
+  [85.323456, 27.780173],
+  [85.32322, 27.781056],
+  [85.322494, 27.781896],
+  [85.321838, 27.782094],
+  [85.32212, 27.782916],
+  [85.322599, 27.783203],
+  [85.323293, 27.783429],
+  [85.323901, 27.783634],
+]
 
 const img = {
   hero: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDitvdo9wpvDjiLye1BqgtOFcyRa8mT5uGfRwXEC3KADDNUxfJvWubZxs9blTBbdivJCn5I0z-Lbwszfk25rMelo8S4i37nUsz2Db2W6wQEEHoMcT9vRJbBvS0YjANsG_sM4R48XAynoDm8nduXp_ZJLtBCPdSC1nCFcAq5QGzcC7vkZ2YqB_LsJ5zeBmDxWWxPT_oHb8BNACQ_PoGi2yR0fU7m2t8eUVf8W_rfaDDZpGtZv0KGSru7zfoFv6E_D1aIgUEj7nJKANGV',
@@ -62,8 +95,14 @@ const img = {
   vrBike: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?auto=format&fit=crop&w=900&q=80',
   vrCar: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80',
   vrShooting: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=80',
-  pool: 'https://images.unsplash.com/photo-1604079628040-94301bb21b91?auto=format&fit=crop&w=900&q=80',
+  pool: 'https://images.unsplash.com/photo-1629224336810-9d8805b95e76?auto=format&fit=crop&w=900&q=80',
   familyGames: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=80',
+  kidsPlay: 'https://images.unsplash.com/photo-1564429238817-393bd4286b2d?auto=format&fit=crop&w=900&q=80',
+  creativeVillage: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=900&q=80',
+  basketball: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80',
+  boxing: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&w=900&q=80',
+  bicycle: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=900&q=80',
+  zipline: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=900&q=80',
 }
 
 const nav = [
@@ -85,12 +124,43 @@ const moreNav = [
   { id: 'contact', label: 'Contact', icon: Mail },
 ]
 
+const zoneFilters = ['All', 'VR & Simulators', 'Family Rides', 'Kids Play', 'Arcade & Skill', 'Creative Village']
+
+const zoneCards = [
+  { title: 'VR & Simulator Zone', zone: 'VR & Simulators', icon: Ticket, image: img.vrBike, copy: 'VR bikes, car simulators, immersive shooting, motion games, and high-energy replay fun.' },
+  { title: 'Family Rides', zone: 'Family Rides', icon: FerrisWheel, image: img.carousel, copy: 'Classic rides for children and families, from carousel moments to bumper car laughs.' },
+  { title: 'Kids Play Zone', zone: 'Kids Play', icon: PartyPopper, image: img.kidsPlay, copy: 'Soft play, jumping, bouncy castle, spray ball, trampoline bridge, zipline, and active fun.' },
+  { title: 'Arcade & Skill Games', zone: 'Arcade & Skill', icon: Ticket, image: img.pool, copy: 'Coin games, basketball machines, pool tables, prize games, and quick repeatable challenges.' },
+  { title: 'Creative Village', zone: 'Creative Village', icon: Palette, image: img.creativeVillage, copy: 'A softer village-style space for pottery, painting, color play, arts, crafts, and family bonding.' },
+]
+
 const attractionList = [
-  { name: 'VR Bike Racing', category: 'VR thrill', wait: '12 min', height: '8+ years', image: img.vrBike, copy: 'High-energy bike racing with motion seats, speed effects, and friendly competition.' },
-  { name: 'VR Car Simulator', category: 'Racing', wait: '15 min', height: '8+ years', image: img.vrCar, copy: 'Steer, drift, and race through immersive tracks made for kids, teens, and parents.' },
-  { name: 'VR Shooting Arena', category: 'Skill game', wait: '10 min', height: '10+ years', image: img.vrShooting, copy: 'Safe, interactive target games with scoreboards, missions, and replay-friendly challenges.' },
-  { name: 'Pool & Skill Games', category: 'Indoor', wait: 'Open', height: 'All ages', image: img.pool, copy: 'Pool tables, arcade games, prize moments, and relaxed indoor entertainment.' },
-  { name: 'Family Ride Court', category: 'Family', wait: '5 min', height: 'All ages', image: img.familyGames, copy: 'Gentle rides, playful corners, music, and photo moments for the whole family.' },
+  { name: 'VR Machine Pods', zone: 'VR & Simulators', category: 'VR', wait: '5 units', height: '8+ years', image: img.vrBike, bestFor: 'First-time VR explorers', copy: 'Immersive VR pods for motion games, fantasy experiences, and repeat-friendly digital adventures.' },
+  { name: 'VR Bike Racing', zone: 'VR & Simulators', category: 'VR thrill', wait: '12 min', height: '8+ years', image: img.vrBike, bestFor: 'Speed lovers', copy: 'High-energy bike racing with motion seats, speed effects, and friendly competition.' },
+  { name: 'VR Car Simulator', zone: 'VR & Simulators', category: 'Racing', wait: '15 min', height: '8+ years', image: img.vrCar, bestFor: 'Racing fans and groups', copy: 'Steer, drift, and race through immersive tracks made for kids, teens, and parents.' },
+  { name: 'Immersive Gun Shooting', zone: 'VR & Simulators', category: 'Skill game', wait: '10 min', height: '10+ years', image: img.vrShooting, bestFor: 'Score challenges', copy: 'Safe, interactive target games with scoreboards, missions, and replay-friendly challenges.' },
+  { name: 'Horse Riding Archery', zone: 'VR & Simulators', category: 'Action', wait: 'Session', height: '10+ years', image: img.familyGames, bestFor: 'Adventure play', copy: 'A themed skill experience combining movement, aim, and playful competition.' },
+  { name: 'Boxing Challenge', zone: 'VR & Simulators', category: 'Challenge', wait: 'Quick play', height: '10+ years', image: img.boxing, bestFor: 'Energy release', copy: 'A punch-score challenge for teens, parents, and groups who enjoy friendly contests.' },
+  { name: '16 Seats Carousel', zone: 'Family Rides', category: 'Family', wait: '5 min', height: 'All ages', image: img.carousel, bestFor: 'Young children', copy: 'A classic carousel ride for gentle family fun and photo-friendly moments.' },
+  { name: 'Flying Spaceship', zone: 'Family Rides', category: 'Ride', wait: '8 min', height: 'All ages', image: img.coaster, bestFor: 'Little adventurers', copy: 'A cheerful spaceship ride that gives children a playful flying feeling.' },
+  { name: 'Self-Control Plane', zone: 'Family Rides', category: 'Ride', wait: '8 min', height: 'All ages', image: img.castle, bestFor: 'Kids who like controls', copy: 'Children can guide their own plane-style ride with gentle up-and-down movement.' },
+  { name: 'Bumper Cars', zone: 'Family Rides', category: 'Family', wait: '33 cars', height: '6+ years', image: img.familyGames, bestFor: 'Family laughs', copy: 'Classic bumper car fun for children, parents, and groups who enjoy light competition.' },
+  { name: 'Jumping Zone', zone: 'Kids Play', category: 'Active', wait: 'Open', height: 'Kids', image: img.kidsPlay, bestFor: 'Active kids', copy: 'A safe active-play area for jumping, movement, and burn-off-energy fun.' },
+  { name: 'Bouncy Castle', zone: 'Kids Play', category: 'Soft play', wait: '3 sets', height: 'Kids', image: img.kidsPlay, bestFor: 'Younger children', copy: 'Colorful inflatable play for birthdays, weekend visits, and safe energetic play.' },
+  { name: 'Spray Ball Play', zone: 'Kids Play', category: 'Soft play', wait: 'Open', height: 'Kids', image: img.splash, bestFor: 'Group play', copy: 'A playful ball-spray activity for children who love movement and interactive play.' },
+  { name: 'Soft Play Structures', zone: 'Kids Play', category: 'Play', wait: '7 sets', height: 'Kids', image: img.kidsPlay, bestFor: 'Small children', copy: 'Non-powered play equipment for climbing, exploring, and supervised soft adventure.' },
+  { name: 'Trampoline Bridge', zone: 'Kids Play', category: 'Active', wait: 'Open', height: 'Kids', image: img.kidsPlay, bestFor: 'Balance play', copy: 'A trampoline-style bridge for active kids who enjoy bouncing and crossing challenges.' },
+  { name: 'Zipline', zone: 'Kids Play', category: 'Adventure', wait: 'Session', height: 'Kids', image: img.zipline, bestFor: 'Brave kids', copy: 'A short adventure-style zipline moment that adds movement and excitement to the play zone.' },
+  { name: 'Teeterboard & Rocking Horse', zone: 'Kids Play', category: 'Toddler', wait: 'Open', height: 'Kids', image: img.carousel, bestFor: 'Toddlers', copy: 'Gentle balancing and rocking play for younger children and calmer visits.' },
+  { name: 'Bicycle Play', zone: 'Kids Play', category: 'Outdoor', wait: '12 bikes', height: 'Kids', image: img.bicycle, bestFor: 'Active riders', copy: 'Bicycle play for children who enjoy simple movement, coordination, and outdoor fun.' },
+  { name: 'Coin Game Machines', zone: 'Arcade & Skill', category: 'Arcade', wait: '26 games', height: 'All ages', image: img.arcade, bestFor: 'Quick replays', copy: 'A large set of coin game machines for quick challenges and repeatable family fun.' },
+  { name: 'Basketball Machines', zone: 'Arcade & Skill', category: 'Skill', wait: '3 machines', height: 'All ages', image: img.basketball, bestFor: 'Score battles', copy: 'Basketball shooting machines for timed rounds, friend challenges, and high-score play.' },
+  { name: 'Indoor Pool Tables', zone: 'Arcade & Skill', category: 'Indoor', wait: 'Open', height: 'All ages', image: img.pool, bestFor: 'Parents and teens', copy: 'Pool tables and indoor skill games for relaxed competition between rides.' },
+  { name: 'Prize & Skill Corner', zone: 'Arcade & Skill', category: 'Skill', wait: 'Open', height: 'All ages', image: img.arcade, bestFor: 'Membership value', copy: 'Prize-style moments, quick challenges, and arcade corners that make repeat visits worthwhile.' },
+  { name: 'Pottery Workshop', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.creativeVillage, bestFor: 'Parent-child bonding', copy: 'A calm hands-on pottery space inside aesthetic village-style homes for creative family time.' },
+  { name: 'Painting Studio', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.creativeVillage, bestFor: 'Birthdays and schools', copy: 'Painting sessions where children can explore colors, brushes, and take-home memories.' },
+  { name: 'Color Sand Play', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'Kids', image: img.creativeVillage, bestFor: 'Sensory play', copy: 'Color sand activities for calm sensory play, art corners, and photo-friendly moments.' },
+  { name: 'Arts & Crafts Village Homes', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'All ages', image: img.creativeVillage, bestFor: 'Slow family time', copy: 'Aesthetic village homes for arts, crafts, workshops, and quiet moments between high-energy games.' },
 ]
 
 const ticketOptions = [
@@ -125,22 +195,42 @@ const membershipPlans = [
 
 
 function App() {
-  const [page, setPage] = useState('home')
+  const pageFromLocation = () => window.location.hash.replace(/^#\/?/, '') || 'home'
+  const [page, setPageState] = useState(pageFromLocation)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const allPages = useMemo(() => [...nav, ...moreNav], [])
   const active = allPages.find((item) => item.id === page) ?? allPages[0]
+  const navigate = (nextPage, replace = false) => {
+    setMenuOpen(false)
+    setPageState(nextPage)
+    const nextUrl = `#/${nextPage}`
+    if (replace) {
+      window.history.replaceState(null, '', nextUrl)
+    } else if (window.location.hash !== nextUrl) {
+      window.history.pushState(null, '', nextUrl)
+    }
+  }
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [page])
 
+  useEffect(() => {
+    const handlePop = () => {
+      setMenuOpen(false)
+      setPageState(pageFromLocation())
+    }
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
+  }, [])
+
   return (
     <div className="min-h-screen">
-      <Header page={page} setPage={setPage} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+      <Header page={page} setPage={navigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       <main>
-        {page === 'home' && <HomePage setPage={setPage} />}
-        {page === 'attractions' && <AttractionsPage />}
+        {page === 'home' && <HomePage setPage={navigate} />}
+        {page === 'attractions' && <AttractionsPage setPage={navigate} />}
         {page === 'tickets' && <TicketsPage />}
         {page === 'memberships' && <MembershipPage />}
         {page === 'birthdays' && <BirthdaysPage />}
@@ -151,10 +241,10 @@ function App() {
         {page === 'admin' && <AdminPage />}
         {page === 'policies' && <PoliciesPage />}
         {page === 'contact' && <ContactPage />}
-        {page === 'more' && <MorePage setPage={setPage} />}
+        {page === 'more' && <MorePage setPage={navigate} />}
       </main>
-      <Footer setPage={setPage} />
-      <BottomNav active={active.id} setPage={setPage} />
+      <Footer setPage={navigate} />
+      <BottomNav active={active.id} setPage={navigate} />
     </div>
   )
 }
@@ -221,13 +311,18 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
           <button className="sunset hidden rounded-full px-5 py-3 text-sm font-extrabold shadow-sm md:inline-flex" onClick={() => setPage('tickets')}>
             Buy Tickets
           </button>
-          <button className="grid h-11 w-11 place-items-center rounded-full bg-white text-[var(--primary)] shadow-sm xl:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-            <Menu size={22} />
+          <button
+            className="grid h-11 w-11 place-items-center rounded-full bg-white text-[var(--primary)] shadow-sm xl:hidden"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
       {menuOpen && (
-        <div className="mx-auto grid max-w-7xl gap-2 px-4 pb-4 md:grid-cols-3 md:px-8 xl:hidden">
+        <div className="mx-auto grid max-h-[calc(100dvh-5rem)] max-w-7xl gap-2 overflow-y-auto px-4 pb-24 md:grid-cols-3 md:px-8 xl:hidden">
           {[...nav, ...moreNav].filter((item) => item.id !== 'more').map((item) => (
             <button key={item.id} className="rounded-2xl bg-white px-4 py-3 text-left font-bold text-[var(--primary)]" onClick={() => { setPage(item.id); setMenuOpen(false) }}>
               {item.label}
@@ -270,12 +365,17 @@ function HomePage({ setPage }) {
         <div className="relative h-[480px] w-full overflow-hidden">
           <img src={img.mobileHero} alt="Magic Land castle" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.82)] via-[rgba(3,13,70,0.2)] to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 space-y-4 p-4 pb-16 text-white">
-            <h1 className="font-display max-w-[320px] text-3xl font-bold leading-tight">Kids Laugh. Families Bond. Memories Become Magic.</h1>
-            <button className="sunset inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-extrabold shadow-lg" onClick={() => setPage('attractions')}>
-              Explore the Park
-              <Sparkles size={18} />
-            </button>
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 space-y-4 p-4 text-left text-white">
+            <h1 className="font-display max-w-[330px] text-2xl font-bold leading-tight">Kids Laugh. Families Bond. Memories Become Magic.</h1>
+            <div className="flex flex-wrap gap-3">
+              <button className="sunset inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold shadow-lg" onClick={() => setPage('tickets')}>
+                Buy Tickets
+              </button>
+              <button className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/18 px-5 py-3 text-sm font-extrabold text-white backdrop-blur-sm" onClick={() => setPage('attractions')}>
+                Explore Park
+                <ArrowRight size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -337,8 +437,9 @@ function HomePage({ setPage }) {
         <DesktopAttractions setPage={setPage} />
         <StatusStrip />
       </div>
+      <InsideMagicLand setPage={setPage} />
       <div className="md:hidden">
-        <AttractionGrid compact />
+        <AttractionGrid compact setPage={setPage} />
       </div>
       <MembershipTeaser setPage={setPage} />
       <div className="hidden md:block">
@@ -366,6 +467,31 @@ function MembershipTeaser({ setPage }) {
           <p className="mt-2 text-sm font-semibold text-white/82">4 members, 120 total entries, about Rs. 83 per visit.</p>
           <button className="sunset mt-5 w-full rounded-full px-5 py-3 font-extrabold" onClick={() => setPage('memberships')}>Compare Savings</button>
         </div>
+      </div>
+    </section>
+  )
+}
+
+function InsideMagicLand({ setPage }) {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-14">
+      <SectionIntro eyebrow="What's inside" title="Five experience zones, one full family day" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {zoneCards.map(({ title, zone, icon: Icon, image, copy }) => (
+          <button key={title} onClick={() => setPage('attractions')} className="storybook-card group overflow-hidden rounded-[1.5rem] text-left shadow-sm transition hover:-translate-y-1">
+            <div className="relative h-40 overflow-hidden">
+              <img src={image} alt={title} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+              <span className="absolute left-3 top-3 grid h-10 w-10 place-items-center rounded-xl bg-white text-[var(--primary)] shadow-sm">
+                <Icon size={19} />
+              </span>
+            </div>
+            <div className="p-4">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">{zone}</p>
+              <h3 className="font-display mt-1 text-xl font-bold text-[var(--primary)]">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p>
+            </div>
+          </button>
+        ))}
       </div>
     </section>
   )
@@ -404,7 +530,7 @@ function DesktopAttractions({ setPage }) {
           <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[var(--line)]" /> Shows</span>
         </div>
         <div className="grid grid-cols-5 gap-5">
-          {attractionList.map((ride) => (
+          {attractionList.slice(0, 10).map((ride) => (
             <button key={ride.name} onClick={() => setPage('attractions')} className="group text-left">
               <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-lg transition duration-300 group-hover:-translate-y-2">
                 <img src={ride.image} alt={ride.name} className="h-full w-full object-cover" />
@@ -447,20 +573,33 @@ function StatusStrip() {
   )
 }
 
-function AttractionsPage() {
+function AttractionsPage({ setPage }) {
+  const [activeZone, setActiveZone] = useState('All')
   return (
     <PageShell eyebrow="Attractions" title="VR games, skill games, rides, and family fun">
-      <AttractionGrid />
+      <div className="mb-7 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+        {zoneFilters.map((zone) => (
+          <button
+            key={zone}
+            onClick={() => setActiveZone(zone)}
+            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-extrabold transition ${activeZone === zone ? 'bg-[var(--primary)] text-white' : 'border border-[var(--line)] bg-white text-[var(--muted)]'}`}
+          >
+            {zone}
+          </button>
+        ))}
+      </div>
+      <AttractionGrid activeZone={activeZone} setPage={setPage} />
     </PageShell>
   )
 }
 
-function AttractionGrid({ compact = false }) {
+function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
+  const visibleAttractions = attractionList.filter((ride) => activeZone === 'All' || ride.zone === activeZone)
   return (
     <section className={`mx-auto max-w-7xl px-4 ${compact ? 'py-12' : ''} md:px-8`}>
       {compact && <SectionIntro eyebrow="Attractions" title="VR games and rides for every age group" />}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        {attractionList.map((ride, index) => (
+        {visibleAttractions.map((ride, index) => (
           <article key={ride.name} className={`storybook-card group rounded-[2rem] p-4 shadow-sm transition hover:-translate-y-1 ${index === 1 ? 'lg:mt-8' : ''}`}>
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
               <img src={ride.image} alt={ride.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
@@ -468,10 +607,17 @@ function AttractionGrid({ compact = false }) {
             </div>
             <h3 className="font-display mt-4 text-xl font-bold text-[var(--primary)] md:text-2xl">{ride.name}</h3>
             <p className="mt-2 min-h-16 text-sm leading-6 text-[var(--muted)]">{ride.copy}</p>
+            {!compact && <p className="mt-3 rounded-full bg-[var(--surface-3)] px-3 py-2 text-xs font-extrabold text-[var(--primary)]">Best for: {ride.bestFor}</p>}
             <div className="mt-4 flex justify-between border-t border-[var(--line)] pt-4 text-xs font-extrabold text-[var(--secondary)]">
               <span>{ride.wait}</span>
               <span>{ride.height}</span>
             </div>
+            {!compact && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button className="sunset rounded-full px-4 py-2 text-sm font-extrabold" onClick={() => setPage?.('tickets')}>Book Game</button>
+                <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]" onClick={() => setPage?.('memberships')}>Use Membership</button>
+              </div>
+            )}
           </article>
         ))}
       </div>
@@ -644,15 +790,30 @@ function BookingForm() {
 }
 
 function MapPage() {
+  const [routeCoords, setRouteCoords] = useState(routeToPark)
+  const [routeLabel, setRouteLabel] = useState('Tokha Bazar')
+
+  const showTokhaRoute = () => {
+    setRouteCoords(routeToPark)
+    setRouteLabel('Tokha Bazar')
+  }
+
   return (
     <PageShell eyebrow="Location and map" title="Find Magic Land Family Fun Park in Tarakeshwar">
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <MapLibreView />
+        <MapLibreView key={`${routeLabel}-${routeCoords[0]?.join(',')}`} routeCoords={routeCoords} routeLabel={routeLabel} />
         <aside className="glass rounded-[2rem] p-6">
           <MapPin className="text-[var(--secondary)]" />
           <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Magic Land Family Fun Park</h3>
-          <p className="mt-3 leading-7 text-[var(--muted)]">Q836+95P, Tarakeshwar 44600. Coordinates: 27.7836311, 85.3239042.</p>
-          <a href={directionsUrl} target="_blank" rel="noreferrer" className="sunset mt-6 inline-flex rounded-full px-6 py-4 font-extrabold shadow-sm">Open Google Directions</a>
+          <p className="mt-3 leading-7 text-[var(--muted)]">Q836+95P, Tarakeshwar 44600. Preview the Tokha Bazar route or open directions from your current location.</p>
+          <div className="mt-6 grid gap-3">
+            <button type="button" onClick={showTokhaRoute} className="sunset inline-flex rounded-full px-6 py-4 font-extrabold shadow-sm">Show Tokha Route</button>
+            <a href={directionsUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-full border border-[var(--line)] px-6 py-4 text-center font-extrabold text-[var(--primary)]">Directions from my location</a>
+          </div>
+          <div className="mt-6 border-t border-[var(--line)] pt-5">
+            <p className="text-sm font-bold text-[var(--muted)]">Park capacity</p>
+            <p className="font-display mt-2 text-xl font-bold text-[var(--primary)]">Around 700 guests at once</p>
+          </div>
           <div className="mt-6 rounded-2xl bg-white p-4 text-sm leading-6 text-[var(--muted)]">Use the map to check the park area, nearby roads, and the easiest arrival route before your visit.</div>
         </aside>
       </div>
@@ -660,35 +821,72 @@ function MapPage() {
   )
 }
 
-function MapLibreView() {
+function MapLibreView({ routeCoords, routeLabel }) {
   const container = useRef(null)
   const mapRef = useRef(null)
+  const [mapFailed, setMapFailed] = useState(false)
 
   useEffect(() => {
     if (!container.current || mapRef.current) return
-    const map = new maplibregl.Map({
-      container: container.current,
-      center: [park.lng, park.lat],
-      zoom: 15.8,
-      maxZoom: 18,
-      pitch: 64,
-      bearing: -28,
-      attributionControl: false,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            maxzoom: 18,
+    let map
+    try {
+      map = new maplibregl.Map({
+        container: container.current,
+        center: [85.3267, 27.7739],
+        zoom: 13.4,
+        maxZoom: 18,
+        pitch: 48,
+        bearing: -16,
+        attributionControl: false,
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              maxzoom: 18,
+            },
           },
+          layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
         },
-        layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-      },
-    })
+      })
+    } catch {
+      window.setTimeout(() => setMapFailed(true), 0)
+      return undefined
+    }
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right')
+    map.on('error', () => setMapFailed(true))
     map.on('load', () => {
+      map.addSource('tokha-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: routeCoords },
+        },
+      })
+      map.addLayer({
+        id: 'tokha-route-line',
+        type: 'line',
+        source: 'tokha-route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#e41f25', 'line-width': 7, 'line-opacity': 0.88 },
+      })
+      map.addLayer({
+        id: 'tokha-route-arrow',
+        type: 'symbol',
+        source: 'tokha-route',
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 72,
+          'text-field': '›',
+          'text-size': 26,
+          'text-rotate': 0,
+          'text-keep-upright': false,
+        },
+        paint: { 'text-color': '#030d46', 'text-halo-color': '#ffffff', 'text-halo-width': 1 },
+      })
       map.addSource('magic-zones', {
         type: 'geojson',
         data: {
@@ -711,16 +909,41 @@ function MapLibreView() {
           'fill-extrusion-opacity': 0.72,
         },
       })
+      new maplibregl.Marker({ color: '#bb0014' }).setLngLat(routeCoords[0]).setPopup(new maplibregl.Popup().setHTML(`<strong>${routeLabel}</strong><br/>Route preview toward Magic Land`)).addTo(map)
+      new maplibregl.Marker({ color: '#1b245a' }).setLngLat([tokhaMunicipality.lng, tokhaMunicipality.lat]).setPopup(new maplibregl.Popup().setHTML('<strong>Tokha Municipality</strong><br/>Nearby reference point')).addTo(map)
       new maplibregl.Marker({ color: '#003016' }).setLngLat([park.lng, park.lat]).setPopup(new maplibregl.Popup().setHTML('<strong>Magic Land Family Fun Park</strong><br/>Tarakeshwar 44600')).addTo(map)
+      const bounds = routeCoords.reduce((box, coord) => box.extend(coord), new maplibregl.LngLatBounds(routeCoords[0], routeCoords[0]))
+      map.fitBounds(bounds, { padding: 64, duration: 0 })
     })
     mapRef.current = map
     return () => {
       map.remove()
       mapRef.current = null
     }
-  }, [])
+  }, [routeCoords, routeLabel])
 
+  if (mapFailed) return <StaticRouteFallback routeLabel={routeLabel} />
   return <div ref={container} className="h-[520px] overflow-hidden rounded-[2rem] border border-[var(--line)] bg-[var(--surface-3)] shadow-xl md:h-[680px]" />
+}
+
+function StaticRouteFallback({ routeLabel }) {
+  return (
+    <div className="relative h-[520px] overflow-hidden rounded-[2rem] border border-[var(--line)] bg-[var(--surface-3)] shadow-xl md:h-[680px]">
+      <iframe title="Tokha Bazar to Magic Land route map" src={tokhaEmbedUrl} className="absolute inset-0 h-full w-full border-0" loading="lazy" />
+      <div className="pointer-events-none relative flex h-full flex-col justify-between p-4">
+        <div className="w-fit rounded-2xl bg-white/88 p-4 shadow-sm">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Nearby start</p>
+          <h3 className="font-display text-2xl font-bold text-[var(--primary)]">{routeLabel}</h3>
+          <p className="text-sm font-semibold text-[var(--muted)]">Road map toward Magic Land</p>
+        </div>
+        <div className="ml-auto w-fit rounded-2xl bg-white/88 p-4 text-right shadow-sm">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Arrive</p>
+          <h3 className="font-display text-2xl font-bold text-[var(--primary)]">Magic Land</h3>
+          <p className="text-sm font-semibold text-[var(--muted)]">Tarakeshwar 44600</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function zone(name, coords, height, color) {
