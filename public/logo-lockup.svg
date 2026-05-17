@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" role="img" aria-labelledby="title desc">
+  <title id="title">Magic Land Family Fun Park logo</title>
+  <desc id="desc">A colorful Magic Land wordmark with a circular amusement park mark and Family Fun Park descriptor.</desc>
+  <image href="logo-mark.svg" x="2" y="2" width="116" height="116" preserveAspectRatio="xMidYMid meet"/>
+
+  <g font-family="Quicksand, 'Arial Rounded MT Bold', Arial, sans-serif" font-weight="800" letter-spacing=".2">
+    <text x="132" y="58" font-size="42">
+      <tspan fill="#EF2B5A">M</tspan><tspan fill="#FF8A00">a</tspan><tspan fill="#1F8BEA">g</tspan><tspan fill="#33B84A">i</tspan><tspan fill="#6D36A6">c</tspan>
+      <tspan fill="#073D8F"> </tspan><tspan fill="#073D8F">L</tspan><tspan fill="#EF2B5A">a</tspan><tspan fill="#FF8A00">n</tspan><tspan fill="#33B84A">d</tspan>
+    </text>
+  </g>
+  <text x="134" y="82" fill="#2F3A4A" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="14" font-weight="800" letter-spacing="3.4">FAMILY FUN PARK</text>
+</svg>

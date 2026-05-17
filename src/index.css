@@ -4,10 +4,10 @@
 :root {
   --primary: #030d46;
   --primary-2: #1b245a;
-  --secondary: #bb0014;
-  --gold: #e41f25;
+  --secondary: #ef2b5a;
+  --gold: #ff8a00;
   --gold-soft: #ffdad6;
-  --terracotta: #93000d;
+  --terracotta: #93001e;
   --surface: #fbf8ff;
   --surface-2: #f5f7ff;
   --surface-3: #ececff;
@@ -86,7 +86,7 @@ a {
 }
 
 .sunset {
-  background: #e41f25;
+  background: var(--secondary);
   color: #ffffff;
 }
 

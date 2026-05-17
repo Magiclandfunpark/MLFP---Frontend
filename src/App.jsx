@@ -293,14 +293,8 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(198,197,209,0.55)] bg-[rgba(251,248,255,0.94)] backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-8">
-        <button className="flex items-center gap-3 text-left" onClick={() => setPage('home')}>
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-[var(--surface-3)] text-[var(--primary)] ring-1 ring-[var(--line)]">
-            <FerrisWheel size={22} />
-          </span>
-          <span>
-            <span className="font-display block text-2xl font-bold text-[var(--primary)]">Magic Land</span>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] sm:text-xs">Family Fun Park</span>
-          </span>
+        <button className="flex items-center text-left" onClick={() => setPage('home')} aria-label="Magic Land Family Fun Park home">
+          <BrandLockup />
         </button>
         <nav className="hidden items-center gap-1 xl:flex">
           {[...nav.slice(0, 6), ...moreNav.slice(0, 2)].map((item) => (
@@ -354,7 +348,7 @@ function HomePage({ setPage }) {
           <div className="max-w-xl text-white">
             <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--gold-soft)]">Now open</p>
             <h1 className="font-display text-6xl font-bold leading-tight">A Place Where Kids Laugh, Families Bond, and Memories Become Magic</h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/88">Welcome to Magic Land Family Fun Park, a joyful destination with VR games, rides, arcade fun, warm hospitality, and a welcoming experience for everyone.</p>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/88">Magic Land Family Fun Park is a place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p>
             <div className="mt-8 flex flex-wrap gap-4">
               <button className="sunset rounded-full px-8 py-4 text-lg font-extrabold shadow-xl" onClick={() => setPage('tickets')}>Book Quest</button>
               <button className="rounded-full border-2 border-white/40 bg-white/10 px-8 py-4 text-lg font-extrabold text-white backdrop-blur-sm" onClick={() => setPage('events')}>View Events</button>
@@ -369,7 +363,7 @@ function HomePage({ setPage }) {
           <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.82)] via-[rgba(3,13,70,0.2)] to-transparent" />
           <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 space-y-4 p-4 text-left text-white">
             <h1 className="font-display max-w-[330px] text-2xl font-bold leading-tight">Kids Laugh. Families Bond. Memories Become Magic.</h1>
-            <p className="max-w-[330px] text-sm font-semibold leading-6 text-white/88">A joyful family park with VR games, rides, arcade fun, creative play, and warm hospitality.</p>
+            <p className="max-w-[330px] text-sm font-semibold leading-6 text-white/88">A joyful family park with VR games, rides, creative play, exceptional hospitality, and a welcoming experience for everyone.</p>
             <div className="flex flex-wrap gap-3">
               <button className="sunset inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold shadow-lg" onClick={() => setPage('tickets')}>
                 Buy Tickets
@@ -385,13 +379,13 @@ function HomePage({ setPage }) {
         <div className="relative z-10 mx-4 -mt-12 rounded-xl border border-[rgba(198,197,209,0.45)] bg-white p-4 shadow-xl shadow-[rgba(27,36,90,0.12)]">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-[rgba(120,220,119,0.28)] text-[#40a346]">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-[rgba(31,139,234,0.14)] text-[#1F8BEA]">
                 <Clock3 size={22} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#40a346]" />
-                  <span className="text-sm font-extrabold uppercase text-[#40a346]">Open</span>
+                  <span className="h-2 w-2 rounded-full bg-[#1F8BEA]" />
+                  <span className="text-sm font-extrabold uppercase text-[#1F8BEA]">Open</span>
                 </div>
                 <p className="text-sm font-bold text-[var(--muted)]">10:00 AM - 9:00 PM</p>
               </div>
@@ -431,7 +425,7 @@ function HomePage({ setPage }) {
                 <span className="font-display text-2xl font-bold">8:30 PM</span>
               </div>
             </div>
-            <span className="absolute right-4 top-4 rounded-full bg-[rgba(228,31,37,0.92)] px-3 py-1 text-xs font-extrabold text-white">Featured</span>
+            <span className="absolute right-4 top-4 rounded-full bg-[rgba(239,43,90,0.92)] px-3 py-1 text-xs font-extrabold text-white">Featured</span>
           </button>
         </section>
       </section>
@@ -526,7 +520,7 @@ function DesktopAttractions({ setPage }) {
         </div>
         <div className="mb-5 flex gap-5 text-xs font-bold uppercase text-[var(--muted)]">
           <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[var(--secondary)]" /> High thrill</span>
-          <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#78dc77]" /> Family friendly</span>
+          <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#1F8BEA]" /> Family friendly</span>
           <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[var(--line)]" /> Shows</span>
         </div>
         <div className="grid grid-cols-5 gap-5">
@@ -894,7 +888,7 @@ function MapLibreView({ routeCoords, routeLabel }) {
         type: 'line',
         source: 'tokha-route',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#e41f25', 'line-width': 7, 'line-opacity': 0.88 },
+        paint: { 'line-color': '#EF2B5A', 'line-width': 7, 'line-opacity': 0.88 },
       })
       map.addLayer({
         id: 'tokha-route-arrow',
@@ -932,9 +926,9 @@ function MapLibreView({ routeCoords, routeLabel }) {
           'fill-extrusion-opacity': 0.72,
         },
       })
-      new maplibregl.Marker({ color: '#bb0014' }).setLngLat(routeCoords[0]).setPopup(new maplibregl.Popup().setHTML(`<strong>${routeLabel}</strong><br/>Route preview toward Magic Land`)).addTo(map)
+      new maplibregl.Marker({ color: '#EF2B5A' }).setLngLat(routeCoords[0]).setPopup(new maplibregl.Popup().setHTML(`<strong>${routeLabel}</strong><br/>Route preview toward Magic Land`)).addTo(map)
       new maplibregl.Marker({ color: '#1b245a' }).setLngLat([tokhaMunicipality.lng, tokhaMunicipality.lat]).setPopup(new maplibregl.Popup().setHTML('<strong>Tokha Municipality</strong><br/>Nearby reference point')).addTo(map)
-      new maplibregl.Marker({ color: '#003016' }).setLngLat([park.lng, park.lat]).setPopup(new maplibregl.Popup().setHTML('<strong>Magic Land Family Fun Park</strong><br/>Tarakeshwar 44600')).addTo(map)
+      new maplibregl.Marker({ color: '#030D46' }).setLngLat([park.lng, park.lat]).setPopup(new maplibregl.Popup().setHTML('<strong>Magic Land Family Fun Park</strong><br/>Tarakeshwar 44600')).addTo(map)
       const bounds = routeCoords.reduce((box, coord) => box.extend(coord), new maplibregl.LngLatBounds(routeCoords[0], routeCoords[0]))
       map.fitBounds(bounds, { padding: 64, duration: 0 })
     })
@@ -959,11 +953,11 @@ function StaticRouteFallback({ routeLabel }) {
       </div>
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 360 520" role="img" aria-label="OpenStreetMap road preview from Tokha Bazar to Magic Land">
         <path d="M95 500 C128 422 144 390 184 356 C222 324 212 285 248 250 C292 208 286 164 268 126 C252 92 266 56 302 24" fill="none" stroke="#ffffff" strokeWidth="16" strokeLinecap="round" opacity="0.86" />
-        <path d="M95 500 C128 422 144 390 184 356 C222 324 212 285 248 250 C292 208 286 164 268 126 C252 92 266 56 302 24" fill="none" stroke="#e41f25" strokeWidth="7" strokeLinecap="round" opacity="0.9" />
+        <path d="M95 500 C128 422 144 390 184 356 C222 324 212 285 248 250 C292 208 286 164 268 126 C252 92 266 56 302 24" fill="none" stroke="#EF2B5A" strokeWidth="7" strokeLinecap="round" opacity="0.9" />
         <path d="M184 357 l15 -3 -7 14" fill="none" stroke="#030d46" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M248 251 l14 -6 -3 15" fill="none" stroke="#030d46" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M268 127 l13 -6 -2 15" fill="none" stroke="#030d46" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="95" cy="500" r="8" fill="#bb0014" />
+        <circle cx="95" cy="500" r="8" fill="#EF2B5A" />
         <circle cx="302" cy="24" r="8" fill="#030d46" />
       </svg>
       <div className="pointer-events-none relative flex h-full flex-col justify-between p-4">
@@ -1040,8 +1034,9 @@ function AboutPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <article className="storybook-card rounded-[2rem] p-6 shadow-sm">
           <h3 className="font-display text-3xl font-bold text-[var(--primary)]">Magic Land Family Fun Park</h3>
+          <p className="mt-4 leading-8 text-[var(--muted)]">Magic Land Family Fun Park is a place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p>
           <p className="mt-4 leading-8 text-[var(--muted)]">Magic Land brings together VR games, family rides, arcade challenges, Creative Village activities, birthdays, dining, and guest care in one welcoming park experience.</p>
-          <p className="mt-4 leading-8 text-[var(--muted)]">The park story is shaped around Ankit Dhakal and Binayak Neupane, two USA-returned family entrepreneurs who wanted to create a cleaner, warmer, and more organized entertainment destination for families in Kathmandu.</p>
+          <p className="mt-4 leading-8 text-[var(--muted)]">The park story is shaped around Ankit Dhakal and Binaya Neupane, two USA-returned family entrepreneurs who wanted to create a cleaner, warmer, and more organized entertainment destination for families in Kathmandu.</p>
         </article>
         <QuickCard icon={Crown} title="Our Promise" copy="A safe, friendly, well-managed park where children laugh, families bond, and every visit feels easy to plan." />
       </div>
@@ -1150,6 +1145,35 @@ function QuickCard({ icon: Icon, title, copy, onClick }) {
   return <Comp onClick={onClick} className="storybook-card rounded-[2rem] p-5 text-left shadow-sm transition hover:-translate-y-1"><Icon className="text-[var(--secondary)]" /><h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)]">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p></Comp>
 }
 
+function BrandLockup({ large = false }) {
+  const letters = [
+    ['M', '#EF2B5A'],
+    ['a', '#FF8A00'],
+    ['g', '#1F8BEA'],
+    ['i', '#33B84A'],
+    ['c', '#6D36A6'],
+    [' ', null],
+    ['L', '#073D8F'],
+    ['a', '#EF2B5A'],
+    ['n', '#FF8A00'],
+    ['d', '#33B84A'],
+  ]
+
+  return (
+    <span className="flex items-center gap-2.5">
+      <img src="/logo-mark.svg" alt="" className={`${large ? 'h-16 w-16' : 'h-11 w-11'} shrink-0`} />
+      <span className="leading-none">
+        <span className={`font-display block font-extrabold tracking-tight ${large ? 'text-3xl' : 'text-[1.42rem]'}`}>
+          {letters.map(([letter, color], index) => (
+            <span key={`${letter}-${index}`} style={color ? { color } : undefined}>{letter}</span>
+          ))}
+        </span>
+        <span className={`mt-1 block font-extrabold uppercase tracking-[0.18em] text-[#2F3A4A] ${large ? 'text-xs' : 'text-[9px]'}`}>Family Fun Park</span>
+      </span>
+    </span>
+  )
+}
+
 function SmartImage({ src, alt, className }) {
   const [imageSrc, setImageSrc] = useState(src)
   return <img src={imageSrc} alt={alt} className={className} loading="lazy" onError={() => setImageSrc((current) => (current === img.arcade ? img.mobileHero : img.arcade))} />
@@ -1174,7 +1198,7 @@ function Footer({ setPage }) {
   return (
     <footer className="border-t border-[var(--line)] bg-[var(--surface-2)] px-4 py-12 text-[var(--ink)] md:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
-        <div><div className="flex items-center gap-3"><FerrisWheel className="text-[var(--secondary)]" /><h2 className="font-display text-2xl font-bold text-[var(--primary)]">Magic Land</h2></div><p className="mt-4 max-w-sm leading-7 text-[var(--muted)]">A place where kids laugh, families bond, and memories become magic through VR games, rides, celebrations, and warm hospitality.</p></div>
+        <div><BrandLockup large /><p className="mt-4 max-w-sm leading-7 text-[var(--muted)]">A place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p></div>
         <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Plan Your Day</h3><div className="mt-4 grid gap-2">{nav.slice(0, 6).map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
         <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Help & Park Info</h3><div className="mt-4 grid gap-2">{guestCare.map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
       </div>
