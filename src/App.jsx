@@ -9,9 +9,7 @@ import {
   CreditCard,
   Crown,
   FerrisWheel,
-  Gift,
   Home,
-  LayoutDashboard,
   Mail,
   Map as MapIcon,
   MapPin,
@@ -19,8 +17,6 @@ import {
   Palette,
   PartyPopper,
   Phone,
-  QrCode,
-  ShieldCheck,
   Sparkles,
   Ticket,
   Utensils,
@@ -49,7 +45,11 @@ const weatherLabels = {
   95: 'Thunderstorm',
 }
 const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${park.lat},${park.lng}&destination_place_id=Magic+Land+Family+Fun+Park`
-const tokhaEmbedUrl = `https://www.google.com/maps?output=embed&saddr=Tokha+Bazar,+Kathmandu&daddr=${park.lat},${park.lng}`
+const osmTileGrid = {
+  z: 15,
+  xs: [24149, 24150, 24151],
+  ys: [13749, 13750, 13751, 13752],
+}
 const routeToPark = [
   [85.329556, 27.767264],
   [85.330302, 27.767803],
@@ -95,7 +95,7 @@ const img = {
   vrBike: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?auto=format&fit=crop&w=900&q=80',
   vrCar: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80',
   vrShooting: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=80',
-  pool: 'https://images.unsplash.com/photo-1629224336810-9d8805b95e76?auto=format&fit=crop&w=900&q=80',
+  pool: 'https://commons.wikimedia.org/wiki/Special:FilePath/Break-off%20shot%20(Unsplash).jpg?width=900',
   familyGames: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=80',
   kidsPlay: 'https://images.unsplash.com/photo-1564429238817-393bd4286b2d?auto=format&fit=crop&w=900&q=80',
   creativeVillage: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=900&q=80',
@@ -118,9 +118,10 @@ const nav = [
 const moreNav = [
   { id: 'dining', label: 'Dining', icon: Utensils },
   { id: 'events', label: 'Events', icon: CalendarDays },
-  { id: 'app', label: 'Mobile App', icon: LayoutDashboard },
-  { id: 'admin', label: 'Admin Preview', icon: ShieldCheck },
-  { id: 'policies', label: 'Policies', icon: ShieldCheck },
+  { id: 'about', label: 'About Us', icon: FerrisWheel },
+  { id: 'faq', label: 'FAQ', icon: Bell },
+  { id: 'privacy', label: 'Privacy', icon: Wallet },
+  { id: 'terms', label: 'Terms', icon: CreditCard },
   { id: 'contact', label: 'Contact', icon: Mail },
 ]
 
@@ -130,7 +131,7 @@ const zoneCards = [
   { title: 'VR & Simulator Zone', zone: 'VR & Simulators', icon: Ticket, image: img.vrBike, copy: 'VR bikes, car simulators, immersive shooting, motion games, and high-energy replay fun.' },
   { title: 'Family Rides', zone: 'Family Rides', icon: FerrisWheel, image: img.carousel, copy: 'Classic rides for children and families, from carousel moments to bumper car laughs.' },
   { title: 'Kids Play Zone', zone: 'Kids Play', icon: PartyPopper, image: img.kidsPlay, copy: 'Soft play, jumping, bouncy castle, spray ball, trampoline bridge, zipline, and active fun.' },
-  { title: 'Arcade & Skill Games', zone: 'Arcade & Skill', icon: Ticket, image: img.pool, copy: 'Coin games, basketball machines, pool tables, prize games, and quick repeatable challenges.' },
+  { title: 'Arcade & Skill Games', zone: 'Arcade & Skill', icon: Ticket, image: img.arcade, copy: 'Coin games, basketball machines, pool tables, prize games, and quick repeatable challenges.' },
   { title: 'Creative Village', zone: 'Creative Village', icon: Palette, image: img.creativeVillage, copy: 'A softer village-style space for pottery, painting, color play, arts, crafts, and family bonding.' },
 ]
 
@@ -237,9 +238,10 @@ function App() {
         {page === 'map' && <MapPage />}
         {page === 'dining' && <DiningPage />}
         {page === 'events' && <EventsPage />}
-        {page === 'app' && <MobileAppPage />}
-        {page === 'admin' && <AdminPage />}
-        {page === 'policies' && <PoliciesPage />}
+        {page === 'about' && <AboutPage />}
+        {page === 'faq' && <FAQPage />}
+        {page === 'privacy' && <PrivacyPage />}
+        {page === 'terms' && <TermsPage />}
         {page === 'contact' && <ContactPage />}
         {page === 'more' && <MorePage setPage={navigate} />}
       </main>
@@ -297,7 +299,7 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
           </span>
           <span>
             <span className="font-display block text-2xl font-bold text-[var(--primary)]">Magic Land</span>
-            <span className="hidden text-xs font-bold uppercase tracking-wider text-[var(--muted)] sm:block">Family Fun Park</span>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] sm:text-xs">Family Fun Park</span>
           </span>
         </button>
         <nav className="hidden items-center gap-1 xl:flex">
@@ -337,10 +339,10 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
 function HomePage({ setPage }) {
   const weather = useParkWeather()
   const quickActions = [
-    [Ticket, 'My Tickets', '2 Active Passes', 'tickets'],
-    [MapIcon, 'Interactive Map', 'Find your way', 'map'],
-    [Clock3, 'Wait Times', '15-45 mins', 'attractions'],
-    [Utensils, 'Dining', 'Food and treats', 'dining'],
+    [CalendarDays, 'Today at Magic Land', 'Hours, shows, and events', 'events'],
+    [Crown, 'Membership Savings', '30 visits from Rs. 2,999', 'memberships'],
+    [PartyPopper, 'Birthday Packages', 'Kids, teens, schools, families', 'birthdays'],
+    [MapIcon, 'Directions', 'Open route from your location', 'map'],
   ]
 
   return (
@@ -367,6 +369,7 @@ function HomePage({ setPage }) {
           <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.82)] via-[rgba(3,13,70,0.2)] to-transparent" />
           <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 space-y-4 p-4 text-left text-white">
             <h1 className="font-display max-w-[330px] text-2xl font-bold leading-tight">Kids Laugh. Families Bond. Memories Become Magic.</h1>
+            <p className="max-w-[330px] text-sm font-semibold leading-6 text-white/88">A joyful family park with VR games, rides, arcade fun, creative play, and warm hospitality.</p>
             <div className="flex flex-wrap gap-3">
               <button className="sunset inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold shadow-lg" onClick={() => setPage('tickets')}>
                 Buy Tickets
@@ -438,9 +441,6 @@ function HomePage({ setPage }) {
         <StatusStrip />
       </div>
       <InsideMagicLand setPage={setPage} />
-      <div className="md:hidden">
-        <AttractionGrid compact setPage={setPage} />
-      </div>
       <MembershipTeaser setPage={setPage} />
       <div className="hidden md:block">
         <MapTeaser setPage={setPage} />
@@ -480,7 +480,7 @@ function InsideMagicLand({ setPage }) {
         {zoneCards.map(({ title, zone, icon: Icon, image, copy }) => (
           <button key={title} onClick={() => setPage('attractions')} className="storybook-card group overflow-hidden rounded-[1.5rem] text-left shadow-sm transition hover:-translate-y-1">
             <div className="relative h-40 overflow-hidden">
-              <img src={image} alt={title} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+              <SmartImage src={image} alt={title} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
               <span className="absolute left-3 top-3 grid h-10 w-10 place-items-center rounded-xl bg-white text-[var(--primary)] shadow-sm">
                 <Icon size={19} />
               </span>
@@ -533,7 +533,7 @@ function DesktopAttractions({ setPage }) {
           {attractionList.slice(0, 10).map((ride) => (
             <button key={ride.name} onClick={() => setPage('attractions')} className="group text-left">
               <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-lg transition duration-300 group-hover:-translate-y-2">
-                <img src={ride.image} alt={ride.name} className="h-full w-full object-cover" />
+                <SmartImage src={ride.image} alt={ride.name} className="h-full w-full object-cover" />
                 <span className="absolute right-3 top-3 rounded-full bg-white/92 px-3 py-2 text-xs font-extrabold text-[var(--primary)] shadow-sm">{ride.height === 'All ages' ? 'U' : 'PG'}</span>
               </div>
               <h3 className="font-display mt-4 truncate text-2xl font-bold text-[var(--primary)]">{ride.name}</h3>
@@ -602,7 +602,7 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
         {visibleAttractions.map((ride, index) => (
           <article key={ride.name} className={`storybook-card group rounded-[2rem] p-4 shadow-sm transition hover:-translate-y-1 ${index === 1 ? 'lg:mt-8' : ''}`}>
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
-              <img src={ride.image} alt={ride.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+              <SmartImage src={ride.image} alt={ride.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
               <span className="absolute right-3 top-3 rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white">{ride.category}</span>
             </div>
             <h3 className="font-display mt-4 text-xl font-bold text-[var(--primary)] md:text-2xl">{ride.name}</h3>
@@ -688,7 +688,7 @@ function MembershipPage() {
         <div className="rounded-[2rem] bg-[var(--primary)] p-6 text-white shadow-xl md:p-8">
           <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffdad6]">Best value offer</p>
           <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-5xl">Turn one regular visit into 30 magical memories.</h2>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">One regular entry is Rs. 1,500. With the Individual Fun Pass, guests get 30 entries for only Rs. 2,999 over 3 months. It is the easiest way to enjoy VR bikes, car simulators, shooting games, pool, arcade fun, and family attractions again and again.</p>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">One regular entry is Rs. 1,500. With the Individual Fun Pass, guests get 30 entries for only Rs. 2,999 over 3 months. That means more VR games, bumper car rides, arcade challenges, pottery sessions, painting days, and weekend play without paying every visit.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {['VR games included', 'Digital pass access', 'Great for weekends'].map((item) => (
               <span key={item} className="rounded-2xl bg-white/12 px-4 py-3 text-sm font-extrabold text-white">{item}</span>
@@ -728,6 +728,24 @@ function MembershipPage() {
         ))}
       </div>
 
+      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">What members enjoy most</p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            ['VR Racing', img.vrBike],
+            ['Shooting Games', img.vrShooting],
+            ['Bumper Cars', img.familyGames],
+            ['Carousel', img.carousel],
+            ['Creative Village', img.creativeVillage],
+          ].map(([title, image]) => (
+            <div key={title} className="overflow-hidden rounded-2xl bg-[var(--surface-3)]">
+              <SmartImage src={image} alt={title} className="h-28 w-full object-cover" />
+              <p className="p-3 text-sm font-extrabold text-[var(--primary)]">{title}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
         <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Savings comparison</p>
@@ -755,15 +773,30 @@ function MembershipPage() {
 }
 
 function BirthdaysPage() {
+  const packages = [
+    ['Kids birthday', 'Kids Play + Carousel + Creative Village painting activity'],
+    ['Teen group', 'VR & Simulator Zone + Arcade & Skill Games'],
+    ['Family day', 'Family rides + Creative Village + dining seating'],
+    ['School/group visit', 'Pottery, colors, arts, and supervised creative play'],
+  ]
+
   return (
     <PageShell eyebrow="Birthday and events" title="Party booking for children, families, schools, and groups">
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <article className="overflow-hidden rounded-[2rem] bg-white shadow-xl">
-          <img src={img.birthday} alt="Magic Land birthday party" className="h-80 w-full object-cover" />
+          <SmartImage src={img.birthday} alt="Magic Land birthday party" className="h-80 w-full object-cover" />
           <div className="p-6">
             <h3 className="font-display text-3xl font-bold text-[var(--primary)]">Birthday Kingdom Package</h3>
-            <p className="mt-3 leading-8 text-[var(--muted)]">Reserve a decorated hall, select food packages, assign a party host, add ride bundles, include partner gifts, and choose deposit or full payment.</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">{['Hall Slot', 'Catering', 'Ride Add-ons'].map((item) => <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>)}</div>
+            <p className="mt-3 leading-8 text-[var(--muted)]">Reserve a decorated hall, select food packages, add ride bundles, and include calm Creative Village activities like painting, pottery, colors, and arts for a more memorable celebration.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">{['Hall Slot', 'Catering', 'Creative Add-ons'].map((item) => <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>)}</div>
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              {packages.map(([title, copy]) => (
+                <div key={title} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-4">
+                  <h4 className="font-display text-lg font-bold text-[var(--primary)]">{title}</h4>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </article>
         <BookingForm />
@@ -790,25 +823,16 @@ function BookingForm() {
 }
 
 function MapPage() {
-  const [routeCoords, setRouteCoords] = useState(routeToPark)
-  const [routeLabel, setRouteLabel] = useState('Tokha Bazar')
-
-  const showTokhaRoute = () => {
-    setRouteCoords(routeToPark)
-    setRouteLabel('Tokha Bazar')
-  }
-
   return (
     <PageShell eyebrow="Location and map" title="Find Magic Land Family Fun Park in Tarakeshwar">
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <MapLibreView key={`${routeLabel}-${routeCoords[0]?.join(',')}`} routeCoords={routeCoords} routeLabel={routeLabel} />
+        <MapLibreView routeCoords={routeToPark} routeLabel="Tokha Bazar" />
         <aside className="glass rounded-[2rem] p-6">
           <MapPin className="text-[var(--secondary)]" />
           <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Magic Land Family Fun Park</h3>
-          <p className="mt-3 leading-7 text-[var(--muted)]">Q836+95P, Tarakeshwar 44600. Preview the Tokha Bazar route or open directions from your current location.</p>
+          <p className="mt-3 leading-7 text-[var(--muted)]">Q836+95P, Tarakeshwar 44600. Use the map to preview the Tokha Bazar road route, or open live directions from your current location.</p>
           <div className="mt-6 grid gap-3">
-            <button type="button" onClick={showTokhaRoute} className="sunset inline-flex rounded-full px-6 py-4 font-extrabold shadow-sm">Show Tokha Route</button>
-            <a href={directionsUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-full border border-[var(--line)] px-6 py-4 text-center font-extrabold text-[var(--primary)]">Directions from my location</a>
+            <a href={directionsUrl} target="_blank" rel="noreferrer" className="sunset inline-flex justify-center rounded-full px-6 py-4 text-center font-extrabold shadow-sm">Directions from my location</a>
           </div>
           <div className="mt-6 border-t border-[var(--line)] pt-5">
             <p className="text-sm font-bold text-[var(--muted)]">Park capacity</p>
@@ -856,7 +880,6 @@ function MapLibreView({ routeCoords, routeLabel }) {
       return undefined
     }
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right')
-    map.on('error', () => setMapFailed(true))
     map.on('load', () => {
       map.addSource('tokha-route', {
         type: 'geojson',
@@ -880,7 +903,7 @@ function MapLibreView({ routeCoords, routeLabel }) {
         layout: {
           'symbol-placement': 'line',
           'symbol-spacing': 72,
-          'text-field': '›',
+          'text-field': '>',
           'text-size': 26,
           'text-rotate': 0,
           'text-keep-upright': false,
@@ -929,12 +952,25 @@ function MapLibreView({ routeCoords, routeLabel }) {
 function StaticRouteFallback({ routeLabel }) {
   return (
     <div className="relative h-[520px] overflow-hidden rounded-[2rem] border border-[var(--line)] bg-[var(--surface-3)] shadow-xl md:h-[680px]">
-      <iframe title="Tokha Bazar to Magic Land route map" src={tokhaEmbedUrl} className="absolute inset-0 h-full w-full border-0" loading="lazy" />
+      <div className="absolute inset-0 grid grid-cols-3 grid-rows-4 opacity-95">
+        {osmTileGrid.ys.flatMap((y) => osmTileGrid.xs.map((x) => (
+          <img key={`${x}-${y}`} src={`https://tile.openstreetmap.org/${osmTileGrid.z}/${x}/${y}.png`} alt="" className="h-full w-full object-cover" loading="lazy" />
+        )))}
+      </div>
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 360 520" role="img" aria-label="OpenStreetMap road preview from Tokha Bazar to Magic Land">
+        <path d="M95 500 C128 422 144 390 184 356 C222 324 212 285 248 250 C292 208 286 164 268 126 C252 92 266 56 302 24" fill="none" stroke="#ffffff" strokeWidth="16" strokeLinecap="round" opacity="0.86" />
+        <path d="M95 500 C128 422 144 390 184 356 C222 324 212 285 248 250 C292 208 286 164 268 126 C252 92 266 56 302 24" fill="none" stroke="#e41f25" strokeWidth="7" strokeLinecap="round" opacity="0.9" />
+        <path d="M184 357 l15 -3 -7 14" fill="none" stroke="#030d46" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M248 251 l14 -6 -3 15" fill="none" stroke="#030d46" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M268 127 l13 -6 -2 15" fill="none" stroke="#030d46" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="95" cy="500" r="8" fill="#bb0014" />
+        <circle cx="302" cy="24" r="8" fill="#030d46" />
+      </svg>
       <div className="pointer-events-none relative flex h-full flex-col justify-between p-4">
         <div className="w-fit rounded-2xl bg-white/88 p-4 shadow-sm">
           <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Nearby start</p>
           <h3 className="font-display text-2xl font-bold text-[var(--primary)]">{routeLabel}</h3>
-          <p className="text-sm font-semibold text-[var(--muted)]">Road map toward Magic Land</p>
+          <p className="text-sm font-semibold text-[var(--muted)]">Route preview toward Magic Land</p>
         </div>
         <div className="ml-auto w-fit rounded-2xl bg-white/88 p-4 text-right shadow-sm">
           <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Arrive</p>
@@ -951,7 +987,7 @@ function zone(name, coords, height, color) {
 }
 
 function DiningPage() {
-  return <SimpleImagePage eyebrow="Dining" title="Snacks, meals, and celebration-friendly food for full family days" image={img.dining} icon={Utensils} items={['Magic Cafe meals', 'Birthday catering add-ons', 'Membership-friendly offers', 'Quick snacks between VR games and rides']} />
+  return <SimpleImagePage eyebrow="Dining" title="Snacks, meals, and celebration-friendly food for full family days" image={img.dining} icon={Utensils} items={['Magic Cafe meals', 'Birthday catering add-ons', 'Membership-friendly offers', 'Creative Village break seating after pottery, painting, and arts sessions']} />
 }
 
 function EventsPage() {
@@ -965,6 +1001,7 @@ function EventsPage() {
     15: [
       ['10:30 AM', 'Park Gates Open', 'Main Entrance'],
       ['12:00 PM', 'VR Bike Racing Session', 'VR Zone'],
+      ['01:30 PM', 'Creative Village Painting', 'Village Homes'],
       ['03:00 PM', 'VR Shooting Challenge', 'Game Arena'],
       ['05:30 PM', 'Family Games Hour', 'Indoor Game Zone'],
       ['08:30 PM', 'Magic Parade', 'Main Boulevard'],
@@ -997,52 +1034,55 @@ function EventsPage() {
   )
 }
 
-function MobileAppPage() {
+function AboutPage() {
   return (
-    <PageShell eyebrow="Mobile app" title="A simple guest app experience for families">
-      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-        <PhoneMock />
-        <div className="grid gap-5 md:grid-cols-2">
-          <QuickCard icon={Wallet} title="Digital Wallet" copy="Tickets, memberships, QR codes, gift vouchers, and visit history." />
-          <QuickCard icon={MapIcon} title="Park Map" copy="Find rides, dining, restrooms, events, and helpful park locations." />
-          <QuickCard icon={Bell} title="Notifications" copy="Flash sales, booking reminders, birthday updates, and parade alerts." />
-          <QuickCard icon={Gift} title="Rewards" copy="Collect offers, birthday treats, and membership benefits in one place." />
-        </div>
+    <PageShell eyebrow="About Us" title="A family park built for joy, care, and repeat memories">
+      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+        <article className="storybook-card rounded-[2rem] p-6 shadow-sm">
+          <h3 className="font-display text-3xl font-bold text-[var(--primary)]">Magic Land Family Fun Park</h3>
+          <p className="mt-4 leading-8 text-[var(--muted)]">Magic Land brings together VR games, family rides, arcade challenges, Creative Village activities, birthdays, dining, and guest care in one welcoming park experience.</p>
+          <p className="mt-4 leading-8 text-[var(--muted)]">The park story is shaped around Ankit Dhakal and Binayak Neupane, two USA-returned family entrepreneurs who wanted to create a cleaner, warmer, and more organized entertainment destination for families in Kathmandu.</p>
+        </article>
+        <QuickCard icon={Crown} title="Our Promise" copy="A safe, friendly, well-managed park where children laugh, families bond, and every visit feels easy to plan." />
       </div>
     </PageShell>
   )
 }
 
-function AdminPage() {
+function FAQPage() {
+  const faqs = [
+    ['What does one entry include?', 'Entry gives guests access to the park experience, with selected games, rides, and activities depending on ticket or membership type.'],
+    ['How does membership work?', 'The Individual Fun Pass gives 30 entries over 3 months for Rs. 2,999. The Family Magic Pass covers 4 members with 120 total entries.'],
+    ['Do you host birthdays and school visits?', 'Yes. Packages can include Kids Play, carousel, VR games, arcade, Creative Village painting, pottery, dining, and hall seating.'],
+    ['Where is Magic Land located?', 'Magic Land Family Fun Park is in Tarakeshwar 44600, near the Tokha route. Use the Map page for live directions.'],
+  ]
   return (
-    <PageShell eyebrow="Operations" title="Admin dashboard preview for sales, QR validation, and guest flow">
-      <div className="grid gap-5 md:grid-cols-4">
-        {[
-        ['Sales', 'Rs. 461K'],
-          ['Occupancy', '68%'],
-          ['QR Scans', '1,248'],
-          ['Promo Use', '24%'],
-        ].map(([label, value]) => <div key={label} className="storybook-card rounded-[2rem] p-5"><p className="text-xs font-bold uppercase text-[var(--muted)]">{label}</p><p className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">{value}</p></div>)}
-      </div>
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <QuickCard icon={QrCode} title="QR Validation" copy="QR membership checks, ticket scans, and duplicate-use prevention." />
-        <QuickCard icon={CreditCard} title="Payments" copy="Track ticket sales, deposits, refunds, and booking totals." />
-        <QuickCard icon={ShieldCheck} title="Role Access" copy="Admin, scanner staff, finance, and content manager permissions." />
-      </div>
-    </PageShell>
-  )
-}
-
-function PoliciesPage() {
-  return (
-    <PageShell eyebrow="Policies" title="Clear guest information and park rules">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {['About Us', 'Mission & Vision', 'Privacy Policy', 'Terms & Conditions', 'Refund Policy', 'Cancellation Policy', 'Cookie Policy', 'FAQ'].map((item) => (
-          <details key={item} className="storybook-card rounded-[2rem] p-5">
-            <summary className="cursor-pointer font-display text-xl font-bold text-[var(--primary)]">{item}</summary>
-            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Helpful information for families planning their visit to Magic Land Family Fun Park.</p>
+    <PageShell eyebrow="FAQ" title="Helpful answers before your visit">
+      <div className="grid gap-4 md:grid-cols-2">
+        {faqs.map(([question, answer]) => (
+          <details key={question} className="storybook-card rounded-[1.5rem] p-5">
+            <summary className="cursor-pointer font-display text-xl font-bold text-[var(--primary)]">{question}</summary>
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{answer}</p>
           </details>
         ))}
+      </div>
+    </PageShell>
+  )
+}
+
+function PrivacyPage() {
+  return <InfoPage eyebrow="Privacy" title="Guest privacy and data care" items={['We collect only the details needed for ticketing, memberships, bookings, support, and guest communication.', 'Payment, booking, and membership details should be handled securely and used only for park operations.', 'Guests can contact Magic Land for corrections, booking questions, or support-related data requests.']} />
+}
+
+function TermsPage() {
+  return <InfoPage eyebrow="Terms & Conditions" title="Simple park terms for safer family visits" items={['Tickets and memberships are valid according to the selected plan, date, and park rules.', 'Guests should follow staff guidance, age suitability notes, safety signs, and queue instructions.', 'Birthday, group, school, refund, and cancellation requests are handled through guest care and may depend on booking status.']} />
+}
+
+function InfoPage({ eyebrow, title, items }) {
+  return (
+    <PageShell eyebrow={eyebrow} title={title}>
+      <div className="grid gap-4 md:grid-cols-3">
+        {items.map((item) => <article key={item} className="storybook-card rounded-[1.5rem] p-5 text-sm font-semibold leading-7 text-[var(--muted)]">{item}</article>)}
       </div>
     </PageShell>
   )
@@ -1075,7 +1115,7 @@ function SimpleImagePage({ eyebrow, title, image, icon, items }) {
   return (
     <PageShell eyebrow={eyebrow} title={title}>
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-        <img src={image} alt={title} className="h-[460px] w-full rounded-[2rem] object-cover shadow-xl" />
+        <SmartImage src={image} alt={title} className="h-[460px] w-full rounded-[2rem] object-cover shadow-xl" />
         <div className="glass rounded-[2rem] p-6">
           <Icon className="text-[var(--secondary)]" />
           <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Made for easy visits</h3>
@@ -1083,16 +1123,6 @@ function SimpleImagePage({ eyebrow, title, image, icon, items }) {
         </div>
       </div>
     </PageShell>
-  )
-}
-
-function PhoneMock() {
-  return (
-    <div className="mx-auto max-w-[380px] rounded-[2.5rem] border-8 border-[var(--primary)] bg-[var(--surface)] p-4 shadow-2xl">
-      <div className="flex items-center justify-between"><div><p className="text-xs font-bold text-[var(--muted)]">Good Morning,</p><h3 className="font-display text-2xl font-bold text-[var(--primary)]">Explorer!</h3></div><Bell /></div>
-      <div className="ticket-bg mt-5 rounded-[2rem] p-5 text-white"><p className="text-xs font-bold uppercase text-white/70">Up Next</p><h4 className="font-display text-2xl font-bold">VR Bike Racing</h4><p className="mt-2 text-sm">Member slot - 11:45 AM</p><div className="mt-5 flex justify-between"><span className="rounded-xl bg-white/15 px-3 py-2 font-bold">2 Passes</span><QrCode size={44} /></div></div>
-      <div className="mt-5 grid grid-cols-2 gap-3">{[[Ticket, 'Tickets'], [MapIcon, 'Map'], [CalendarDays, 'Events'], [Utensils, 'Dining']].map(([Icon, label]) => <button key={label} className="rounded-2xl bg-white p-4 text-left shadow-sm"><Icon className="text-[var(--secondary)]" /><span className="mt-3 block text-sm font-extrabold">{label}</span></button>)}</div>
-    </div>
   )
 }
 
@@ -1120,6 +1150,11 @@ function QuickCard({ icon: Icon, title, copy, onClick }) {
   return <Comp onClick={onClick} className="storybook-card rounded-[2rem] p-5 text-left shadow-sm transition hover:-translate-y-1"><Icon className="text-[var(--secondary)]" /><h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)]">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p></Comp>
 }
 
+function SmartImage({ src, alt, className }) {
+  const [imageSrc, setImageSrc] = useState(src)
+  return <img src={imageSrc} alt={alt} className={className} loading="lazy" onError={() => setImageSrc((current) => (current === img.arcade ? img.mobileHero : img.arcade))} />
+}
+
 function EventRow({ time, title, place }) {
   return <div className="storybook-card flex items-center gap-4 rounded-[2rem] p-4"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[var(--primary)] text-white"><Clock3 /></div><div><p className="text-sm font-extrabold text-[var(--secondary)]">{time}</p><h3 className="font-display text-2xl font-bold text-[var(--primary)]">{title}</h3><p className="text-sm font-semibold text-[var(--muted)]">{place}</p></div></div>
 }
@@ -1129,12 +1164,19 @@ function Line({ label, value, strong }) {
 }
 
 function Footer({ setPage }) {
+  const guestCare = [
+    { id: 'about', label: 'About Us' },
+    { id: 'faq', label: 'FAQ' },
+    { id: 'privacy', label: 'Privacy' },
+    { id: 'terms', label: 'Terms' },
+    { id: 'contact', label: 'Contact' },
+  ]
   return (
     <footer className="border-t border-[var(--line)] bg-[var(--surface-2)] px-4 py-12 text-[var(--ink)] md:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
         <div><div className="flex items-center gap-3"><FerrisWheel className="text-[var(--secondary)]" /><h2 className="font-display text-2xl font-bold text-[var(--primary)]">Magic Land</h2></div><p className="mt-4 max-w-sm leading-7 text-[var(--muted)]">A place where kids laugh, families bond, and memories become magic through VR games, rides, celebrations, and warm hospitality.</p></div>
-        <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Visit</h3><div className="mt-4 grid gap-2">{nav.slice(0, 6).map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
-        <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Guest Care</h3><p className="mt-4 text-[var(--muted)]">Privacy, terms, refund, cancellation, cookie policy, and FAQ information are available for guests.</p></div>
+        <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Plan Your Day</h3><div className="mt-4 grid gap-2">{nav.slice(0, 6).map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
+        <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Help & Park Info</h3><div className="mt-4 grid gap-2">{guestCare.map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
       </div>
     </footer>
   )
@@ -1149,10 +1191,11 @@ function BottomNav({ active, setPage }) {
     { id: 'more', label: 'More', icon: Menu },
   ]
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex h-20 items-center justify-around rounded-t-xl border-t border-[var(--line)] bg-[rgba(251,248,255,0.97)] px-4 pt-2 shadow-[0_-4px_12px_rgba(27,36,90,0.08)] backdrop-blur-md md:hidden">
-      {items.map((item) => <button key={item.id} onClick={() => setPage(item.id)} className={`flex min-w-14 flex-col items-center gap-1 text-xs font-extrabold outline-none transition focus-visible:ring-2 focus-visible:ring-[#bbc3ff] ${active === item.id ? 'scale-110 text-[var(--secondary)]' : 'text-[var(--muted)]'}`}><item.icon size={22} />{item.label}</button>)}
+    <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around rounded-t-xl border-t border-[var(--line)] bg-[rgba(251,248,255,0.97)] px-2 pt-1 shadow-[0_-4px_12px_rgba(27,36,90,0.08)] backdrop-blur-md md:hidden">
+      {items.map((item) => <button key={item.id} onClick={() => setPage(item.id)} className={`flex min-w-12 flex-col items-center gap-0.5 text-[11px] font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#bbc3ff] ${active === item.id ? 'text-[var(--secondary)]' : 'text-[var(--muted)]'}`}><item.icon size={19} />{item.label}</button>)}
     </nav>
   )
 }
 
 export default App
+
