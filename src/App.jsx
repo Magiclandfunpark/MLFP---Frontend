@@ -136,6 +136,43 @@ const socialLinks = [
   { label: 'YouTube', href: '', icon: 'youtube' },
 ]
 
+const pagePaths = {
+  home: '/home',
+  attractions: '/attractions',
+  tickets: '/tickets',
+  memberships: '/membership',
+  birthdays: '/birthdays',
+  map: '/map',
+  dining: '/dining',
+  events: '/events',
+  about: '/about',
+  faq: '/faq',
+  privacy: '/privacy',
+  terms: '/terms',
+  contact: '/contact',
+  more: '/more',
+}
+
+const pathAliases = {
+  '/': 'home',
+  '/home': 'home',
+  '/attractions': 'attractions',
+  '/rides': 'attractions',
+  '/tickets': 'tickets',
+  '/membership': 'memberships',
+  '/memberships': 'memberships',
+  '/birthdays': 'birthdays',
+  '/map': 'map',
+  '/dining': 'dining',
+  '/events': 'events',
+  '/about': 'about',
+  '/faq': 'faq',
+  '/privacy': 'privacy',
+  '/terms': 'terms',
+  '/contact': 'contact',
+  '/more': 'more',
+}
+
 const zoneFilters = ['All', 'VR & Simulators', 'Family Rides', 'Kids Play', 'Arcade & Skill', 'Creative Village']
 
 const zoneCards = [
@@ -181,9 +218,9 @@ const attractionList = [
 
 const ticketOptions = [
   { name: 'One-Time Entry', price: 1500, detail: 'A single Magic Land visit for rides, VR games, arcade fun, and family attractions.' },
-  { name: 'Individual Fun Pass', price: 2999, detail: '3 months, 5 visit credits, and better value for repeat visitors.' },
-  { name: 'Family of 2 Fun Pass', price: 5499, detail: '3 months, 10 shared visit credits for two people.' },
-  { name: 'Family Magic Pass', price: 9499, detail: '3 months for up to 4 members with 20 shared visit credits.' },
+  { name: 'Individual Fun Pass', price: 2999, detail: '5 visits, 3 months validity, and flexible individual access.' },
+  { name: 'Family Duo Pass', price: 5499, detail: '10 shared visits for 2 family members, valid for 3 months.' },
+  { name: 'Family Magic Pass', price: 9499, detail: '20 shared visits for families of 4, valid for 3 months.' },
   { name: 'Gift Ticket', price: 1500, detail: 'A shareable entry for birthdays, friends, and family celebrations.' },
 ]
 
@@ -191,38 +228,45 @@ const membershipPlans = [
   {
     name: 'Individual Fun Pass',
     price: 'Rs. 2,999',
-    subtitle: '3 months membership',
-    entries: '5 visit credits',
-    perVisit: 'About Rs. 600 per visit',
-    regular: 'Rs. 7,500 regular value',
-    savings: 'Save Rs. 4,501',
-    bestFor: ['Kids who will revisit within 3 months', 'Weekend and holiday visits', 'Parents who want controlled savings', 'Building a repeat-visit habit'],
+    subtitle: 'Individual membership',
+    entries: '5 visits',
+    perVisit: 'Valid for 3 months',
+    regular: 'Individual access',
+    savings: 'Flexible usage within validity',
+    includes: ['5 visits', 'Valid for 3 months', 'Individual access', 'Flexible usage within validity'],
+    bestFor: ['Weekend visits', 'Holiday outings', 'Kids who love repeat experiences', 'Families exploring Magic Land regularly'],
   },
   {
-    name: 'Family of 2 Fun Pass',
+    name: 'Family Duo Pass',
     price: 'Rs. 5,499',
-    subtitle: '3 months shared membership',
-    entries: '2 people - 10 shared visit credits',
-    perVisit: 'About Rs. 550 per visit',
-    regular: 'Rs. 15,000 regular value',
-    savings: 'Save Rs. 9,501',
-    bestFor: ['Two-person family visits', 'Parent-child repeat visits', 'Small families testing membership', 'Flexible shared credits'],
+    subtitle: 'Family of 2 membership',
+    entries: '10 shared visits',
+    perVisit: 'Valid for 3 months',
+    regular: 'Shared usage for 2 family members',
+    savings: 'Flexible parent-child visits',
+    includes: ['10 shared visits', 'Valid for 3 months', 'Shared usage for 2 family members'],
+    bestFor: ['Parent-child visits', 'Weekend family time', 'Flexible family usage', 'Repeat outings without repeated ticket purchases'],
   },
   {
     name: 'Family Magic Pass',
     price: 'Rs. 9,499',
-    subtitle: '3 months family membership',
-    entries: '4 members - 20 shared visit credits',
-    perVisit: 'About Rs. 475 per visit',
-    regular: 'Rs. 30,000 regular value',
-    savings: 'Save Rs. 20,501',
-    bestFor: ['Families with children', 'Regular weekend visitors', 'Food and arcade add-on spending', 'Better value without unlimited risk'],
+    subtitle: 'Family of 4 membership',
+    entries: '20 shared visits',
+    perVisit: 'Valid for 3 months',
+    regular: 'Designed for families of 4',
+    savings: 'The complete family experience package',
+    includes: ['20 shared visits', 'Valid for 3 months', 'Designed for families of 4'],
+    bestFor: ['Family weekends', 'Holiday experiences', 'Sibling outings', 'Frequent visitors', 'Building memorable family routines'],
   },
 ]
 
 
 function App() {
-  const pageFromLocation = () => window.location.hash.replace(/^#\/?/, '') || 'home'
+  const pageFromLocation = () => {
+    const hashPage = window.location.hash.replace(/^#\/?/, '')
+    if (hashPage) return pathAliases[`/${hashPage}`] ?? hashPage
+    return pathAliases[window.location.pathname] ?? 'home'
+  }
   const [page, setPageState] = useState(pageFromLocation)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -231,13 +275,26 @@ function App() {
   const navigate = (nextPage, replace = false) => {
     setMenuOpen(false)
     setPageState(nextPage)
-    const nextUrl = `#/${nextPage}`
+    const nextUrl = pagePaths[nextPage] ?? `/${nextPage}`
     if (replace) {
       window.history.replaceState(null, '', nextUrl)
-    } else if (window.location.hash !== nextUrl) {
+    } else if (window.location.pathname !== nextUrl || window.location.hash) {
       window.history.pushState(null, '', nextUrl)
     }
   }
+
+  useEffect(() => {
+    const hashPage = window.location.hash.replace(/^#\/?/, '')
+    if (hashPage) {
+      const resolvedPage = pathAliases[`/${hashPage}`] ?? hashPage
+      window.history.replaceState(null, '', pagePaths[resolvedPage] ?? `/${resolvedPage}`)
+      return
+    }
+    const canonicalPath = pagePaths[pageFromLocation()]
+    if (canonicalPath && window.location.pathname !== canonicalPath) {
+      window.history.replaceState(null, '', canonicalPath)
+    }
+  }, [])
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -720,26 +777,36 @@ function MembershipPage() {
   }
 
   return (
-    <PageShell eyebrow="Membership Program" title="Visit credits that build repeat habits">
+    <PageShell eyebrow="Membership Program" title="More visits. More smiles. More family memories.">
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-[2rem] bg-[var(--primary)] p-6 text-white shadow-xl md:p-8">
-          <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffdad6]">Smarter membership strategy</p>
-          <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-5xl">Protect entry revenue while encouraging families to come back.</h2>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">One regular entry is Rs. 1,500. Membership should create loyalty, repeat visits, food spending, arcade play, activity bookings, and customer data, without making discounts too generous too early.</p>
+          <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffdad6]">Designed for families who love coming back</p>
+          <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-5xl">Turn weekends, holidays, and celebrations into repeat family moments.</h2>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">Magic Land memberships encourage repeat family experiences, weekend outings, celebrations, and unforgettable moments together while giving members better value every time they visit.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {['Visit credits', '3 months validity', 'Repeat spending'].map((item) => (
+            {['Simple plans', '3 months validity', 'Family value'].map((item) => (
               <span key={item} className="rounded-2xl bg-white/12 px-4 py-3 text-sm font-extrabold text-white">{item}</span>
             ))}
           </div>
         </div>
         <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           <Crown className="text-[var(--secondary)]" />
-          <h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)] md:text-3xl">Why become a member?</h3>
+          <h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)] md:text-3xl">Families who revisit create stronger memories.</h3>
           <div className="mt-5 space-y-3">
-            {['Members revisit before credits expire', 'The park earns through food, games, arcade, shopping, and activities', 'Credits are easier to expand later into Silver, Gold, VIP, school, and corporate plans', 'The model rewards loyalty without unlimited-use risk'].map((perk) => <p key={perk} className="text-sm font-bold leading-6 text-[var(--muted)]">- {perk}</p>)}
+            {['Encourage more family outings', 'Create repeat experiences for children', 'Unlock better value over time', 'Make celebrations more spontaneous and fun'].map((perk) => <p key={perk} className="text-sm font-bold leading-6 text-[var(--muted)]">- {perk}</p>)}
           </div>
         </aside>
       </div>
+
+      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Beyond park entry</p>
+        <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Members often make every visit fuller.</h2>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          {['Food & snacks', 'Arcade games', 'Attractions', 'Activities', 'Birthdays', 'Seasonal events'].map((item) => (
+            <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>
+          ))}
+        </div>
+      </section>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-3">
         {membershipPlans.map((plan, index) => (
@@ -752,28 +819,43 @@ function MembershipPage() {
               <p className="pb-2 text-sm font-extrabold text-[var(--muted)]">{plan.entries}</p>
             </div>
             <div className="mt-5 rounded-2xl bg-white p-4 md:p-5">
-              <p className="font-display text-xl font-bold text-[var(--secondary)] md:text-2xl">{plan.perVisit}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--muted)]">Regular price value: {plan.regular}</p>
-              <p className="mt-1 text-lg font-extrabold text-[var(--primary)]">{plan.savings}</p>
+              <p className="font-display text-xl font-bold text-[var(--secondary)] md:text-2xl">Includes</p>
+              <ul className="mt-3 grid gap-2">
+                {plan.includes.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
+              </ul>
             </div>
             <h4 className="font-display mt-5 text-xl font-bold text-[var(--primary)]">Perfect for</h4>
             <ul className="mt-3 grid gap-2">
               {plan.bestFor.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
             </ul>
-            <button className="sunset mt-6 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(plan.name)}>Buy {plan.name}</button>
+            <button className="sunset mt-6 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(plan.name)}>Buy Membership</button>
           </article>
         ))}
       </div>
 
       <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">What members enjoy most</p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">A smarter way to enjoy Magic Land</p>
+        <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Membership is not just a discount. It is a better family entertainment rhythm.</h2>
+        <p className="mt-4 max-w-3xl leading-8 text-[var(--muted)]">Instead of paying full entry every visit, families can plan multiple experiences across weekends, holidays, celebrations, and special occasions. The goal is to encourage repeat visits, make celebrations easier, reward returning families, and build a stronger community around Magic Land.</p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {['Better family value', 'More flexibility', 'More reasons to revisit', 'Stronger long-term memories'].map((item) => (
+            <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Attractions members love</p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             ['VR Racing', img.vrBike],
-            ['Shooting Games', img.vrShooting],
             ['Bumper Cars', img.familyGames],
             ['Carousel', img.carousel],
+            ['Shooting Games', img.vrShooting],
             ['Creative Village', img.pottery],
+            ['Family Play Arena', img.kidsPlay],
+            ['Arcade Games', img.arcade],
+            ['Seasonal Activities', img.events],
           ].map(([title, image]) => (
             <div key={title} className="overflow-hidden rounded-2xl bg-[var(--surface-3)]">
               <SmartImage src={image} alt={title} className="h-28 w-full object-cover" />
@@ -785,14 +867,13 @@ function MembershipPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Credit comparison</p>
-        <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">A controlled discount that still feels valuable.</h3>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <Line label="One regular entry" value="Rs. 1,500" strong />
-          <Line label="5 regular entries" value="Rs. 7,500" strong />
-          <Line label="Individual plan" value="Rs. 2,999" strong />
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Future membership benefits</p>
+        <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">Simple today. Scalable tomorrow.</h3>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {['Silver Memberships', 'Gold Memberships', 'VIP Access', 'Annual Passes', 'Corporate Memberships', 'School Packages', 'Exclusive Member Events'].map((item) => (
+            <div key={item} className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-extrabold text-[var(--primary)]">{item}</div>
+          ))}
         </div>
-        <p className="mt-5 text-sm font-semibold leading-7 text-[var(--muted)]">Credits can later expand beyond entry into games, activities, food offers, special attractions, school packages, and corporate memberships.</p>
         </div>
         <form id="membership-booking" className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
@@ -801,11 +882,34 @@ function MembershipPage() {
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input className="soft-field" placeholder="Parent or member name" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input type="date" className="soft-field" /></label>
-            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-[var(--muted)]">{activePlan.entries} - {activePlan.price}</div>
+            <div className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--muted)]">{activePlan.entries} - {activePlan.price}</div>
             <button type="button" className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm">Submit Booking Request</button>
           </div>
         </form>
       </div>
+
+      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership FAQ</p>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {[
+            ['How long are memberships valid?', 'All memberships are valid for 3 months from activation.'],
+            ['Can family visits be shared?', 'Yes. Family memberships include shared visits for registered family members.'],
+            ['Are memberships refundable?', 'Membership purchases are non-refundable once activated.'],
+            ['Can unused visits be carried forward?', 'Unused visits expire after validity ends.'],
+            ['Will members receive special offers?', 'Yes. Members may receive exclusive seasonal offers and event access.'],
+          ].map(([question, answer]) => (
+            <div key={question} className="rounded-2xl bg-[var(--surface-3)] p-4">
+              <h3 className="font-display text-lg font-bold text-[var(--primary)]">{question}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{answer}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 rounded-[1.5rem] bg-[var(--primary)] p-6 text-white">
+          <h2 className="font-display text-3xl font-bold">More family time starts here.</h2>
+          <p className="mt-3 max-w-2xl leading-7 text-white/85">Turn weekends, holidays, and celebrations into unforgettable memories with the Magic Land Membership Program.</p>
+          <button className="sunset mt-5 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(membershipPlans[0].name)}>Become a Member</button>
+        </div>
+      </section>
     </PageShell>
   )
 }
@@ -1091,7 +1195,7 @@ function AboutPage() {
 function FAQPage() {
   const faqs = [
     ['What does one entry include?', 'Entry gives guests access to the park experience, with selected games, rides, and activities depending on ticket or membership type.'],
-    ['How does membership work?', 'Memberships use visit credits. Individual gives 5 credits for Rs. 2,999, Family of 2 gives 10 shared credits for Rs. 5,499, and Family of 4 gives 20 shared credits for Rs. 9,499. All are valid for 3 months.'],
+    ['How does membership work?', 'Memberships are simple visit plans. Individual Fun Pass includes 5 visits for Rs. 2,999, Family Duo Pass includes 10 shared visits for Rs. 5,499, and Family Magic Pass includes 20 shared visits for Rs. 9,499. All are valid for 3 months.'],
     ['Do you host birthdays and school visits?', 'Yes. Packages can include Kids Play, carousel, VR games, arcade, Creative Village painting, pottery, dhiki-jato heritage play, doko craft moments, dining, and hall seating.'],
     ['Where is Magic Land located?', 'Magic Land Family Fun Park is in Tarakeshwar 44600, near the Tokha route. Use the Map page for live directions.'],
   ]
