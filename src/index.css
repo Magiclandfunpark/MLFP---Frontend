@@ -2,21 +2,21 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #030d46;
-  --primary-2: #1b245a;
-  --secondary: #ef2b5a;
+  --primary: #1559a8;
+  --primary-2: #1f8bea;
+  --secondary: #e95778;
   --gold: #ff8a00;
   --gold-soft: #ffdad6;
-  --terracotta: #93001e;
+  --terracotta: #bb2447;
   --surface: #fbf8ff;
-  --surface-2: #f5f7ff;
+  --surface-2: #f6f4ff;
   --surface-3: #ececff;
   --surface-4: #dee1ff;
-  --ink: #0f1842;
-  --muted: #46464f;
-  --line: #c6c5d1;
+  --ink: #22324a;
+  --muted: #5f6471;
+  --line: #cfcbdc;
   --white: #ffffff;
-  --shadow: 0 18px 50px rgba(27, 36, 90, 0.1);
+  --shadow: 0 18px 50px rgba(239, 43, 90, 0.1);
   color: var(--ink);
   background: var(--surface);
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
@@ -86,12 +86,12 @@ a {
 }
 
 .sunset {
-  background: var(--secondary);
+  background: linear-gradient(135deg, #e95778 0%, #ff8a6a 100%);
   color: #ffffff;
 }
 
 .ticket-bg {
-  background: #1b245a;
+  background: #1559a8;
 }
 
 .map-field {
@@ -100,7 +100,14 @@ a {
 
 .storybook-card {
   background: #ffffff;
-  border: 1px solid rgba(198, 197, 209, 0.72);
+  border: 1px solid rgba(207, 203, 220, 0.78);
+}
+
+.brand-title {
+  background: linear-gradient(90deg, #e95778 0%, #ff8a00 35%, #1f8bea 70%, #7b45b3 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 .no-scrollbar::-webkit-scrollbar {

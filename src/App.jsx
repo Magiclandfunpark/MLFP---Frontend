@@ -129,6 +129,13 @@ const moreNav = [
   { id: 'contact', label: 'Contact', icon: Mail },
 ]
 
+const socialLinks = [
+  { label: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61578532986157', icon: 'facebook' },
+  { label: 'Instagram', href: 'https://www.instagram.com/magiclandnepal/', icon: 'instagram' },
+  { label: 'TikTok', href: 'https://www.tiktok.com/@magiclandfunpark.com', icon: 'tiktok' },
+  { label: 'YouTube', href: '', icon: 'youtube' },
+]
+
 const zoneFilters = ['All', 'VR & Simulators', 'Family Rides', 'Kids Play', 'Arcade & Skill', 'Creative Village']
 
 const zoneCards = [
@@ -787,7 +794,7 @@ function MembershipPage() {
         </div>
         <p className="mt-5 text-sm font-semibold leading-7 text-[var(--muted)]">Credits can later expand beyond entry into games, activities, food offers, special attractions, school packages, and corporate memberships.</p>
         </div>
-        <form id="membership-booking" className="rounded-[2rem] border border-[#bbc3ff] bg-[var(--surface-3)] p-6 shadow-sm">
+        <form id="membership-booking" className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
           <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
           <div className="mt-5 grid gap-4">
@@ -1128,6 +1135,25 @@ function ContactPage() {
         <QuickCard icon={Mail} title="Email" copy="hello@magicland.fun for enquiries and support@magicland.fun for complaints." />
         <QuickCard icon={MapPin} title="Location" copy="Magic Land Family Fun Park, Q836+95P, Tarakeshwar 44600." />
       </div>
+      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Social media</p>
+        <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">Follow Magic Land online</h2>
+        <div className="mt-5 flex flex-wrap gap-3">
+          {socialLinks.map(({ label, href, icon }) => (
+            href ? (
+              <a key={label} href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-extrabold text-[var(--primary)] transition hover:border-[var(--secondary)] hover:text-[var(--secondary)]">
+                <SocialIcon name={icon} size={18} />
+                {label}
+              </a>
+            ) : (
+              <span key={label} className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-extrabold text-[var(--muted)]">
+                <SocialIcon name={icon} size={18} />
+                {label}
+              </span>
+            )
+          ))}
+        </div>
+      </section>
     </PageShell>
   )
 }
@@ -1184,12 +1210,32 @@ function QuickCard({ icon: Icon, title, copy, onClick }) {
 
 function BrandLockup({ large = false }) {
   return (
-    <img
-      src="/magicland-logo-original.jpeg"
-      alt="Magic Land Family Fun Park"
-      className={`${large ? 'h-28 w-auto max-w-[340px]' : 'h-16 w-auto max-w-[120px]'} object-contain mix-blend-multiply`}
-    />
+    <div className={`flex items-center ${large ? 'gap-3' : 'gap-2.5'}`}>
+      <img
+        src="/magicland-logo-transparent.png"
+        alt=""
+        className={`${large ? 'h-20 w-20' : 'h-12 w-12'} shrink-0 object-contain`}
+      />
+      <div className="flex flex-col justify-center leading-[0.95]">
+        <p className={`brand-title font-display font-extrabold tracking-tight ${large ? 'text-3xl' : 'text-2xl'}`}>Magic Land</p>
+        <p className={`mt-0 font-display font-bold tracking-[0.02em] text-[var(--muted)] ${large ? 'text-base' : 'text-xs'}`}>Family Fun Park</p>
+      </div>
+    </div>
   )
+}
+
+function SocialIcon({ name, size = 18 }) {
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+  if (name === 'facebook') {
+    return <svg {...common}><path d="M15 8h-2.2A2.8 2.8 0 0 0 10 10.8V22" /><path d="M7 14h8" /><path d="M13 2h4" /></svg>
+  }
+  if (name === 'instagram') {
+    return <svg {...common}><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none" /></svg>
+  }
+  if (name === 'tiktok') {
+    return <svg {...common}><path d="M14 3v11.5a4.5 4.5 0 1 1-4.5-4.5" /><path d="M14 5c1 2.5 2.9 4 6 4.2" /></svg>
+  }
+  return <svg {...common}><path d="M4 8.5A3 3 0 0 1 7 5.5h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3Z" /><path d="m10 9 5 3-5 3Z" /></svg>
 }
 
 function SmartImage({ src, alt, className }) {
@@ -1216,7 +1262,23 @@ function Footer({ setPage }) {
   return (
     <footer className="border-t border-[var(--line)] bg-[var(--surface-2)] px-4 py-12 text-[var(--ink)] md:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
-        <div><BrandLockup large /><p className="mt-4 max-w-sm leading-7 text-[var(--muted)]">A place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p></div>
+        <div>
+          <BrandLockup large />
+          <p className="mt-4 max-w-sm leading-7 text-[var(--muted)]">A place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {socialLinks.map(({ label, href, icon }) => (
+              href ? (
+                <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[var(--primary)] shadow-sm transition hover:text-[var(--secondary)]">
+                  <SocialIcon name={icon} size={18} />
+                </a>
+              ) : (
+                <span key={label} aria-label={`${label} coming soon`} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[var(--muted)] shadow-sm">
+                  <SocialIcon name={icon} size={18} />
+                </span>
+              )
+            ))}
+          </div>
+        </div>
         <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Plan Your Day</h3><div className="mt-4 grid gap-2">{nav.slice(0, 6).map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
         <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Help & Park Info</h3><div className="mt-4 grid gap-2">{guestCare.map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
       </div>

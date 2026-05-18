@@ -14,6 +14,8 @@ The client-original direction is preserved separately:
 
 - `brand-assets/magicland logo.jpeg` - client-provided original Magic Land Fun Park logo artwork.
 - `public/magicland-logo-original.jpeg` - website-ready copy of the same original artwork.
+- `public/magicland-logo-transparent.png` - transparent extracted mark used in the website header beside the typed `Magic Land / Family Fun Park` lockup.
+- `brand-assets/magicland-logo-transparent.png` - transparent PNG handoff file for design/social use.
 
 Do not delete the newer `logo-mark.svg` / `logo-lockup.svg` system; keep it available as the proposed modern identity while the client-provided original logo is used on the website.
 
