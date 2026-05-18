@@ -10,6 +10,13 @@ Magic Land uses a minimal, colorful amusement-park identity with three aligned a
 
 The circular mark intentionally does not include the words "Magic Land." It contains only the park world: ferris wheel, coaster, hot air balloon, carousel, clouds, and sparkles. The name appears in the wordmark beside it, with "Family Fun Park" as the descriptor.
 
+The client-original direction is preserved separately:
+
+- `brand-assets/magicland logo.jpeg` - client-provided original Magic Land Fun Park logo artwork.
+- `public/magicland-logo-original.jpeg` - website-ready copy of the same original artwork.
+
+Do not delete the newer `logo-mark.svg` / `logo-lockup.svg` system; keep it available as the proposed modern identity while the client-provided original logo is used on the website.
+
 ## Logo Usage
 
 - Use the horizontal lockup whenever space allows.

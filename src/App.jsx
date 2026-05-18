@@ -103,6 +103,10 @@ const img = {
   boxing: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&w=900&q=80',
   bicycle: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=900&q=80',
   zipline: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=900&q=80',
+  pottery: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=900&q=80',
+  painting: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=900&q=80',
+  villageHeritage: '/creative-village-heritage.svg',
+  sevenStonesPond: '/seven-stones-pond.svg',
 }
 
 const nav = [
@@ -132,7 +136,8 @@ const zoneCards = [
   { title: 'Family Rides', zone: 'Family Rides', icon: FerrisWheel, image: img.carousel, copy: 'Classic rides for children and families, from carousel moments to bumper car laughs.' },
   { title: 'Kids Play Zone', zone: 'Kids Play', icon: PartyPopper, image: img.kidsPlay, copy: 'Soft play, jumping, bouncy castle, spray ball, trampoline bridge, zipline, and active fun.' },
   { title: 'Arcade & Skill Games', zone: 'Arcade & Skill', icon: Ticket, image: img.arcade, copy: 'Coin games, basketball machines, pool tables, prize games, and quick repeatable challenges.' },
-  { title: 'Creative Village', zone: 'Creative Village', icon: Palette, image: img.creativeVillage, copy: 'A softer village-style space for pottery, painting, color play, arts, crafts, and family bonding.' },
+  { title: 'Creative Village', zone: 'Creative Village', icon: Palette, image: img.pottery, copy: 'A softer village-style space for pottery, painting, colors, dhiki-jato heritage play, madani, doko, arts, crafts, and family bonding.' },
+  { title: 'Seven Color Garden Pond', zone: 'Garden Feature', icon: Sparkles, image: img.sevenStonesPond, copy: 'A photo-friendly pond and fountain garden with seven colorful stone towers inspired by the Las Vegas Seven Magic Mountains idea.' },
 ]
 
 const attractionList = [
@@ -158,16 +163,20 @@ const attractionList = [
   { name: 'Basketball Machines', zone: 'Arcade & Skill', category: 'Skill', wait: '3 machines', height: 'All ages', image: img.basketball, bestFor: 'Score battles', copy: 'Basketball shooting machines for timed rounds, friend challenges, and high-score play.' },
   { name: 'Indoor Pool Tables', zone: 'Arcade & Skill', category: 'Indoor', wait: 'Open', height: 'All ages', image: img.pool, bestFor: 'Parents and teens', copy: 'Pool tables and indoor skill games for relaxed competition between rides.' },
   { name: 'Prize & Skill Corner', zone: 'Arcade & Skill', category: 'Skill', wait: 'Open', height: 'All ages', image: img.arcade, bestFor: 'Membership value', copy: 'Prize-style moments, quick challenges, and arcade corners that make repeat visits worthwhile.' },
-  { name: 'Pottery Workshop', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.creativeVillage, bestFor: 'Parent-child bonding', copy: 'A calm hands-on pottery space inside aesthetic village-style homes for creative family time.' },
-  { name: 'Painting Studio', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.creativeVillage, bestFor: 'Birthdays and schools', copy: 'Painting sessions where children can explore colors, brushes, and take-home memories.' },
+  { name: 'Pottery Workshop', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.pottery, bestFor: 'Parent-child bonding', copy: 'A calm hands-on pottery space inside aesthetic village-style homes for creative family time.' },
+  { name: 'Painting Studio', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.painting, bestFor: 'Birthdays and schools', copy: 'Painting sessions where children can explore colors, brushes, and take-home memories.' },
   { name: 'Color Sand Play', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'Kids', image: img.creativeVillage, bestFor: 'Sensory play', copy: 'Color sand activities for calm sensory play, art corners, and photo-friendly moments.' },
+  { name: 'Dhiki & Jato Heritage Corner', zone: 'Creative Village', category: 'Heritage', wait: 'Guided', height: 'All ages', image: img.villageHeritage, bestFor: 'School visits', copy: 'A child-friendly cultural corner inspired by traditional Nepali dhiki and jato grain tools, presented as touch-and-learn heritage play.' },
+  { name: 'Madani & Doko Craft Play', zone: 'Creative Village', category: 'Heritage craft', wait: 'Workshop', height: 'All ages', image: img.villageHeritage, bestFor: 'Creative learning', copy: 'Village-style craft storytelling with madani, doko, baskets, colors, and hands-on activity prompts for families.' },
   { name: 'Arts & Crafts Village Homes', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'All ages', image: img.creativeVillage, bestFor: 'Slow family time', copy: 'Aesthetic village homes for arts, crafts, workshops, and quiet moments between high-energy games.' },
+  { name: 'Seven Color Garden Pond', zone: 'Creative Village', category: 'Garden feature', wait: 'Photo stop', height: 'All ages', image: img.sevenStonesPond, bestFor: 'Photos and calm breaks', copy: 'A garden pond with fountain jets and seven colorful stacked stone towers inspired by the Seven Magic Mountains public art style.' },
 ]
 
 const ticketOptions = [
   { name: 'One-Time Entry', price: 1500, detail: 'A single Magic Land visit for rides, VR games, arcade fun, and family attractions.' },
-  { name: 'Individual Fun Pass', price: 2999, detail: '3 months, 30 entries, and the smartest value for frequent visitors.' },
-  { name: 'Family Magic Pass', price: 9999, detail: '3 months for 4 members with 120 total entries and better per-visit value.' },
+  { name: 'Individual Fun Pass', price: 2999, detail: '3 months, 5 visit credits, and better value for repeat visitors.' },
+  { name: 'Family of 2 Fun Pass', price: 5499, detail: '3 months, 10 shared visit credits for two people.' },
+  { name: 'Family Magic Pass', price: 9499, detail: '3 months for up to 4 members with 20 shared visit credits.' },
   { name: 'Gift Ticket', price: 1500, detail: 'A shareable entry for birthdays, friends, and family celebrations.' },
 ]
 
@@ -176,21 +185,31 @@ const membershipPlans = [
     name: 'Individual Fun Pass',
     price: 'Rs. 2,999',
     subtitle: '3 months membership',
-    entries: '30 entries',
-    perVisit: 'About Rs. 100 per entry',
-    regular: 'Rs. 45,000',
-    savings: 'Save Rs. 42,001',
-    bestFor: ['Kids who love visiting again and again', 'Weekend family outings', 'After-school playtime', 'Affordable entertainment for parents'],
+    entries: '5 visit credits',
+    perVisit: 'About Rs. 600 per visit',
+    regular: 'Rs. 7,500 regular value',
+    savings: 'Save Rs. 4,501',
+    bestFor: ['Kids who will revisit within 3 months', 'Weekend and holiday visits', 'Parents who want controlled savings', 'Building a repeat-visit habit'],
+  },
+  {
+    name: 'Family of 2 Fun Pass',
+    price: 'Rs. 5,499',
+    subtitle: '3 months shared membership',
+    entries: '2 people - 10 shared visit credits',
+    perVisit: 'About Rs. 550 per visit',
+    regular: 'Rs. 15,000 regular value',
+    savings: 'Save Rs. 9,501',
+    bestFor: ['Two-person family visits', 'Parent-child repeat visits', 'Small families testing membership', 'Flexible shared credits'],
   },
   {
     name: 'Family Magic Pass',
-    price: 'Rs. 9,999',
+    price: 'Rs. 9,499',
     subtitle: '3 months family membership',
-    entries: '4 members - 120 total entries',
-    perVisit: 'About Rs. 83 per visit',
-    regular: 'Rs. 180,000',
-    savings: 'Save Rs. 170,001',
-    bestFor: ['Families with children', 'Regular weekend visitors', 'Parents planning more family time', 'Groups who want better value per visit'],
+    entries: '4 members - 20 shared visit credits',
+    perVisit: 'About Rs. 475 per visit',
+    regular: 'Rs. 30,000 regular value',
+    savings: 'Save Rs. 20,501',
+    bestFor: ['Families with children', 'Regular weekend visitors', 'Food and arcade add-on spending', 'Better value without unlimited risk'],
   },
 ]
 
@@ -334,7 +353,7 @@ function HomePage({ setPage }) {
   const weather = useParkWeather()
   const quickActions = [
     [CalendarDays, 'Today at Magic Land', 'Hours, shows, and events', 'events'],
-    [Crown, 'Membership Savings', '30 visits from Rs. 2,999', 'memberships'],
+    [Crown, 'Membership Credits', '5 visits from Rs. 2,999', 'memberships'],
     [PartyPopper, 'Birthday Packages', 'Kids, teens, schools, families', 'birthdays'],
     [MapIcon, 'Directions', 'Open route from your location', 'map'],
   ]
@@ -435,6 +454,7 @@ function HomePage({ setPage }) {
         <StatusStrip />
       </div>
       <InsideMagicLand setPage={setPage} />
+      <GardenPondFeature setPage={setPage} />
       <MembershipTeaser setPage={setPage} />
       <div className="hidden md:block">
         <MapTeaser setPage={setPage} />
@@ -449,16 +469,16 @@ function MembershipTeaser({ setPage }) {
       <div className="grid gap-5 rounded-[2rem] border border-[rgba(198,197,209,0.55)] bg-white p-5 shadow-sm md:grid-cols-[1fr_360px] md:p-8">
         <div>
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership Program</p>
-          <h2 className="font-display mt-2 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">30 visits for Rs. 2,999.</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-base">More playtime, more laughter, and smarter savings for kids who love VR games, rides, pool, shooting games, and arcade moments.</p>
+          <h2 className="font-display mt-2 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">5 visit credits for Rs. 2,999.</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-base">A safer, smarter membership model built to increase repeat visits, food spending, arcade play, activities, and long-term customer loyalty.</p>
           <div className="mt-5 flex flex-wrap gap-3">
-            {['Rs. 100 per entry', '3 months access', 'VR and arcade fun'].map((item) => <span key={item} className="rounded-full bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]">{item}</span>)}
+            {['5 visit credits', '3 months validity', 'Use it before expiry'].map((item) => <span key={item} className="rounded-full bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]">{item}</span>)}
           </div>
         </div>
         <div className="rounded-[1.5rem] bg-[var(--primary)] p-5 text-white">
           <p className="text-sm font-extrabold uppercase text-[#ffdad6]">Family Magic Pass</p>
-          <p className="font-display mt-2 text-4xl font-bold">Rs. 9,999</p>
-          <p className="mt-2 text-sm font-semibold text-white/82">4 members, 120 total entries, about Rs. 83 per visit.</p>
+          <p className="font-display mt-2 text-4xl font-bold">Rs. 9,499</p>
+          <p className="mt-2 text-sm font-semibold text-white/82">4 members, 20 shared visit credits, about Rs. 475 per visit.</p>
           <button className="sunset mt-5 w-full rounded-full px-5 py-3 font-extrabold" onClick={() => setPage('memberships')}>Compare Savings</button>
         </div>
       </div>
@@ -469,8 +489,8 @@ function MembershipTeaser({ setPage }) {
 function InsideMagicLand({ setPage }) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-14">
-      <SectionIntro eyebrow="What's inside" title="Five experience zones, one full family day" />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <SectionIntro eyebrow="What's inside" title="Experience zones, creative village, and photo-friendly garden moments" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {zoneCards.map(({ title, zone, icon: Icon, image, copy }) => (
           <button key={title} onClick={() => setPage('attractions')} className="storybook-card group overflow-hidden rounded-[1.5rem] text-left shadow-sm transition hover:-translate-y-1">
             <div className="relative h-40 overflow-hidden">
@@ -486,6 +506,22 @@ function InsideMagicLand({ setPage }) {
             </div>
           </button>
         ))}
+      </div>
+    </section>
+  )
+}
+
+function GardenPondFeature({ setPage }) {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-14">
+      <div className="grid overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-xl md:grid-cols-[1.15fr_0.85fr]">
+        <SmartImage src={img.sevenStonesPond} alt="Seven Color Garden Pond" className="h-72 w-full object-cover md:h-full" />
+        <div className="p-6 md:p-8">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Garden Pond Feature</p>
+          <h2 className="font-display mt-2 text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">Seven colored stones, fountain jets, and a garden pond photo spot.</h2>
+          <p className="mt-4 leading-7 text-[var(--muted)]">Inspired by the colorful stacked-stone landmark near Las Vegas, Magic Land can make this its own family-friendly garden moment with water, lights, seating, and photo points.</p>
+          <button className="sunset mt-6 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => setPage('attractions')}>Explore Garden Feature</button>
+        </div>
       </div>
     </section>
   )
@@ -677,14 +713,14 @@ function MembershipPage() {
   }
 
   return (
-    <PageShell eyebrow="Membership Program" title="More visits. More savings.">
+    <PageShell eyebrow="Membership Program" title="Visit credits that build repeat habits">
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-[2rem] bg-[var(--primary)] p-6 text-white shadow-xl md:p-8">
-          <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffdad6]">Best value offer</p>
-          <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-5xl">Turn one regular visit into 30 magical memories.</h2>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">One regular entry is Rs. 1,500. With the Individual Fun Pass, guests get 30 entries for only Rs. 2,999 over 3 months. That means more VR games, bumper car rides, arcade challenges, pottery sessions, painting days, and weekend play without paying every visit.</p>
+          <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffdad6]">Smarter membership strategy</p>
+          <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-5xl">Protect entry revenue while encouraging families to come back.</h2>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">One regular entry is Rs. 1,500. Membership should create loyalty, repeat visits, food spending, arcade play, activity bookings, and customer data, without making discounts too generous too early.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {['VR games included', 'Digital pass access', 'Great for weekends'].map((item) => (
+            {['Visit credits', '3 months validity', 'Repeat spending'].map((item) => (
               <span key={item} className="rounded-2xl bg-white/12 px-4 py-3 text-sm font-extrabold text-white">{item}</span>
             ))}
           </div>
@@ -693,12 +729,12 @@ function MembershipPage() {
           <Crown className="text-[var(--secondary)]" />
           <h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)] md:text-3xl">Why become a member?</h3>
           <div className="mt-5 space-y-3">
-            {['Huge savings compared to regular entry', 'More visits without worrying about ticket cost', 'Perfect for weekends, holidays, and after-school fun', 'Priority access to selected offers and events'].map((perk) => <p key={perk} className="text-sm font-bold leading-6 text-[var(--muted)]">- {perk}</p>)}
+            {['Members revisit before credits expire', 'The park earns through food, games, arcade, shopping, and activities', 'Credits are easier to expand later into Silver, Gold, VIP, school, and corporate plans', 'The model rewards loyalty without unlimited-use risk'].map((perk) => <p key={perk} className="text-sm font-bold leading-6 text-[var(--muted)]">- {perk}</p>)}
           </div>
         </aside>
       </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+      <div className="mt-6 grid gap-5 lg:grid-cols-3">
         {membershipPlans.map((plan, index) => (
           <article key={plan.name} className={`relative overflow-hidden rounded-[2rem] border p-6 shadow-sm ${index === 0 ? 'border-[#bbc3ff] bg-[var(--surface-3)]' : 'border-[var(--line)] bg-white'}`}>
             {index === 0 && <span className="absolute right-5 top-5 rounded-full bg-[var(--secondary)] px-3 py-1 text-xs font-extrabold uppercase text-white">Best value</span>}
@@ -717,7 +753,7 @@ function MembershipPage() {
             <ul className="mt-3 grid gap-2">
               {plan.bestFor.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
             </ul>
-            <button className="sunset mt-6 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(plan.name)}>{index === 0 ? 'Buy Individual Fun Pass' : 'Buy Family Magic Pass'}</button>
+            <button className="sunset mt-6 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(plan.name)}>Buy {plan.name}</button>
           </article>
         ))}
       </div>
@@ -730,7 +766,7 @@ function MembershipPage() {
             ['Shooting Games', img.vrShooting],
             ['Bumper Cars', img.familyGames],
             ['Carousel', img.carousel],
-            ['Creative Village', img.creativeVillage],
+            ['Creative Village', img.pottery],
           ].map(([title, image]) => (
             <div key={title} className="overflow-hidden rounded-2xl bg-[var(--surface-3)]">
               <SmartImage src={image} alt={title} className="h-28 w-full object-cover" />
@@ -742,13 +778,14 @@ function MembershipPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Savings comparison</p>
-        <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">Why pay every time when the fun can continue?</h3>
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Credit comparison</p>
+        <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">A controlled discount that still feels valuable.</h3>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <Line label="One regular entry" value="Rs. 1,500" strong />
-          <Line label="30 separate entries" value="Rs. 45,000" strong />
-          <Line label="Individual Fun Pass" value="Rs. 2,999" strong />
+          <Line label="5 regular entries" value="Rs. 7,500" strong />
+          <Line label="Individual plan" value="Rs. 2,999" strong />
         </div>
+        <p className="mt-5 text-sm font-semibold leading-7 text-[var(--muted)]">Credits can later expand beyond entry into games, activities, food offers, special attractions, school packages, and corporate memberships.</p>
         </div>
         <form id="membership-booking" className="rounded-[2rem] border border-[#bbc3ff] bg-[var(--surface-3)] p-6 shadow-sm">
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
@@ -1047,8 +1084,8 @@ function AboutPage() {
 function FAQPage() {
   const faqs = [
     ['What does one entry include?', 'Entry gives guests access to the park experience, with selected games, rides, and activities depending on ticket or membership type.'],
-    ['How does membership work?', 'The Individual Fun Pass gives 30 entries over 3 months for Rs. 2,999. The Family Magic Pass covers 4 members with 120 total entries.'],
-    ['Do you host birthdays and school visits?', 'Yes. Packages can include Kids Play, carousel, VR games, arcade, Creative Village painting, pottery, dining, and hall seating.'],
+    ['How does membership work?', 'Memberships use visit credits. Individual gives 5 credits for Rs. 2,999, Family of 2 gives 10 shared credits for Rs. 5,499, and Family of 4 gives 20 shared credits for Rs. 9,499. All are valid for 3 months.'],
+    ['Do you host birthdays and school visits?', 'Yes. Packages can include Kids Play, carousel, VR games, arcade, Creative Village painting, pottery, dhiki-jato heritage play, doko craft moments, dining, and hall seating.'],
     ['Where is Magic Land located?', 'Magic Land Family Fun Park is in Tarakeshwar 44600, near the Tokha route. Use the Map page for live directions.'],
   ]
   return (
@@ -1146,31 +1183,12 @@ function QuickCard({ icon: Icon, title, copy, onClick }) {
 }
 
 function BrandLockup({ large = false }) {
-  const letters = [
-    ['M', '#EF2B5A'],
-    ['a', '#FF8A00'],
-    ['g', '#1F8BEA'],
-    ['i', '#33B84A'],
-    ['c', '#6D36A6'],
-    [' ', null],
-    ['L', '#073D8F'],
-    ['a', '#EF2B5A'],
-    ['n', '#FF8A00'],
-    ['d', '#33B84A'],
-  ]
-
   return (
-    <span className="flex items-center gap-2.5">
-      <img src="/logo-mark.svg" alt="" className={`${large ? 'h-16 w-16' : 'h-11 w-11'} shrink-0`} />
-      <span className="leading-none">
-        <span className={`font-display block font-extrabold tracking-tight ${large ? 'text-3xl' : 'text-[1.42rem]'}`}>
-          {letters.map(([letter, color], index) => (
-            <span key={`${letter}-${index}`} style={color ? { color } : undefined}>{letter}</span>
-          ))}
-        </span>
-        <span className={`mt-1 block font-extrabold uppercase tracking-[0.18em] text-[#2F3A4A] ${large ? 'text-xs' : 'text-[9px]'}`}>Family Fun Park</span>
-      </span>
-    </span>
+    <img
+      src="/magicland-logo-original.jpeg"
+      alt="Magic Land Family Fun Park"
+      className={`${large ? 'h-28 w-auto max-w-[340px]' : 'h-16 w-auto max-w-[120px]'} object-contain mix-blend-multiply`}
+    />
   )
 }
 

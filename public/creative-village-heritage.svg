@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" role="img" aria-labelledby="title desc">
+  <title id="title">Creative Village Nepali heritage tools</title>
+  <desc id="desc">A warm illustrated Creative Village scene with pottery, dhiki, jato, madani, doko baskets, paint, and a small village home.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="900" y1="0" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff7fb"/>
+      <stop offset=".55" stop-color="#f4f2ff"/>
+      <stop offset="1" stop-color="#e6f4ff"/>
+    </linearGradient>
+    <linearGradient id="sunset" x1="108" x2="644" y1="142" y2="548" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fcd447"/>
+      <stop offset=".45" stop-color="#ff8a00"/>
+      <stop offset="1" stop-color="#ef2b5a"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#1b245a" flood-opacity=".14"/>
+    </filter>
+  </defs>
+  <rect width="900" height="640" fill="url(#sky)"/>
+  <circle cx="760" cy="112" r="70" fill="#ffdad6" opacity=".7"/>
+  <path d="M0 438c116-78 220-80 340-23 126 60 242 68 376-6 70-39 131-53 184-46v277H0Z" fill="#dee1ff"/>
+  <path d="M0 494c170-44 308-23 420 20s255 52 480-16v142H0Z" fill="#ececff"/>
+
+  <g filter="url(#shadow)">
+    <g transform="translate(70 162)">
+      <path d="M52 116h214v220H52Z" fill="#fff" stroke="#c6c5d1" stroke-width="3"/>
+      <path d="M34 128 160 24l128 104Z" fill="url(#sunset)" stroke="#bb0014" stroke-width="5"/>
+      <path d="M104 190h108v146H104Z" fill="#f4f2ff" stroke="#1b245a" stroke-width="4"/>
+      <path d="M126 214h64v55h-64Z" fill="#bbc3ff"/>
+      <path d="M106 336h106" stroke="#1b245a" stroke-width="6"/>
+      <text x="160" y="374" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="22" font-weight="900" fill="#030d46">Creative Home</text>
+    </g>
+
+    <g transform="translate(350 120)">
+      <path d="M25 315 245 190" stroke="#8b5a2b" stroke-width="20" stroke-linecap="round"/>
+      <path d="M204 128h72v148h-72Z" fill="#a66a35" stroke="#5b3419" stroke-width="7"/>
+      <ellipse cx="240" cy="126" rx="56" ry="22" fill="#c88a4a" stroke="#5b3419" stroke-width="7"/>
+      <ellipse cx="240" cy="278" rx="64" ry="25" fill="#8b5a2b"/>
+      <circle cx="55" cy="320" r="42" fill="#ffdad6" stroke="#bb0014" stroke-width="6"/>
+      <text x="154" y="368" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="900" fill="#030d46">Dhiki</text>
+    </g>
+
+    <g transform="translate(572 286)">
+      <ellipse cx="88" cy="108" rx="86" ry="35" fill="#c6c5d1"/>
+      <circle cx="88" cy="74" r="68" fill="#d9c0a1" stroke="#8b5a2b" stroke-width="8"/>
+      <circle cx="88" cy="74" r="24" fill="#f4f2ff" stroke="#8b5a2b" stroke-width="7"/>
+      <rect x="84" y="4" width="10" height="83" rx="5" fill="#5b3419"/>
+      <text x="88" y="170" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="900" fill="#030d46">Jato</text>
+    </g>
+
+    <g transform="translate(668 118)">
+      <path d="M82 22c48 0 78 37 69 91-10 61-42 108-69 108S23 174 14 113C4 59 34 22 82 22Z" fill="#d8a061" stroke="#8b5a2b" stroke-width="8"/>
+      <path d="M27 75c32 18 76 18 111 0M26 120c32 18 78 18 112 0M39 165c27 13 61 13 86 0" stroke="#8b5a2b" stroke-width="6" fill="none"/>
+      <path d="M82 12v221" stroke="#5b3419" stroke-width="8" stroke-linecap="round"/>
+      <text x="82" y="262" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="900" fill="#030d46">Doko</text>
+    </g>
+
+    <g transform="translate(124 430)">
+      <ellipse cx="86" cy="78" rx="84" ry="28" fill="#d3d8ff"/>
+      <path d="M38 66c0-38 28-63 49-63 22 0 49 25 49 63 0 36-23 54-49 54-25 0-49-18-49-54Z" fill="#c97d4f" stroke="#8b4a21" stroke-width="7"/>
+      <path d="M56 52c20 10 43 10 62 0" stroke="#fff5de" stroke-width="8" fill="none"/>
+      <text x="86" y="154" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="900" fill="#030d46">Pottery</text>
+    </g>
+
+    <g transform="translate(384 424)">
+      <rect x="0" y="40" width="162" height="76" rx="22" fill="#fff" stroke="#c6c5d1" stroke-width="4"/>
+      <circle cx="40" cy="78" r="20" fill="#ef2b5a"/>
+      <circle cx="82" cy="78" r="20" fill="#ff8a00"/>
+      <circle cx="124" cy="78" r="20" fill="#1f8bea"/>
+      <path d="M180 14c30 30 25 80-14 111" stroke="#5b3419" stroke-width="13" stroke-linecap="round" fill="none"/>
+      <path d="M180 14 226 56" stroke="#33b84a" stroke-width="10" stroke-linecap="round"/>
+      <text x="92" y="154" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="900" fill="#030d46">Colors</text>
+    </g>
+
+    <g transform="translate(648 456)">
+      <rect x="30" y="0" width="28" height="106" rx="14" fill="#8b5a2b"/>
+      <rect x="12" y="36" width="64" height="44" rx="18" fill="#fff5de" stroke="#8b5a2b" stroke-width="6"/>
+      <path d="M44 4v95" stroke="#5b3419" stroke-width="4"/>
+      <text x="44" y="142" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="900" fill="#030d46">Madani</text>
+    </g>
+  </g>
+</svg>
