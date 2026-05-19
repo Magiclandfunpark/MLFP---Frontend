@@ -1272,9 +1272,9 @@ function MembershipPage({ setPage }) {
           <p className="mt-4 leading-8 text-[var(--muted)]">Each park entry by one registered member counts as 1 visit. A family of 4 visiting together uses 4 visits from the shared balance, so 20 shared visits equals about 5 full family outings.</p>
         </div>
         <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">For bigger families</p>
-          <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Keep the plan simple at launch.</h2>
-          <p className="mt-4 leading-8 text-[var(--muted)]">Extra family members can join using normal entry pricing for now. Once visit data is collected, Magic Land can add extra-member credit packs, annual passes, and school or corporate packages.</p>
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Family add-on</p>
+          <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Add more members when your family group is bigger.</h2>
+          <p className="mt-4 leading-8 text-[var(--muted)]">Need to include more than 2 or 4 registered members? Magic Land can add extra family members to the same membership request, then confirm the best add-on price and visit balance by phone before activation.</p>
         </div>
       </section>
 
