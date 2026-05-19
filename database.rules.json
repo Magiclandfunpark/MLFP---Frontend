@@ -44,6 +44,36 @@
         ".write": false
       }
     },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
+        "uid": {
+          ".validate": "newData.val() == $uid"
+        },
+        "displayName": {
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 180"
+        },
+        "phoneNumber": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "photoURL": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "providerIds": {
+          ".validate": "newData.hasChildren() || newData.val() == null"
+        },
+        "lastSeenAt": {
+          ".validate": "newData.isString()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     ".read": false,
     ".write": false
   }

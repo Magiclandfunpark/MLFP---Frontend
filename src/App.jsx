@@ -17,13 +17,27 @@ import {
   Palette,
   PartyPopper,
   Phone,
+  ShieldCheck,
   Sparkles,
   Ticket,
   Utensils,
+  UserRound,
   Wallet,
   X,
 } from 'lucide-react'
-import { createPublicRequest, subscribePublicLiveStatus } from './firebaseClient'
+import {
+  confirmPhoneOtp,
+  createEmailAccount,
+  createPublicRequest,
+  sendPhoneOtp,
+  signInWithEmail,
+  signInWithGoogle,
+  signOutUser,
+  subscribeAuthUser,
+  subscribePublicLiveStatus,
+  trackEvent,
+  trackPageView,
+} from './firebaseClient'
 
 const park = { lng: 85.3239042, lat: 27.7836311 }
 const tokhaMunicipality = { lng: 85.32746, lat: 27.74526 }
@@ -136,6 +150,7 @@ const moreNav = [
   { id: 'privacy', label: 'Privacy', icon: Wallet },
   { id: 'terms', label: 'Terms', icon: CreditCard },
   { id: 'contact', label: 'Contact', icon: Mail },
+  { id: 'account', label: 'Guest Login', icon: UserRound },
 ]
 
 const socialLinks = [
@@ -159,6 +174,7 @@ const pagePaths = {
   privacy: '/privacy',
   terms: '/terms',
   contact: '/contact',
+  account: '/account',
   more: '/more',
 }
 
@@ -179,6 +195,8 @@ const pathAliases = {
   '/privacy': 'privacy',
   '/terms': 'terms',
   '/contact': 'contact',
+  '/account': 'account',
+  '/login': 'account',
   '/more': 'more',
 }
 
@@ -284,6 +302,7 @@ function App() {
   const navigate = (nextPage, replace = false) => {
     setMenuOpen(false)
     setPageState(nextPage)
+    trackEvent('navigation_click', { target_page: nextPage, source_page: page })
     const nextUrl = pagePaths[nextPage] ?? `/${nextPage}`
     if (replace) {
       window.history.replaceState(null, '', nextUrl)
@@ -307,6 +326,7 @@ function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    trackPageView(page)
   }, [page])
 
   useEffect(() => {
@@ -335,6 +355,7 @@ function App() {
         {page === 'privacy' && <PrivacyPage />}
         {page === 'terms' && <TermsPage />}
         {page === 'contact' && <ContactPage />}
+        {page === 'account' && <AccountPage />}
         {page === 'more' && <MorePage setPage={navigate} />}
       </main>
       <Footer setPage={navigate} />
@@ -404,7 +425,33 @@ function useLiveParkStatus() {
   return liveStatus
 }
 
+function useAuthUser() {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let unsubscribe = () => {}
+    let active = true
+
+    subscribeAuthUser((nextUser) => {
+      if (!active) return
+      setUser(nextUser)
+      setLoading(false)
+    }).then((cleanup) => {
+      unsubscribe = cleanup
+    })
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  return { user, loading }
+}
+
 function Header({ page, setPage, menuOpen, setMenuOpen }) {
+  const { user } = useAuthUser()
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(198,197,209,0.55)] bg-[rgba(251,248,255,0.94)] backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-8">
@@ -421,6 +468,12 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
         <div className="flex items-center gap-2">
           <button className="sunset hidden rounded-full px-5 py-3 text-sm font-extrabold shadow-sm md:inline-flex" onClick={() => setPage('tickets')}>
             Buy Tickets
+          </button>
+          <button
+            className="hidden rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm font-extrabold text-[var(--primary)] shadow-sm md:inline-flex"
+            onClick={() => setPage('account')}
+          >
+            {user ? 'Account' : 'Login'}
           </button>
           <button
             className="grid h-11 w-11 place-items-center rounded-full bg-white text-[var(--primary)] shadow-sm xl:hidden"
@@ -703,13 +756,17 @@ function StatusStrip() {
 
 function AttractionsPage({ setPage }) {
   const [activeZone, setActiveZone] = useState('All')
+  const chooseZone = (zone) => {
+    setActiveZone(zone)
+    trackEvent('attraction_filter_select', { zone })
+  }
   return (
     <PageShell eyebrow="Attractions" title="VR games, skill games, rides, and family fun">
       <div className="mb-7 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
         {zoneFilters.map((zone) => (
           <button
             key={zone}
-            onClick={() => setActiveZone(zone)}
+            onClick={() => chooseZone(zone)}
             className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-extrabold transition ${activeZone === zone ? 'bg-[var(--primary)] text-white' : 'border border-[var(--line)] bg-white text-[var(--muted)]'}`}
           >
             {zone}
@@ -742,8 +799,8 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
             </div>
             {!compact && (
               <div className="mt-4 flex flex-wrap gap-2">
-                <button className="sunset rounded-full px-4 py-2 text-sm font-extrabold" onClick={() => setPage?.('tickets')}>Book Game</button>
-                <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]" onClick={() => setPage?.('memberships')}>Use Membership</button>
+                <button className="sunset rounded-full px-4 py-2 text-sm font-extrabold" onClick={() => { trackEvent('attraction_book_click', { attraction_name: ride.name, zone: ride.zone }); setPage?.('tickets') }}>Book Game</button>
+                <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]" onClick={() => { trackEvent('attraction_membership_click', { attraction_name: ride.name, zone: ride.zone }); setPage?.('memberships') }}>Use Membership</button>
               </div>
             )}
           </article>
@@ -760,6 +817,10 @@ function TicketsPage() {
   const guests = Number(form.guests) || 1
   const total = selected.price * guests
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+  const chooseTicket = (ticket) => {
+    setSelected(ticket)
+    trackEvent('ticket_select', { ticket_name: ticket.name, price: ticket.price })
+  }
 
   const submitBooking = async (event) => {
     event.preventDefault()
@@ -776,6 +837,12 @@ function TicketsPage() {
         visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
         note: String(formData.get('note') || form.note).trim(),
         total: selected.price * payloadGuests,
+      })
+      trackEvent('booking_request_submitted', {
+        ticket_name: selected.name,
+        guests: payloadGuests,
+        total: selected.price * payloadGuests,
+        store: result.store,
       })
       setStatus({
         type: 'success',
@@ -795,7 +862,7 @@ function TicketsPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="grid gap-4 md:grid-cols-2">
           {ticketOptions.map((ticket) => (
-            <button key={ticket.name} onClick={() => setSelected(ticket)} className={`storybook-card rounded-[2rem] p-5 text-left transition ${selected.name === ticket.name ? 'ring-4 ring-[#bbc3ff]' : ''}`}>
+            <button key={ticket.name} onClick={() => chooseTicket(ticket)} className={`storybook-card rounded-[2rem] p-5 text-left transition ${selected.name === ticket.name ? 'ring-4 ring-[#bbc3ff]' : ''}`}>
               <Ticket className="text-[var(--secondary)]" />
               <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{ticket.name}</h3>
               <p className="mt-2 text-2xl font-extrabold">Rs. {ticket.price.toLocaleString()}</p>
@@ -842,6 +909,7 @@ function MembershipPage() {
   const choosePlan = (planName) => {
     setSelectedPlan(planName)
     setStatus({ type: '', message: '' })
+    trackEvent('membership_plan_select', { plan_name: planName })
     window.requestAnimationFrame(() => document.getElementById('membership-booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }))
@@ -861,6 +929,12 @@ function MembershipPage() {
         startDate: String(formData.get('startDate') || form.startDate).trim(),
         familyMembers: String(formData.get('familyMembers') || form.familyMembers).trim(),
         note: String(formData.get('note') || form.note).trim(),
+      })
+      trackEvent('membership_request_submitted', {
+        plan_name: activePlan.name,
+        price: activePlan.price,
+        visits: activePlan.entries,
+        store: result.store,
       })
       setStatus({
         type: 'success',
@@ -954,7 +1028,7 @@ function MembershipPage() {
             ['Creative Village', img.pottery],
             ['Family Play Arena', img.kidsPlay],
             ['Arcade Games', img.arcade],
-            ['Seasonal Activities', img.events],
+            ['Seasonal Activities', img.parade],
           ].map(([title, image]) => (
             <div key={title} className="overflow-hidden rounded-2xl bg-[var(--surface-3)]">
               <SmartImage src={image} alt={title} className="h-28 w-full object-cover" />
@@ -1076,7 +1150,7 @@ function MapPage() {
           <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Magic Land Family Fun Park</h3>
           <p className="mt-3 leading-7 text-[var(--muted)]">Q836+95P, Tarakeshwar 44600. Use the map to preview the Tokha Bazar road route, or open live directions from your current location.</p>
           <div className="mt-6 grid gap-3">
-            <a href={directionsUrl} target="_blank" rel="noreferrer" className="sunset inline-flex justify-center rounded-full px-6 py-4 text-center font-extrabold shadow-sm">Directions from my location</a>
+            <a href={directionsUrl} target="_blank" rel="noreferrer" onClick={() => trackEvent('map_directions_click', { destination: 'magic_land_tarakeshwar' })} className="sunset inline-flex justify-center rounded-full px-6 py-4 text-center font-extrabold shadow-sm">Directions from my location</a>
           </div>
           <div className="mt-6 border-t border-[var(--line)] pt-5">
             <p className="text-sm font-bold text-[var(--muted)]">Park capacity</p>
@@ -1347,7 +1421,7 @@ function ContactPage() {
         <div className="mt-5 flex flex-wrap gap-3">
           {socialLinks.map(({ label, href, icon }) => (
             href ? (
-              <a key={label} href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-extrabold text-[var(--primary)] transition hover:border-[var(--secondary)] hover:text-[var(--secondary)]">
+                <a key={label} href={href} target="_blank" rel="noreferrer" onClick={() => trackEvent('social_link_click', { channel: label.toLowerCase() })} className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-extrabold text-[var(--primary)] transition hover:border-[var(--secondary)] hover:text-[var(--secondary)]">
                 <SocialIcon name={icon} size={18} />
                 {label}
               </a>
@@ -1360,6 +1434,103 @@ function ContactPage() {
           ))}
         </div>
       </section>
+    </PageShell>
+  )
+}
+
+function AccountPage() {
+  const { user, loading } = useAuthUser()
+  const [emailForm, setEmailForm] = useState({ email: '', password: '' })
+  const [phoneForm, setPhoneForm] = useState({ phone: '', otp: '' })
+  const [confirmationResult, setConfirmationResult] = useState(null)
+  const [status, setStatus] = useState({ type: '', message: '' })
+
+  const updateEmail = (field, value) => setEmailForm((current) => ({ ...current, [field]: value }))
+  const updatePhone = (field, value) => setPhoneForm((current) => ({ ...current, [field]: value }))
+
+  const runAuthAction = async (eventName, action, successMessage) => {
+    setStatus({ type: 'loading', message: 'Checking your account...' })
+    trackEvent(`${eventName}_start`)
+    try {
+      await action()
+      setStatus({ type: 'success', message: successMessage })
+      trackEvent(`${eventName}_success`)
+    } catch (error) {
+      console.error(`${eventName} failed`, error)
+      setStatus({ type: 'error', message: error?.message || 'Could not complete login right now.' })
+      trackEvent(`${eventName}_error`, { code: error?.code ?? 'unknown' })
+    }
+  }
+
+  const loginGoogle = () => runAuthAction('auth_google', signInWithGoogle, 'Signed in with Google.')
+  const loginEmail = () => runAuthAction('auth_email_login', () => signInWithEmail(emailForm.email, emailForm.password), 'Signed in with email.')
+  const registerEmail = () => runAuthAction('auth_email_register', () => createEmailAccount(emailForm.email, emailForm.password), 'Account created. You are signed in.')
+  const requestOtp = () => runAuthAction('auth_phone_otp_request', async () => {
+    const result = await sendPhoneOtp(phoneForm.phone)
+    setConfirmationResult(result)
+  }, 'OTP sent. Please enter the code.')
+  const verifyOtp = () => runAuthAction('auth_phone_otp_verify', () => confirmPhoneOtp(confirmationResult, phoneForm.otp), 'Phone number verified. You are signed in.')
+  const logout = () => runAuthAction('auth_logout', signOutUser, 'Signed out.')
+
+  return (
+    <PageShell eyebrow="Guest Login" title="A secure guest account for smoother visits">
+      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+        <section className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <ShieldCheck className="text-[var(--secondary)]" />
+          <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Login is optional, but useful.</h2>
+          <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">Guests can still reserve tickets in one step. A secure account helps Magic Land connect future bookings, memberships, phone numbers, and visit history more cleanly.</p>
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            {['Google, email, or phone login', 'Profile stored under your Firebase UID', 'Bookings can include signed-in guest ID', 'No payment details stored on this website'].map((item) => (
+              <div key={item} className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-extrabold text-[var(--primary)]">{item}</div>
+            ))}
+          </div>
+        </section>
+
+        <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          {loading ? (
+            <p className="font-bold text-[var(--muted)]">Checking login status...</p>
+          ) : user ? (
+            <div>
+              <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Signed in</p>
+              <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{user.displayName || user.email || user.phoneNumber || 'Magic Land Guest'}</h3>
+              <div className="mt-4 rounded-2xl bg-[var(--surface-3)] p-4 text-sm leading-7 text-[var(--muted)]">
+                {user.email && <p><strong>Email:</strong> {user.email}</p>}
+                {user.phoneNumber && <p><strong>Phone:</strong> {user.phoneNumber}</p>}
+                <p><strong>Guest ID:</strong> {user.uid.slice(0, 10)}...</p>
+              </div>
+              <button className="mt-5 rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" onClick={logout}>Sign out</button>
+            </div>
+          ) : (
+            <div className="grid gap-5">
+              <button className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={loginGoogle}>Continue with Google</button>
+
+              <div className="grid gap-3 border-t border-[var(--line)] pt-5">
+                <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Email login</p>
+                <input className="soft-field" type="email" autoComplete="email" placeholder="you@example.com" value={emailForm.email} onChange={(event) => updateEmail('email', event.target.value)} />
+                <input className="soft-field" type="password" autoComplete="current-password" placeholder="Password" value={emailForm.password} onChange={(event) => updateEmail('password', event.target.value)} />
+                <div className="flex flex-wrap gap-2">
+                  <button className="rounded-full bg-[var(--primary)] px-5 py-3 text-sm font-extrabold text-white" onClick={loginEmail}>Sign in</button>
+                  <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 text-sm font-extrabold text-[var(--primary)]" onClick={registerEmail}>Create account</button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 border-t border-[var(--line)] pt-5">
+                <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Phone login</p>
+                <input className="soft-field" type="tel" autoComplete="tel" placeholder="+97798XXXXXXXX" value={phoneForm.phone} onChange={(event) => updatePhone('phone', event.target.value)} />
+                <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 text-sm font-extrabold text-[var(--primary)]" onClick={requestOtp}>Send OTP</button>
+                {confirmationResult && (
+                  <>
+                    <input className="soft-field" inputMode="numeric" placeholder="Enter OTP" value={phoneForm.otp} onChange={(event) => updatePhone('otp', event.target.value)} />
+                    <button className="rounded-full bg-[var(--primary)] px-5 py-3 text-sm font-extrabold text-white" onClick={verifyOtp}>Verify OTP</button>
+                  </>
+                )}
+                <div id="magicland-phone-recaptcha" />
+              </div>
+            </div>
+          )}
+          {status.message && <p className={`mt-4 text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
+        </aside>
+      </div>
     </PageShell>
   )
 }
@@ -1474,7 +1645,7 @@ function Footer({ setPage }) {
           <div className="mt-5 flex flex-wrap gap-2">
             {socialLinks.map(({ label, href, icon }) => (
               href ? (
-                <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[var(--primary)] shadow-sm transition hover:text-[var(--secondary)]">
+                <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} onClick={() => trackEvent('social_link_click', { channel: label.toLowerCase(), location: 'footer' })} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[var(--primary)] shadow-sm transition hover:text-[var(--secondary)]">
                   <SocialIcon name={icon} size={18} />
                 </a>
               ) : (

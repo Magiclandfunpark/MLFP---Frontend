@@ -1,5 +1,17 @@
 import { initializeApp } from 'firebase/app'
-import { getDatabase, onValue, ref, set } from 'firebase/database'
+import { getAnalytics, isSupported, logEvent } from 'firebase/analytics'
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  RecaptchaVerifier,
+  signInWithEmailAndPassword,
+  signInWithPhoneNumber,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth'
+import { getDatabase, onValue, ref, set, update } from 'firebase/database'
 import { addDoc, collection, getFirestore, serverTimestamp } from 'firebase/firestore'
 
 const envConfig = {
@@ -18,6 +30,9 @@ const hasEnvConfig = Boolean(envConfig.apiKey && envConfig.projectId && envConfi
 let appPromise
 let dbPromise
 let realtimeDbPromise
+let authPromise
+let analyticsPromise
+let phoneRecaptchaVerifier
 
 async function getFirebaseConfig() {
   if (hasEnvConfig) return envConfig
@@ -59,6 +74,121 @@ async function getRealtimeDb() {
   return realtimeDbPromise
 }
 
+async function getAuthClient() {
+  if (!authPromise) {
+    authPromise = getApp().then((app) => (app ? getAuth(app) : null))
+  }
+  return authPromise
+}
+
+async function getAnalyticsClient() {
+  if (!analyticsPromise) {
+    analyticsPromise = Promise.all([getApp(), isSupported()])
+      .then(([app, supported]) => (app && supported ? getAnalytics(app) : null))
+      .catch(() => null)
+  }
+  return analyticsPromise
+}
+
+function cleanParams(params) {
+  return Object.fromEntries(
+    Object.entries(params ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  )
+}
+
+export async function trackEvent(name, params = {}) {
+  try {
+    const analytics = await getAnalyticsClient()
+    if (analytics) logEvent(analytics, name, cleanParams(params))
+  } catch {
+    // Analytics should never block booking, auth, or page navigation.
+  }
+}
+
+export function trackPageView(pageId) {
+  trackEvent('page_view', {
+    page_title: pageId,
+    page_path: globalThis.location?.pathname ?? '',
+    page_location: globalThis.location?.href ?? '',
+  })
+}
+
+function publicUserProfile(user) {
+  return {
+    uid: user.uid,
+    displayName: user.displayName ?? '',
+    email: user.email ?? '',
+    phoneNumber: user.phoneNumber ?? '',
+    photoURL: user.photoURL ?? '',
+    providerIds: user.providerData?.map((provider) => provider.providerId) ?? [],
+    lastSeenAt: new Date().toISOString(),
+  }
+}
+
+async function saveUserProfile(user) {
+  const realtimeDb = await getRealtimeDb()
+  if (!realtimeDb || !user?.uid) return
+  await update(ref(realtimeDb, `users/${user.uid}`), publicUserProfile(user))
+}
+
+export async function subscribeAuthUser(onChange) {
+  const auth = await getAuthClient()
+  if (!auth) {
+    onChange(null)
+    return () => {}
+  }
+
+  return onAuthStateChanged(auth, (user) => {
+    onChange(user)
+    if (user) saveUserProfile(user).catch(() => {})
+  })
+}
+
+export async function signInWithGoogle() {
+  const auth = await getAuthClient()
+  if (!auth) throw new Error('Firebase Auth is not configured.')
+  const result = await signInWithPopup(auth, new GoogleAuthProvider())
+  await saveUserProfile(result.user)
+  return result.user
+}
+
+export async function signInWithEmail(email, password) {
+  const auth = await getAuthClient()
+  if (!auth) throw new Error('Firebase Auth is not configured.')
+  const result = await signInWithEmailAndPassword(auth, email, password)
+  await saveUserProfile(result.user)
+  return result.user
+}
+
+export async function createEmailAccount(email, password) {
+  const auth = await getAuthClient()
+  if (!auth) throw new Error('Firebase Auth is not configured.')
+  const result = await createUserWithEmailAndPassword(auth, email, password)
+  await saveUserProfile(result.user)
+  return result.user
+}
+
+export async function sendPhoneOtp(phoneNumber, containerId = 'magicland-phone-recaptcha') {
+  const auth = await getAuthClient()
+  if (!auth) throw new Error('Firebase Auth is not configured.')
+  if (!phoneRecaptchaVerifier) {
+    phoneRecaptchaVerifier = new RecaptchaVerifier(auth, containerId, { size: 'invisible' })
+  }
+  return signInWithPhoneNumber(auth, phoneNumber, phoneRecaptchaVerifier)
+}
+
+export async function confirmPhoneOtp(confirmationResult, code) {
+  const result = await confirmationResult.confirm(code)
+  await saveUserProfile(result.user)
+  return result.user
+}
+
+export async function signOutUser() {
+  const auth = await getAuthClient()
+  if (!auth) return
+  await signOut(auth)
+}
+
 function saveLocalFallback(collectionName, payload) {
   const key = `magicland:${collectionName}`
   const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`
@@ -85,11 +215,15 @@ function saveLocalFallback(collectionName, payload) {
 }
 
 export async function createPublicRequest(collectionName, payload) {
+  const auth = await getAuthClient()
   const enrichedPayload = {
     ...payload,
     source: 'website',
     pagePath: globalThis.location?.pathname ?? '',
     userAgent: globalThis.navigator?.userAgent ?? '',
+    authUid: auth?.currentUser?.uid ?? '',
+    authEmail: auth?.currentUser?.email ?? '',
+    authPhone: auth?.currentUser?.phoneNumber ?? '',
   }
 
   const realtimeDb = await getRealtimeDb()
