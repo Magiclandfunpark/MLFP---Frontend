@@ -367,7 +367,7 @@ function App() {
         {page === 'home' && <HomePage setPage={navigate} />}
         {page === 'attractions' && <AttractionsPage setPage={navigate} />}
         {page === 'tickets' && <TicketsPage setPage={navigate} />}
-        {page === 'memberships' && <MembershipPage />}
+        {page === 'memberships' && <MembershipPage setPage={navigate} />}
         {page === 'birthdays' && <BirthdaysPage />}
         {page === 'map' && <MapPage />}
         {page === 'dining' && <DiningPage />}
@@ -1081,11 +1081,15 @@ function TicketsPage({ setPage }) {
   )
 }
 
-function MembershipPage() {
+function MembershipPage({ setPage }) {
+  const { user, loading: authLoading } = useAuthUser()
   const [selectedPlan, setSelectedPlan] = useState(membershipPlans[0].name)
-  const [form, setForm] = useState({ name: '', phone: '', startDate: '', familyMembers: '', note: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', startDate: '', familyMembers: '', note: '' })
+  const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
   const activePlan = membershipPlans.find((plan) => plan.name === selectedPlan) ?? membershipPlans[0]
+  const activePrice = Number(activePlan.price.replace(/\D/g, '')) || 0
+  const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
   const choosePlan = (planName) => {
     setSelectedPlan(planName)
     setStatus({ type: '', message: '' })
@@ -1100,11 +1104,30 @@ function MembershipPage() {
   const submitMembership = async (event) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
-    setStatus({ type: 'loading', message: 'Sending your membership request...' })
+    const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
+    if (wantsOnlinePayment && !user) {
+      setStatus({
+        type: 'error',
+        message: 'Please login or create a Magic Land account before online membership payment.',
+      })
+      trackEvent('membership_online_payment_auth_required', { payment_method: paymentMethod, plan_name: activePlan.name })
+      return
+    }
+    if (wantsOnlinePayment && emailNeedsVerification) {
+      setStatus({
+        type: 'error',
+        message: 'Please verify your email before online payment. Check your inbox, then return here to continue.',
+      })
+      trackEvent('membership_online_payment_email_verification_required', { payment_method: paymentMethod, plan_name: activePlan.name })
+      return
+    }
+
+    setStatus({ type: 'loading', message: wantsOnlinePayment ? `Saving membership and opening ${paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}...` : 'Sending your membership request...' })
     try {
       const result = await createPublicRequest('membershipRequests', {
         name: String(formData.get('name') || form.name).trim(),
         phone: String(formData.get('phone') || form.phone).trim(),
+        email: String(formData.get('email') || form.email).trim(),
         planName: activePlan.name,
         price: activePlan.price,
         visits: activePlan.entries,
@@ -1112,23 +1135,72 @@ function MembershipPage() {
         startDate: String(formData.get('startDate') || form.startDate).trim(),
         familyMembers: String(formData.get('familyMembers') || form.familyMembers).trim(),
         note: String(formData.get('note') || form.note).trim(),
+        paymentMethod,
       })
       trackEvent('membership_request_submitted', {
         plan_name: activePlan.name,
         price: activePlan.price,
         visits: activePlan.entries,
         store: result.store,
+        payment_method: paymentMethod,
       })
+      if (wantsOnlinePayment) {
+        const paymentPayload = {
+          amount: activePrice,
+          purchaseOrderId: result.id,
+          purchaseOrderName: activePlan.name,
+          customerInfo: {
+            name: String(formData.get('name') || form.name).trim(),
+            phone: String(formData.get('phone') || form.phone).trim(),
+            email: String(formData.get('email') || form.email).trim(),
+          },
+        }
+        const pendingPayment = {
+          gateway: paymentMethod,
+          bookingId: result.id,
+          ticketName: activePlan.name,
+          amount: activePrice,
+          guests: 1,
+          name: paymentPayload.customerInfo.name,
+          phone: paymentPayload.customerInfo.phone,
+          email: paymentPayload.customerInfo.email,
+          requestType: 'membership',
+        }
+        try {
+          sessionStorage.setItem('magicland:pendingPayment', JSON.stringify(pendingPayment))
+        } catch {
+          // Payment can continue even if browser storage is unavailable.
+        }
+        trackEvent('membership_payment_checkout_click', {
+          gateway: paymentMethod,
+          plan_name: activePlan.name,
+          total: activePrice,
+          request_id: result.id,
+        })
+        if (paymentMethod === 'khalti') {
+          const payment = await initiateKhaltiPayment(paymentPayload)
+          window.location.href = payment.payment_url
+          return
+        }
+        const payment = await initiateEsewaPayment(paymentPayload)
+        submitEsewaForm(payment)
+        return
+      }
       setStatus({
         type: 'success',
         message: result.offline
           ? 'Saved in local preview. Add Firebase app config to send this to the console.'
           : 'Membership request received. Magic Land will confirm activation by phone.',
       })
-      setForm({ name: '', phone: '', startDate: '', familyMembers: '', note: '' })
+      setForm({ name: '', phone: '', email: '', startDate: '', familyMembers: '', note: '' })
     } catch (error) {
       console.error('Membership request failed', error)
-      setStatus({ type: 'error', message: 'Could not submit right now. Please try again or contact Magic Land.' })
+      setStatus({
+        type: 'error',
+        message: wantsOnlinePayment
+          ? `${error?.message || 'Payment gateway could not be opened.'} You can choose "Reserve, pay at park" for local testing.`
+          : 'Could not submit right now. Please try again or contact Magic Land.',
+      })
     }
   }
 
@@ -1238,27 +1310,54 @@ function MembershipPage() {
         </div>
       </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
-        <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Future membership benefits</p>
-        <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">Simple today. Scalable tomorrow.</h3>
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {['Silver Memberships', 'Gold Memberships', 'VIP Access', 'Annual Passes', 'Corporate Memberships', 'School Packages', 'Exclusive Member Events'].map((item) => (
-            <div key={item} className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-extrabold text-[var(--primary)]">{item}</div>
-          ))}
-        </div>
-        </div>
+      <div className="mx-auto mt-6 max-w-xl">
         <form id="membership-booking" onSubmit={submitMembership} className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
           <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or member name" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input name="startDate" required type="date" value={form.startDate} onChange={(e) => updateForm('startDate', e.target.value)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Family member names, optional<input name="familyMembers" value={form.familyMembers} onChange={(e) => updateForm('familyMembers', e.target.value)} className="soft-field" placeholder="Useful for Duo and Family passes" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Preferred call time or special request" /></label>
+            <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
+              Payment option
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[
+                  ['khalti', 'Pay now with Khalti'],
+                  ['esewa', 'Pay now with eSewa'],
+                  ['pay_at_park', 'Reserve, pay at park'],
+                ].map(([value, label]) => (
+                  <button
+                    type="button"
+                    key={value}
+                    onClick={() => { setPaymentMethod(value); trackEvent('membership_payment_method_select', { method: value, plan_name: activePlan.name }) }}
+                    className={`rounded-2xl border px-4 py-3 text-left text-sm font-extrabold ${paymentMethod === value ? 'border-[var(--secondary)] bg-[var(--surface-3)] text-[var(--primary)]' : 'border-[var(--line)] bg-white text-[var(--muted)]'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && !user && (
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
+                <p className="font-extrabold">Account required for online payment</p>
+                <p className="mt-1 text-[var(--muted)]">Login first, then return here to continue securely to {paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}.</p>
+                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => {
+                  sessionStorage.setItem('magicland:returnAfterLogin', 'memberships')
+                  setPage('account')
+                }}>Login or create account</button>
+              </div>
+            )}
+            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && emailNeedsVerification && (
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
+                <p className="font-extrabold">Email verification required</p>
+                <p className="mt-1 text-[var(--muted)]">Verify your email before continuing to online membership payment.</p>
+              </div>
+            )}
             <div className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--muted)]">{activePlan.entries} - {activePlan.price}</div>
-            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Sending...' : 'Submit Membership Request'}</button>
+            <button disabled={status.type === 'loading' || authLoading} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Submit Membership Request'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
           </div>
         </form>
