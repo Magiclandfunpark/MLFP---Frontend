@@ -15,7 +15,8 @@
     { "source": "/contact", "destination": "/index.html" },
     { "source": "/account", "destination": "/index.html" },
     { "source": "/more", "destination": "/index.html" },
-    { "source": "/payment/khalti/return", "destination": "/index.html" }
+    { "source": "/payment/khalti/return", "destination": "/index.html" },
+    { "source": "/payment/esewa/return", "destination": "/index.html" },
+    { "source": "/payment/esewa/failure", "destination": "/index.html" }
   ]
 }
-

@@ -38,7 +38,13 @@ import {
   trackEvent,
   trackPageView,
 } from './firebaseClient'
-import { initiateKhaltiPayment, verifyKhaltiPayment } from './paymentClient'
+import {
+  initiateEsewaPayment,
+  initiateKhaltiPayment,
+  submitEsewaForm,
+  verifyEsewaPayment,
+  verifyKhaltiPayment,
+} from './paymentClient'
 
 const park = { lng: 85.3239042, lat: 27.7836311 }
 const tokhaMunicipality = { lng: 85.32746, lat: 27.74526 }
@@ -178,6 +184,8 @@ const pagePaths = {
   account: '/account',
   more: '/more',
   khaltiReturn: '/payment/khalti/return',
+  esewaReturn: '/payment/esewa/return',
+  esewaFailure: '/payment/esewa/failure',
 }
 
 const pathAliases = {
@@ -201,6 +209,8 @@ const pathAliases = {
   '/login': 'account',
   '/more': 'more',
   '/payment/khalti/return': 'khaltiReturn',
+  '/payment/esewa/return': 'esewaReturn',
+  '/payment/esewa/failure': 'esewaFailure',
 }
 
 const zoneFilters = ['All', 'VR & Simulators', 'Family Rides', 'Kids Play', 'Arcade & Skill', 'Creative Village']
@@ -360,6 +370,8 @@ function App() {
         {page === 'contact' && <ContactPage />}
         {page === 'account' && <AccountPage />}
         {page === 'khaltiReturn' && <KhaltiReturnPage />}
+        {page === 'esewaReturn' && <EsewaReturnPage />}
+        {page === 'esewaFailure' && <PaymentFailurePage gateway="eSewa" />}
         {page === 'more' && <MorePage setPage={navigate} />}
       </main>
       <Footer setPage={navigate} />
@@ -851,8 +863,8 @@ function TicketsPage() {
         store: result.store,
         payment_method: paymentMethod,
       })
-      if (paymentMethod === 'khalti') {
-        const payment = await initiateKhaltiPayment({
+      if (paymentMethod === 'khalti' || paymentMethod === 'esewa') {
+        const paymentPayload = {
           amount: selected.price * payloadGuests,
           purchaseOrderId: result.id,
           purchaseOrderName: selected.name,
@@ -860,13 +872,25 @@ function TicketsPage() {
             name: String(formData.get('name') || form.name).trim(),
             phone: String(formData.get('phone') || form.phone).trim(),
           },
-        })
-        trackEvent('khalti_payment_initiated', {
+        }
+        if (paymentMethod === 'khalti') {
+          const payment = await initiateKhaltiPayment(paymentPayload)
+          trackEvent('khalti_payment_initiated', {
+            ticket_name: selected.name,
+            total: selected.price * payloadGuests,
+            request_id: result.id,
+          })
+          window.location.href = payment.payment_url
+          return
+        }
+
+        const payment = await initiateEsewaPayment(paymentPayload)
+        trackEvent('esewa_payment_initiated', {
           ticket_name: selected.name,
           total: selected.price * payloadGuests,
           request_id: result.id,
         })
-        window.location.href = payment.payment_url
+        submitEsewaForm(payment)
         return
       }
       setStatus({
@@ -880,8 +904,8 @@ function TicketsPage() {
       console.error('Booking request failed', error)
       setStatus({
         type: 'error',
-        message: paymentMethod === 'khalti'
-          ? `${error?.message || 'Khalti could not be opened.'} You can choose "Reserve, pay at park" for local testing.`
+        message: paymentMethod === 'khalti' || paymentMethod === 'esewa'
+          ? `${error?.message || 'Payment gateway could not be opened.'} You can choose "Reserve, pay at park" for local testing.`
           : 'Could not submit right now. Please try again or contact Magic Land.',
       })
     }
@@ -918,9 +942,10 @@ function TicketsPage() {
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Birthday, group visit, or special request" /></label>
             <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
               Payment option
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-3">
                 {[
                   ['khalti', 'Pay now with Khalti'],
+                  ['esewa', 'Pay now with eSewa'],
                   ['pay_at_park', 'Reserve, pay at park'],
                 ].map(([value, label]) => (
                   <button
@@ -939,7 +964,7 @@ function TicketsPage() {
               <Line label="Guests" value={guests} />
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
-            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : 'Reserve Visit'}</button>
+            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
             <p className="text-xs leading-5 text-[var(--muted)]">No account required. Magic Land can confirm details by phone before payment collection.</p>
           </div>
@@ -1611,6 +1636,57 @@ function KhaltiReturnPage() {
 
   return (
     <PageShell eyebrow="Khalti Payment" title={status.type === 'success' ? 'Payment received' : 'Payment verification'}>
+      <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <Wallet className={status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'} />
+        <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{status.message}</h2>
+        <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">For safety, Magic Land verifies gateway payments from the server. Do not rely on screenshots alone for final confirmation.</p>
+      </div>
+    </PageShell>
+  )
+}
+
+function EsewaReturnPage() {
+  const [status, setStatus] = useState({ type: 'loading', message: 'Verifying eSewa payment...' })
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const data = params.get('data')
+    const run = async () => {
+      if (!data) {
+        setStatus({ type: 'error', message: 'eSewa did not return payment data. Please contact Magic Land with your transaction details.' })
+        return
+      }
+      try {
+        const result = await verifyEsewaPayment({ data })
+        trackEvent('esewa_payment_verified', { status: result.status })
+        setStatus({ type: 'success', message: 'eSewa payment verified. Magic Land will confirm your booking by phone.' })
+      } catch (error) {
+        console.error('eSewa verification failed', error)
+        trackEvent('esewa_payment_verify_error')
+        setStatus({ type: 'error', message: 'We could not verify this eSewa payment automatically. If money was deducted, please contact Magic Land with your eSewa transaction details.' })
+      }
+    }
+    run()
+  }, [])
+
+  return <PaymentStatusPage gateway="eSewa" status={status} />
+}
+
+function PaymentFailurePage({ gateway }) {
+  return (
+    <PageShell eyebrow={`${gateway} Payment`} title="Payment was not completed">
+      <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <Wallet className="text-[var(--secondary)]" />
+        <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">No payment was captured.</h2>
+        <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">You can try checkout again, or choose reserve and pay at park.</p>
+      </div>
+    </PageShell>
+  )
+}
+
+function PaymentStatusPage({ gateway, status }) {
+  return (
+    <PageShell eyebrow={`${gateway} Payment`} title={status.type === 'success' ? 'Payment received' : 'Payment verification'}>
       <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
         <Wallet className={status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'} />
         <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{status.message}</h2>

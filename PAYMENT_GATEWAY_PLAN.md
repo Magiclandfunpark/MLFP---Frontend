@@ -43,6 +43,26 @@ PAYMENT_BASE_URL=https://magiclandfunpark.com
 
 For sandbox/testing, use sandbox URLs and sandbox keys only.
 
+## eSewa development values
+
+Use the private secret key eSewa sent you for `ESEWA_SECRET_KEY`.
+
+```env
+ESEWA_MERCHANT_CODE=EPAYTEST
+ESEWA_SECRET_KEY=paste_esewa_epay_v2_secret_key_here
+ESEWA_PAYMENT_URL=https://rc-epay.esewa.com.np/api/epay/main/v2/form
+ESEWA_VERIFY_URL=https://uat.esewa.com.np/api/epay/transaction/status/
+```
+
+Test payment credentials:
+
+```text
+eSewa ID: 9806800002 or 9806800003 or 9806800004 or 9806800005
+Password: Nepal@123
+MPIN: 1122
+Token: 123456
+```
+
 ## Firestore records needed before taking live payment
 
 ```text
@@ -76,4 +96,3 @@ payments/{paymentId}
 - Do not mark a booking paid from URL parameters alone.
 - Use HTTPS domain in Khalti/eSewa merchant dashboard callback URLs.
 - Test sandbox end-to-end before switching live keys.
-
