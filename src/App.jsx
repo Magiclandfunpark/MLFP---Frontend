@@ -878,7 +878,12 @@ function TicketsPage() {
       setForm({ name: '', phone: '', visitDate: '', guests: 2, note: '' })
     } catch (error) {
       console.error('Booking request failed', error)
-      setStatus({ type: 'error', message: 'Could not submit right now. Please try again or contact Magic Land.' })
+      setStatus({
+        type: 'error',
+        message: paymentMethod === 'khalti'
+          ? `${error?.message || 'Khalti could not be opened.'} You can choose "Reserve, pay at park" for local testing.`
+          : 'Could not submit right now. Please try again or contact Magic Land.',
+      })
     }
   }
 

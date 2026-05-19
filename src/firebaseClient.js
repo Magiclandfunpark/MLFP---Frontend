@@ -34,6 +34,15 @@ let authPromise
 let analyticsPromise
 let phoneRecaptchaVerifier
 
+function withTimeout(promise, timeoutMs, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      globalThis.setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs)
+    }),
+  ])
+}
+
 async function getFirebaseConfig() {
   if (hasEnvConfig) return envConfig
 
@@ -229,21 +238,29 @@ export async function createPublicRequest(collectionName, payload) {
   const db = await getDb()
   if (db) {
     try {
-      const docRef = await addDoc(collection(db, collectionName), {
-        ...enrichedPayload,
-        status: 'new',
-        createdAt: serverTimestamp(),
-      })
+      const docRef = await withTimeout(
+        addDoc(collection(db, collectionName), {
+          ...enrichedPayload,
+          status: 'new',
+          createdAt: serverTimestamp(),
+        }),
+        7000,
+        'Firestore request save',
+      )
 
       try {
         const realtimeDb = await getRealtimeDb()
         if (realtimeDb) {
-          await set(ref(realtimeDb, `publicRequests/${collectionName}/${docRef.id}`), {
-            ...enrichedPayload,
-            status: 'new',
-            createdAt: new Date().toISOString(),
-            firestoreId: docRef.id,
-          })
+          await withTimeout(
+            set(ref(realtimeDb, `publicRequests/${collectionName}/${docRef.id}`), {
+              ...enrichedPayload,
+              status: 'new',
+              createdAt: new Date().toISOString(),
+              firestoreId: docRef.id,
+            }),
+            4000,
+            'Realtime Database mirror',
+          )
         }
       } catch {
         // Firestore is the source of truth for reservations. RTDB mirroring is
@@ -260,11 +277,15 @@ export async function createPublicRequest(collectionName, payload) {
   const realtimeDb = await getRealtimeDb()
   if (realtimeDb) {
     const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`
-    await set(ref(realtimeDb, `publicRequests/${collectionName}/${id}`), {
-      ...enrichedPayload,
-      status: 'new',
-      createdAt: new Date().toISOString(),
-    })
+    await withTimeout(
+      set(ref(realtimeDb, `publicRequests/${collectionName}/${id}`), {
+        ...enrichedPayload,
+        status: 'new',
+        createdAt: new Date().toISOString(),
+      }),
+      7000,
+      'Realtime Database request save',
+    )
     return { id, offline: false, store: 'realtime-database' }
   }
 
