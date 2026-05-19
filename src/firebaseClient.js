@@ -107,6 +107,16 @@ function cleanParams(params) {
   )
 }
 
+function getAttributionParams() {
+  try {
+    const search = new URLSearchParams(globalThis.location?.search || '')
+    const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid']
+    return Object.fromEntries(keys.map((key) => [key, search.get(key)]).filter(([, value]) => value))
+  } catch {
+    return {}
+  }
+}
+
 function createId(prefix) {
   const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`
   return `${prefix}_${id}`
@@ -146,7 +156,7 @@ function getSessionId() {
 export async function trackEvent(name, params = {}) {
   try {
     const analytics = await getAnalyticsClient()
-    if (analytics) logEvent(analytics, name, cleanParams(params))
+    if (analytics) logEvent(analytics, name, cleanParams({ ...getAttributionParams(), ...params }))
   } catch {
     // Analytics should never block booking, auth, or page navigation.
   }
@@ -157,6 +167,7 @@ export function trackPageView(pageId) {
     page_title: pageId,
     page_path: globalThis.location?.pathname ?? '',
     page_location: globalThis.location?.href ?? '',
+    ...getAttributionParams(),
   })
 }
 
@@ -288,6 +299,7 @@ export async function createPublicRequest(collectionName, payload) {
     authPhone: auth?.currentUser?.phoneNumber ?? '',
     visitorId: getVisitorId(),
     sessionId: getSessionId(),
+    ...getAttributionParams(),
   }
 
   const db = await getDb()

@@ -182,6 +182,7 @@ const pagePaths = {
   terms: '/terms',
   contact: '/contact',
   account: '/account',
+  thankYou: '/thank-you',
   more: '/more',
   khaltiReturn: '/payment/khalti/return',
   esewaReturn: '/payment/esewa/return',
@@ -207,6 +208,7 @@ const pathAliases = {
   '/contact': 'contact',
   '/account': 'account',
   '/login': 'account',
+  '/thank-you': 'thankYou',
   '/more': 'more',
   '/payment/khalti/return': 'khaltiReturn',
   '/payment/esewa/return': 'esewaReturn',
@@ -368,7 +370,8 @@ function App() {
         {page === 'privacy' && <PrivacyPage />}
         {page === 'terms' && <TermsPage />}
         {page === 'contact' && <ContactPage />}
-        {page === 'account' && <AccountPage />}
+        {page === 'account' && <AccountPage setPage={navigate} />}
+        {page === 'thankYou' && <ThankYouPage setPage={navigate} />}
         {page === 'khaltiReturn' && <KhaltiReturnPage />}
         {page === 'esewaReturn' && <EsewaReturnPage />}
         {page === 'esewaFailure' && <PaymentFailurePage gateway="eSewa" />}
@@ -829,7 +832,7 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
 function TicketsPage({ setPage }) {
   const { user, loading: authLoading } = useAuthUser()
   const [selected, setSelected] = useState(ticketOptions[0])
-  const [form, setForm] = useState({ name: '', phone: '', visitDate: '', guests: 2, note: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: 2, note: '' })
   const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
   const guests = Number(form.guests) || 1
@@ -859,6 +862,7 @@ function TicketsPage({ setPage }) {
       const result = await createPublicRequest('bookingRequests', {
         name: String(formData.get('name') || form.name).trim(),
         phone: String(formData.get('phone') || form.phone).trim(),
+        email: String(formData.get('email') || form.email).trim(),
         ticketName: selected.name,
         unitPrice: selected.price,
         guests: payloadGuests,
@@ -882,9 +886,16 @@ function TicketsPage({ setPage }) {
           customerInfo: {
             name: String(formData.get('name') || form.name).trim(),
             phone: String(formData.get('phone') || form.phone).trim(),
+            email: String(formData.get('email') || form.email).trim(),
           },
         }
         if (paymentMethod === 'khalti') {
+          trackEvent('payment_checkout_click', {
+            gateway: 'khalti',
+            ticket_name: selected.name,
+            total: selected.price * payloadGuests,
+            request_id: result.id,
+          })
           const payment = await initiateKhaltiPayment(paymentPayload)
           trackEvent('khalti_payment_initiated', {
             ticket_name: selected.name,
@@ -895,6 +906,12 @@ function TicketsPage({ setPage }) {
           return
         }
 
+        trackEvent('payment_checkout_click', {
+          gateway: 'esewa',
+          ticket_name: selected.name,
+          total: selected.price * payloadGuests,
+          request_id: result.id,
+        })
         const payment = await initiateEsewaPayment(paymentPayload)
         trackEvent('esewa_payment_initiated', {
           ticket_name: selected.name,
@@ -904,13 +921,29 @@ function TicketsPage({ setPage }) {
         submitEsewaForm(payment)
         return
       }
-      setStatus({
-        type: 'success',
+      const thankYouDetails = {
+        title: 'Booking request received',
         message: result.offline
           ? 'Saved in local preview. Add Firebase app config to send this to the console.'
-          : 'Request received. Magic Land will confirm your visit by phone.',
+          : 'Thank you. Magic Land will confirm your visit by phone or email.',
+        requestId: result.id,
+        paymentMethod,
+        ticketName: selected.name,
+        total: selected.price * payloadGuests,
+      }
+      try {
+        sessionStorage.setItem('magicland:thankYou', JSON.stringify(thankYouDetails))
+      } catch {
+        // Thank-you page can still render its default copy if session storage is blocked.
+      }
+      trackEvent('booking_thank_you_view_ready', {
+        request_id: result.id,
+        ticket_name: selected.name,
+        total: selected.price * payloadGuests,
       })
-      setForm({ name: '', phone: '', visitDate: '', guests: 2, note: '' })
+      setStatus({ type: 'success', message: thankYouDetails.message })
+      setForm({ name: '', phone: '', email: '', visitDate: '', guests: 2, note: '' })
+      setPage('thankYou')
     } catch (error) {
       console.error('Booking request failed', error)
       setStatus({
@@ -948,6 +981,7 @@ function TicketsPage({ setPage }) {
           <div className="mt-5 grid gap-4">
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or guest name" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input name="guests" type="number" min="1" max="50" value={form.guests} onChange={(e) => updateForm('guests', e.target.value)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Birthday, group visit, or special request" /></label>
@@ -974,7 +1008,10 @@ function TicketsPage({ setPage }) {
               <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
                 <p className="font-extrabold">Account required for online payment</p>
                 <p className="mt-1 text-[var(--muted)]">Login with Google, email, or phone first. Then return here to continue securely to {paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}.</p>
-                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => setPage('account')}>Login or create account</button>
+                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => {
+                  sessionStorage.setItem('magicland:returnAfterLogin', 'tickets')
+                  setPage('account')
+                }}>Login or create account</button>
               </div>
             )}
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
@@ -1529,7 +1566,7 @@ function ContactPage() {
   )
 }
 
-function AccountPage() {
+function AccountPage({ setPage }) {
   const { user, loading } = useAuthUser()
   const [emailForm, setEmailForm] = useState({ email: '', password: '' })
   const [phoneForm, setPhoneForm] = useState({ phone: '', otp: '' })
@@ -1546,6 +1583,17 @@ function AccountPage() {
       await action()
       setStatus({ type: 'success', message: successMessage })
       trackEvent(`${eventName}_success`)
+      if (eventName !== 'auth_phone_otp_request') {
+        try {
+          const returnPage = sessionStorage.getItem('magicland:returnAfterLogin')
+          if (returnPage) {
+            sessionStorage.removeItem('magicland:returnAfterLogin')
+            setPage(returnPage)
+          }
+        } catch {
+          // Login still succeeds if browser storage is unavailable.
+        }
+      }
     } catch (error) {
       console.error(`${eventName} failed`, error)
       setStatus({ type: 'error', message: error?.message || 'Could not complete login right now.' })
@@ -1632,8 +1680,10 @@ function KhaltiReturnPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const pidx = params.get('pidx')
+    const bookingId = params.get('booking_id') || params.get('purchase_order_id')
     const gatewayAmount = Number(params.get('total_amount') || params.get('amount') || 0)
     const amount = gatewayAmount > 0 ? gatewayAmount / 100 : 0
+    trackEvent('payment_return_view', { gateway: 'khalti', pidx, booking_id: bookingId, amount })
     const run = async () => {
       if (!pidx) {
         setStatus({ type: 'error', message: 'Khalti did not return a payment ID. Please contact Magic Land with your booking details.' })
@@ -1641,11 +1691,11 @@ function KhaltiReturnPage() {
       }
       try {
         const result = await verifyKhaltiPayment({ pidx, amount })
-        trackEvent('khalti_payment_verified', { pidx, status: result.status, paid_amount: result.paidAmount })
+        trackEvent('khalti_payment_verified', { pidx, booking_id: bookingId, status: result.status, paid_amount: result.paidAmount })
         setStatus({ type: 'success', message: 'Payment verified. Magic Land will confirm your booking by phone.' })
       } catch (error) {
         console.error('Khalti verification failed', error)
-        trackEvent('khalti_payment_verify_error', { pidx })
+        trackEvent('khalti_payment_verify_error', { pidx, booking_id: bookingId })
         setStatus({ type: 'error', message: 'We could not verify this payment automatically. If money was deducted, please contact Magic Land with your Khalti transaction details.' })
       }
     }
@@ -1669,6 +1719,8 @@ function EsewaReturnPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const data = params.get('data')
+    const bookingId = params.get('booking_id')
+    trackEvent('payment_return_view', { gateway: 'esewa', booking_id: bookingId })
     const run = async () => {
       if (!data) {
         setStatus({ type: 'error', message: 'eSewa did not return payment data. Please contact Magic Land with your transaction details.' })
@@ -1676,11 +1728,11 @@ function EsewaReturnPage() {
       }
       try {
         const result = await verifyEsewaPayment({ data })
-        trackEvent('esewa_payment_verified', { status: result.status })
+        trackEvent('esewa_payment_verified', { status: result.status, booking_id: bookingId })
         setStatus({ type: 'success', message: 'eSewa payment verified. Magic Land will confirm your booking by phone.' })
       } catch (error) {
         console.error('eSewa verification failed', error)
-        trackEvent('esewa_payment_verify_error')
+        trackEvent('esewa_payment_verify_error', { booking_id: bookingId })
         setStatus({ type: 'error', message: 'We could not verify this eSewa payment automatically. If money was deducted, please contact Magic Land with your eSewa transaction details.' })
       }
     }
@@ -1709,6 +1761,50 @@ function PaymentStatusPage({ gateway, status }) {
         <Wallet className={status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'} />
         <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{status.message}</h2>
         <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">For safety, Magic Land verifies gateway payments from the server. Do not rely on screenshots alone for final confirmation.</p>
+      </div>
+    </PageShell>
+  )
+}
+
+function ThankYouPage({ setPage }) {
+  const [details] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('magicland:thankYou') || '{}')
+    } catch {
+      return {}
+    }
+  })
+
+  useEffect(() => {
+    trackEvent('booking_thank_you_view', {
+      request_id: details.requestId,
+      ticket_name: details.ticketName,
+      total: details.total,
+      payment_method: details.paymentMethod,
+    })
+  }, [details.paymentMethod, details.requestId, details.ticketName, details.total])
+
+  return (
+    <PageShell eyebrow="Thank You" title={details.title || 'Thank you for choosing Magic Land'}>
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <section className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <Ticket className="text-[var(--secondary)]" />
+          <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{details.message || 'Your request has been received. Magic Land will confirm the details soon.'}</h2>
+          <div className="mt-6 grid gap-3 text-sm font-bold text-[var(--muted)] md:grid-cols-2">
+            {details.ticketName && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Ticket</span>{details.ticketName}</div>}
+            {details.total && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Total</span>Rs. {Number(details.total).toLocaleString()}</div>}
+            {details.paymentMethod && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Payment</span>{details.paymentMethod === 'pay_at_park' ? 'Pay at park' : details.paymentMethod}</div>}
+            {details.requestId && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Reference</span>{String(details.requestId).slice(0, 12)}</div>}
+          </div>
+        </section>
+        <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <h3 className="font-display text-2xl font-bold text-[var(--primary)]">Next step</h3>
+          <p className="mt-3 leading-7 text-[var(--muted)]">Please keep your phone and email reachable. For online payments, wait for the payment received page after gateway checkout.</p>
+          <div className="mt-5 grid gap-3">
+            <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={() => setPage('tickets')}>Book another visit</button>
+            <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 font-extrabold text-[var(--primary)]" onClick={() => setPage('home')}>Back to home</button>
+          </div>
+        </aside>
       </div>
     </PageShell>
   )

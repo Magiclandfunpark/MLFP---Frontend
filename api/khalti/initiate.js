@@ -13,6 +13,16 @@ const cleanBaseUrl = (request) => {
   return `${protocol}://${host}`
 }
 
+const buildTrackingReturnUrl = (baseUrl, path, gateway, purchaseOrderId) => {
+  const url = new URL(path, baseUrl)
+  url.searchParams.set('utm_source', 'website')
+  url.searchParams.set('utm_medium', 'checkout')
+  url.searchParams.set('utm_campaign', 'magicland_booking')
+  url.searchParams.set('utm_content', gateway)
+  url.searchParams.set('booking_id', purchaseOrderId)
+  return url.toString()
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST')
@@ -35,7 +45,7 @@ export default async function handler(request, response) {
 
     const baseUrl = cleanBaseUrl(request)
     const payload = {
-      return_url: `${baseUrl}/payment/khalti/return`,
+      return_url: buildTrackingReturnUrl(baseUrl, '/payment/khalti/return', 'khalti', purchaseOrderId),
       website_url: baseUrl,
       amount: Math.round(amount * 100),
       purchase_order_id: purchaseOrderId,

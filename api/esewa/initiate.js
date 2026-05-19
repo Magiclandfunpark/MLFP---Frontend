@@ -15,6 +15,16 @@ const cleanBaseUrl = (request) => {
   return `${protocol}://${host}`
 }
 
+const buildTrackingReturnUrl = (baseUrl, path, gateway, purchaseOrderId) => {
+  const url = new URL(path, baseUrl)
+  url.searchParams.set('utm_source', 'website')
+  url.searchParams.set('utm_medium', 'checkout')
+  url.searchParams.set('utm_campaign', 'magicland_booking')
+  url.searchParams.set('utm_content', gateway)
+  url.searchParams.set('booking_id', purchaseOrderId)
+  return url.toString()
+}
+
 const signEsewaPayload = (secretKey, message) => crypto
   .createHmac('sha256', secretKey)
   .update(message)
@@ -50,8 +60,8 @@ export default async function handler(request, response) {
       product_code: productCode,
       product_service_charge: '0',
       product_delivery_charge: '0',
-      success_url: `${baseUrl}/payment/esewa/return`,
-      failure_url: `${baseUrl}/payment/esewa/failure`,
+      success_url: buildTrackingReturnUrl(baseUrl, '/payment/esewa/return', 'esewa', purchaseOrderId),
+      failure_url: buildTrackingReturnUrl(baseUrl, '/payment/esewa/failure', 'esewa', purchaseOrderId),
       signed_field_names: 'total_amount,transaction_uuid,product_code',
     }
     const signatureMessage = `total_amount=${fields.total_amount},transaction_uuid=${fields.transaction_uuid},product_code=${fields.product_code}`
