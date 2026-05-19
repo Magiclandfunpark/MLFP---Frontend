@@ -8,7 +8,7 @@ Firestore is the source of truth for reservations, memberships, customers, futur
 
 - `bookingRequests`
   - Website ticket and visit reservations.
-  - Fields: `name`, `phone`, `email`, `ticketName`, `unitPrice`, `guests`, `visitDate`, `note`, `total`, `status`, `createdAt`, `source`, `pagePath`, `authUid`, `authEmail`, `authPhone`.
+  - Fields: `name`, `phone`, `email`, `ticketName`, `unitPrice`, `guests`, `visitDate`, `note`, `total`, `paymentMethod`, `status`, `createdAt`, `source`, `pagePath`, `authUid`, `authEmail`, `authPhone`, `visitorId`, `sessionId`.
 
 - `membershipRequests`
   - Membership purchase and callback requests.
@@ -29,6 +29,16 @@ Firestore is the source of truth for reservations, memberships, customers, futur
 - `staff`
   - Internal allowlist for future authenticated admin users.
   - Create staff documents manually by Firebase Auth UID. Public writes are blocked by rules.
+
+- `users`
+  - Signed-in guest profiles keyed by Firebase Auth UID.
+  - Fields: `uid`, `displayName`, `email`, `phoneNumber`, `photoURL`, `providerIds`, `visitorId`, `lastSeenAt`, `updatedAt`.
+
+## Guest Identity
+
+- Logged-in guests are attached to requests with `authUid`, `authEmail`, and `authPhone`.
+- Non-logged-in guests are attached to requests with a stable browser `visitorId` plus a per-session `sessionId`.
+- This lets the park match repeat inquiries without forcing login before checkout.
 
 ## Future Operational Collections
 

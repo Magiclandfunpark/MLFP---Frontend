@@ -12,7 +12,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getDatabase, onValue, ref, set, update } from 'firebase/database'
-import { addDoc, collection, getFirestore, serverTimestamp } from 'firebase/firestore'
+import { addDoc, collection, doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
 
 const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -33,6 +33,7 @@ let realtimeDbPromise
 let authPromise
 let analyticsPromise
 let phoneRecaptchaVerifier
+let sessionId
 
 function withTimeout(promise, timeoutMs, label) {
   return Promise.race([
@@ -105,6 +106,42 @@ function cleanParams(params) {
   )
 }
 
+function createId(prefix) {
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`
+  return `${prefix}_${id}`
+}
+
+function getVisitorId() {
+  const key = 'magicland:visitorId'
+  try {
+    const existing = globalThis.localStorage?.getItem(key)
+    if (existing) return existing
+    const nextId = createId('visitor')
+    globalThis.localStorage?.setItem(key, nextId)
+    return nextId
+  } catch {
+    return createId('visitor')
+  }
+}
+
+function getSessionId() {
+  if (sessionId) return sessionId
+  const key = 'magicland:sessionId'
+  try {
+    const existing = globalThis.sessionStorage?.getItem(key)
+    if (existing) {
+      sessionId = existing
+      return sessionId
+    }
+    sessionId = createId('session')
+    globalThis.sessionStorage?.setItem(key, sessionId)
+    return sessionId
+  } catch {
+    sessionId = createId('session')
+    return sessionId
+  }
+}
+
 export async function trackEvent(name, params = {}) {
   try {
     const analytics = await getAnalyticsClient()
@@ -135,9 +172,24 @@ function publicUserProfile(user) {
 }
 
 async function saveUserProfile(user) {
+  if (!user?.uid) return
+  const profile = {
+    ...publicUserProfile(user),
+    visitorId: getVisitorId(),
+  }
+
+  const db = await getDb()
+  if (db) {
+    await setDoc(doc(db, 'users', user.uid), {
+      ...profile,
+      updatedAt: serverTimestamp(),
+    }, { merge: true }).catch(() => {})
+  }
+
   const realtimeDb = await getRealtimeDb()
-  if (!realtimeDb || !user?.uid) return
-  await update(ref(realtimeDb, `users/${user.uid}`), publicUserProfile(user))
+  if (realtimeDb) {
+    await update(ref(realtimeDb, `users/${user.uid}`), profile).catch(() => {})
+  }
 }
 
 export async function subscribeAuthUser(onChange) {
@@ -233,6 +285,8 @@ export async function createPublicRequest(collectionName, payload) {
     authUid: auth?.currentUser?.uid ?? '',
     authEmail: auth?.currentUser?.email ?? '',
     authPhone: auth?.currentUser?.phoneNumber ?? '',
+    visitorId: getVisitorId(),
+    sessionId: getSessionId(),
   }
 
   const db = await getDb()
