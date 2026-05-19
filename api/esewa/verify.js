@@ -30,7 +30,7 @@ export default async function handler(request, response) {
       return json(response, 400, { error: 'Invalid eSewa return data.', decoded })
     }
 
-    const verifyUrl = new URL(process.env.ESEWA_VERIFY_URL || 'https://uat.esewa.com.np/api/epay/transaction/status/')
+    const verifyUrl = new URL(process.env.ESEWA_VERIFY_URL || 'https://rc.esewa.com.np/api/epay/transaction/status/')
     verifyUrl.searchParams.set('product_code', productCode)
     verifyUrl.searchParams.set('total_amount', String(totalAmount))
     verifyUrl.searchParams.set('transaction_uuid', transactionUuid)
@@ -53,4 +53,3 @@ export default async function handler(request, response) {
     return json(response, 500, { error: 'Could not verify eSewa payment.', details: error.message })
   }
 }
-

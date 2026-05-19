@@ -51,7 +51,7 @@ Use the private secret key eSewa sent you for `ESEWA_SECRET_KEY`.
 ESEWA_MERCHANT_CODE=EPAYTEST
 ESEWA_SECRET_KEY=paste_esewa_epay_v2_secret_key_here
 ESEWA_PAYMENT_URL=https://rc-epay.esewa.com.np/api/epay/main/v2/form
-ESEWA_VERIFY_URL=https://uat.esewa.com.np/api/epay/transaction/status/
+ESEWA_VERIFY_URL=https://rc.esewa.com.np/api/epay/transaction/status/
 ```
 
 Test payment credentials:
