@@ -23,9 +23,18 @@ import {
   Wallet,
   X,
 } from 'lucide-react'
+import { createPublicRequest, subscribePublicLiveStatus } from './firebaseClient'
 
 const park = { lng: 85.3239042, lat: 27.7836311 }
 const tokhaMunicipality = { lng: 85.32746, lat: 27.74526 }
+const defaultLiveStatus = {
+  operatingStatus: 'Open',
+  hours: '10:00 AM - 9:00 PM',
+  avgWait: '15-25 min',
+  nextShow: '8:30 PM Parade',
+  currentCapacity: 0,
+  maxCapacity: 700,
+}
 const weatherLabels = {
   0: 'Clear',
   1: 'Mainly clear',
@@ -372,6 +381,29 @@ function useParkWeather() {
   return weather
 }
 
+function useLiveParkStatus() {
+  const [liveStatus, setLiveStatus] = useState(defaultLiveStatus)
+
+  useEffect(() => {
+    let unsubscribe = () => {}
+    let active = true
+
+    subscribePublicLiveStatus((data) => {
+      if (!active) return
+      setLiveStatus((current) => ({ ...current, ...data }))
+    }).then((cleanup) => {
+      unsubscribe = cleanup
+    })
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  return liveStatus
+}
+
 function Header({ page, setPage, menuOpen, setMenuOpen }) {
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(198,197,209,0.55)] bg-[rgba(251,248,255,0.94)] backdrop-blur-xl">
@@ -415,6 +447,7 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
 
 function HomePage({ setPage }) {
   const weather = useParkWeather()
+  const liveStatus = useLiveParkStatus()
   const quickActions = [
     [CalendarDays, 'Today at Magic Land', 'Hours, shows, and events', 'events'],
     [Crown, 'Membership Credits', '5 visits from Rs. 2,999', 'memberships'],
@@ -468,9 +501,9 @@ function HomePage({ setPage }) {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[#1F8BEA]" />
-                  <span className="text-sm font-extrabold uppercase text-[#1F8BEA]">Open</span>
+                  <span className="text-sm font-extrabold uppercase text-[#1F8BEA]">{liveStatus.operatingStatus}</span>
                 </div>
-                <p className="text-sm font-bold text-[var(--muted)]">10:00 AM - 9:00 PM</p>
+                <p className="text-sm font-bold text-[var(--muted)]">{liveStatus.hours}</p>
               </div>
             </div>
             <div className="text-right">
@@ -645,14 +678,15 @@ function DesktopAttractions({ setPage }) {
 
 function StatusStrip() {
   const weather = useParkWeather()
+  const liveStatus = useLiveParkStatus()
   return (
     <section className="px-4 py-16 md:px-8">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 rounded-3xl border border-[rgba(198,197,209,0.55)] bg-white p-4 shadow-xl shadow-[rgba(27,36,90,0.08)] md:grid-cols-4 md:gap-4 md:p-5">
         {[
-          ['Open', '10:00 AM - 9:00 PM', Clock3],
-          ['Avg. Wait', '15-25 min', FerrisWheel],
+          [liveStatus.operatingStatus, liveStatus.hours, Clock3],
+          ['Avg. Wait', liveStatus.avgWait, FerrisWheel],
           ['Weather', `${weather.temp}C - ${weather.label}`, MapPin],
-          ['Next Show', '8:30 PM Parade', Sparkles],
+          ['Next Show', liveStatus.nextShow, Sparkles],
         ].map(([label, value, Icon]) => (
           <div key={label} className="rounded-2xl bg-[var(--surface-2)] p-4">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--surface-3)] text-[var(--secondary)]">
@@ -721,11 +755,40 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
 
 function TicketsPage() {
   const [selected, setSelected] = useState(ticketOptions[0])
-  const [qty, setQty] = useState(2)
-  const [promo, setPromo] = useState('')
-  const subtotal = selected.price * qty
-  const discount = promo.trim().toUpperCase() === 'MAGIC25' ? Math.round(subtotal * 0.25) : 0
-  const total = subtotal - discount
+  const [form, setForm] = useState({ name: '', phone: '', visitDate: '', guests: 2, note: '' })
+  const [status, setStatus] = useState({ type: '', message: '' })
+  const guests = Number(form.guests) || 1
+  const total = selected.price * guests
+  const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+
+  const submitBooking = async (event) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    const payloadGuests = Number(formData.get('guests')) || guests
+    setStatus({ type: 'loading', message: 'Sending your booking request...' })
+    try {
+      const result = await createPublicRequest('bookingRequests', {
+        name: String(formData.get('name') || form.name).trim(),
+        phone: String(formData.get('phone') || form.phone).trim(),
+        ticketName: selected.name,
+        unitPrice: selected.price,
+        guests: payloadGuests,
+        visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
+        note: String(formData.get('note') || form.note).trim(),
+        total: selected.price * payloadGuests,
+      })
+      setStatus({
+        type: 'success',
+        message: result.offline
+          ? 'Saved in local preview. Add Firebase app config to send this to the console.'
+          : 'Request received. Magic Land will confirm your visit by phone.',
+      })
+      setForm({ name: '', phone: '', visitDate: '', guests: 2, note: '' })
+    } catch (error) {
+      console.error('Booking request failed', error)
+      setStatus({ type: 'error', message: 'Could not submit right now. Please try again or contact Magic Land.' })
+    }
+  }
 
   return (
     <PageShell eyebrow="Tickets" title="Choose one visit or unlock three months of fun">
@@ -740,29 +803,32 @@ function TicketsPage() {
             </button>
           ))}
         </div>
-        <aside className="rounded-[2rem] border border-[var(--line)] bg-[var(--surface-2)] p-5 shadow-sm md:p-6">
+        <form onSubmit={submitBooking} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
           <div className="mb-5 flex items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--surface-3)] text-[var(--primary)]">
               <Ticket size={21} />
             </span>
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">Your visit</p>
-              <h3 className="font-display text-2xl font-bold text-[var(--primary)]">Booking Summary</h3>
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">Quick booking</p>
+              <h3 className="font-display text-2xl font-bold text-[var(--primary)]">Reserve in one step</h3>
             </div>
           </div>
           <div className="mt-5 grid gap-4">
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input type="date" className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input type="number" min="1" max="20" value={qty} onChange={(e) => setQty(Number(e.target.value) || 1)} className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Promo code<input value={promo} onChange={(e) => setPromo(e.target.value)} placeholder="Try MAGIC25" className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or guest name" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input name="guests" type="number" min="1" max="50" value={form.guests} onChange={(e) => updateForm('guests', e.target.value)} className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Birthday, group visit, or special request" /></label>
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
-              <Line label={selected.name} value={`Rs. ${subtotal.toLocaleString()}`} />
-              <Line label="Discount" value={`Rs. ${discount.toLocaleString()}`} />
+              <Line label={selected.name} value={`Rs. ${selected.price.toLocaleString()}`} />
+              <Line label="Guests" value={guests} />
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
-            <button className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm">Continue</button>
-            <p className="text-xs leading-5 text-[var(--muted)]">Your visit details will be kept ready for checkout.</p>
+            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Sending...' : 'Reserve Visit'}</button>
+            {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
+            <p className="text-xs leading-5 text-[var(--muted)]">No account required. Magic Land can confirm details by phone before payment collection.</p>
           </div>
-        </aside>
+        </form>
       </div>
     </PageShell>
   )
@@ -770,10 +836,43 @@ function TicketsPage() {
 
 function MembershipPage() {
   const [selectedPlan, setSelectedPlan] = useState(membershipPlans[0].name)
+  const [form, setForm] = useState({ name: '', phone: '', startDate: '', familyMembers: '', note: '' })
+  const [status, setStatus] = useState({ type: '', message: '' })
   const activePlan = membershipPlans.find((plan) => plan.name === selectedPlan) ?? membershipPlans[0]
   const choosePlan = (planName) => {
     setSelectedPlan(planName)
+    setStatus({ type: '', message: '' })
     window.requestAnimationFrame(() => document.getElementById('membership-booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+  const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+
+  const submitMembership = async (event) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    setStatus({ type: 'loading', message: 'Sending your membership request...' })
+    try {
+      const result = await createPublicRequest('membershipRequests', {
+        name: String(formData.get('name') || form.name).trim(),
+        phone: String(formData.get('phone') || form.phone).trim(),
+        planName: activePlan.name,
+        price: activePlan.price,
+        visits: activePlan.entries,
+        validity: activePlan.perVisit,
+        startDate: String(formData.get('startDate') || form.startDate).trim(),
+        familyMembers: String(formData.get('familyMembers') || form.familyMembers).trim(),
+        note: String(formData.get('note') || form.note).trim(),
+      })
+      setStatus({
+        type: 'success',
+        message: result.offline
+          ? 'Saved in local preview. Add Firebase app config to send this to the console.'
+          : 'Membership request received. Magic Land will confirm activation by phone.',
+      })
+      setForm({ name: '', phone: '', startDate: '', familyMembers: '', note: '' })
+    } catch (error) {
+      console.error('Membership request failed', error)
+      setStatus({ type: 'error', message: 'Could not submit right now. Please try again or contact Magic Land.' })
+    }
   }
 
   return (
@@ -875,15 +974,18 @@ function MembershipPage() {
           ))}
         </div>
         </div>
-        <form id="membership-booking" className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <form id="membership-booking" onSubmit={submitMembership} className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
           <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
           <div className="mt-5 grid gap-4">
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input className="soft-field" placeholder="Parent or member name" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input className="soft-field" placeholder="98XXXXXXXX" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input type="date" className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or member name" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input name="startDate" required type="date" value={form.startDate} onChange={(e) => updateForm('startDate', e.target.value)} className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Family member names, optional<input name="familyMembers" value={form.familyMembers} onChange={(e) => updateForm('familyMembers', e.target.value)} className="soft-field" placeholder="Useful for Duo and Family passes" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Preferred call time or special request" /></label>
             <div className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--muted)]">{activePlan.entries} - {activePlan.price}</div>
-            <button type="button" className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm">Submit Booking Request</button>
+            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Sending...' : 'Submit Membership Request'}</button>
+            {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
           </div>
         </form>
       </div>

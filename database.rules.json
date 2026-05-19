@@ -1,0 +1,50 @@
+{
+  "rules": {
+    "publicLiveStatus": {
+      ".read": true,
+      ".write": "auth != null && root.child('staff').child(auth.uid).exists()",
+      "operatingStatus": {
+        ".validate": "newData.isString() && newData.val().length <= 30"
+      },
+      "hours": {
+        ".validate": "newData.isString() && newData.val().length <= 60"
+      },
+      "avgWait": {
+        ".validate": "newData.isString() && newData.val().length <= 30"
+      },
+      "nextShow": {
+        ".validate": "newData.isString() && newData.val().length <= 80"
+      },
+      "currentCapacity": {
+        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 700"
+      },
+      "maxCapacity": {
+        ".validate": "newData.isNumber() && newData.val() == 700"
+      },
+      "$other": {
+        ".validate": false
+      }
+    },
+    "rideLiveStatus": {
+      ".read": true,
+      ".write": "auth != null && root.child('staff').child(auth.uid).exists()"
+    },
+    "publicRequests": {
+      "$requestType": {
+        ".read": "auth != null && root.child('staff').child(auth.uid).exists()",
+        "$requestId": {
+          ".write": "!data.exists() && ($requestType == 'bookingRequests' || $requestType == 'membershipRequests' || $requestType == 'contactRequests' || $requestType == 'eventRequests' || $requestType == 'newsletterSubscribers') && newData.child('status').val() == 'new' && newData.child('source').isString() && newData.child('createdAt').isString()",
+          ".validate": true
+        }
+      }
+    },
+    "staff": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": false
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}

@@ -1,0 +1,127 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isStaff() {
+      return signedIn() && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    function isText(field, maxLength) {
+      return field in request.resource.data
+        && request.resource.data[field] is string
+        && request.resource.data[field].size() > 0
+        && request.resource.data[field].size() <= maxLength;
+    }
+
+    function optionalText(field, maxLength) {
+      return !(field in request.resource.data)
+        || (request.resource.data[field] is string && request.resource.data[field].size() <= maxLength);
+    }
+
+    function basePublicRequest() {
+      return request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && isText('source', 40)
+        && optionalText('pagePath', 120)
+        && optionalText('userAgent', 500);
+    }
+
+    match /staff/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /bookingRequests/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'name', 'phone', 'email', 'ticketName', 'unitPrice', 'guests', 'visitDate',
+          'note', 'total', 'source', 'pagePath', 'userAgent', 'status', 'createdAt'
+        ])
+        && basePublicRequest()
+        && isText('name', 80)
+        && isText('phone', 30)
+        && isText('ticketName', 80)
+        && isText('visitDate', 30)
+        && request.resource.data.unitPrice is number
+        && request.resource.data.unitPrice >= 0
+        && request.resource.data.guests is int
+        && request.resource.data.guests >= 1
+        && request.resource.data.guests <= 50
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && optionalText('email', 120)
+        && optionalText('note', 500);
+      allow read, update, delete: if isStaff();
+    }
+
+    match /membershipRequests/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'name', 'phone', 'email', 'planName', 'price', 'visits', 'validity',
+          'startDate', 'familyMembers', 'note', 'source', 'pagePath', 'userAgent',
+          'status', 'createdAt'
+        ])
+        && basePublicRequest()
+        && isText('name', 80)
+        && isText('phone', 30)
+        && isText('planName', 80)
+        && isText('price', 40)
+        && isText('visits', 40)
+        && isText('validity', 40)
+        && isText('startDate', 30)
+        && optionalText('email', 120)
+        && optionalText('familyMembers', 500)
+        && optionalText('note', 500);
+      allow read, update, delete: if isStaff();
+    }
+
+    match /contactRequests/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'name', 'phone', 'email', 'topic', 'message', 'source', 'pagePath',
+          'userAgent', 'status', 'createdAt'
+        ])
+        && basePublicRequest()
+        && isText('name', 80)
+        && optionalText('phone', 30)
+        && optionalText('email', 120)
+        && isText('topic', 80)
+        && isText('message', 1200);
+      allow read, update, delete: if isStaff();
+    }
+
+    match /eventRequests/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'name', 'phone', 'email', 'eventType', 'eventDate', 'guestCount',
+          'packageInterest', 'note', 'source', 'pagePath', 'userAgent', 'status',
+          'createdAt'
+        ])
+        && basePublicRequest()
+        && isText('name', 80)
+        && isText('phone', 30)
+        && isText('eventType', 80)
+        && isText('eventDate', 30)
+        && request.resource.data.guestCount is int
+        && request.resource.data.guestCount >= 1
+        && request.resource.data.guestCount <= 700
+        && optionalText('email', 120)
+        && optionalText('packageInterest', 120)
+        && optionalText('note', 800);
+      allow read, update, delete: if isStaff();
+    }
+
+    match /newsletterSubscribers/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'email', 'source', 'pagePath', 'userAgent', 'status', 'createdAt'
+        ])
+        && basePublicRequest()
+        && isText('email', 120);
+      allow read, update, delete: if isStaff();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
