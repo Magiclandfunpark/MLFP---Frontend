@@ -359,6 +359,37 @@ export async function createPublicRequest(collectionName, payload) {
   return { id: saveLocalFallback(collectionName, enrichedPayload).id, offline: true, store: 'local-preview' }
 }
 
+export async function createPaymentReceipt(gateway, payload) {
+  const auth = await getAuthClient()
+  if (!auth?.currentUser?.uid) throw new Error('Login is required before recording a payment receipt.')
+
+  const receipt = {
+    ...payload,
+    source: 'website',
+    status: 'verified',
+    authUid: auth.currentUser.uid,
+    authEmail: auth.currentUser.email ?? '',
+    authPhone: auth.currentUser.phoneNumber ?? '',
+    visitorId: getVisitorId(),
+    sessionId: getSessionId(),
+    pagePath: globalThis.location?.pathname ?? '',
+    userAgent: globalThis.navigator?.userAgent ?? '',
+    createdAt: new Date().toISOString(),
+    ...getAttributionParams(),
+  }
+
+  const realtimeDb = await getRealtimeDb()
+  if (!realtimeDb) return { id: saveLocalFallback(`paymentReceipts:${gateway}`, receipt).id, offline: true }
+
+  const id = `${gateway}_${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`}`
+  await withTimeout(
+    set(ref(realtimeDb, `paymentReceipts/${gateway}/${id}`), receipt),
+    7000,
+    'Payment receipt save',
+  )
+  return { id, offline: false }
+}
+
 export async function subscribePublicLiveStatus(onChange) {
   const realtimeDb = await getRealtimeDb()
   if (!realtimeDb) return () => {}

@@ -28,6 +28,7 @@ import {
 import {
   confirmPhoneOtp,
   createEmailAccount,
+  createPaymentReceipt,
   createPublicRequest,
   sendPhoneOtp,
   signInWithEmail,
@@ -897,6 +898,20 @@ function TicketsPage({ setPage }) {
             request_id: result.id,
           })
           const payment = await initiateKhaltiPayment(paymentPayload)
+          try {
+            sessionStorage.setItem('magicland:pendingPayment', JSON.stringify({
+              gateway: 'khalti',
+              bookingId: result.id,
+              ticketName: selected.name,
+              amount: selected.price * payloadGuests,
+              guests: payloadGuests,
+              name: String(formData.get('name') || form.name).trim(),
+              phone: String(formData.get('phone') || form.phone).trim(),
+              email: String(formData.get('email') || form.email).trim(),
+            }))
+          } catch {
+            // Payment can continue even if browser storage is unavailable.
+          }
           trackEvent('khalti_payment_initiated', {
             ticket_name: selected.name,
             total: selected.price * payloadGuests,
@@ -913,6 +928,20 @@ function TicketsPage({ setPage }) {
           request_id: result.id,
         })
         const payment = await initiateEsewaPayment(paymentPayload)
+        try {
+          sessionStorage.setItem('magicland:pendingPayment', JSON.stringify({
+            gateway: 'esewa',
+            bookingId: result.id,
+            ticketName: selected.name,
+            amount: selected.price * payloadGuests,
+            guests: payloadGuests,
+            name: String(formData.get('name') || form.name).trim(),
+            phone: String(formData.get('phone') || form.phone).trim(),
+            email: String(formData.get('email') || form.email).trim(),
+          }))
+        } catch {
+          // Payment can continue even if browser storage is unavailable.
+        }
         trackEvent('esewa_payment_initiated', {
           ticket_name: selected.name,
           total: selected.price * payloadGuests,
@@ -1692,6 +1721,23 @@ function KhaltiReturnPage() {
       try {
         const result = await verifyKhaltiPayment({ pidx, amount })
         trackEvent('khalti_payment_verified', { pidx, booking_id: bookingId, status: result.status, paid_amount: result.paidAmount })
+        try {
+          const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
+          await createPaymentReceipt('khalti', {
+            ...pending,
+            bookingId: bookingId || pending.bookingId || '',
+            gatewayReference: pidx,
+            pidx,
+            amount: result.paidAmount || amount || pending.amount,
+            paidAmount: result.paidAmount || amount || pending.amount,
+            rawStatus: result.rawStatus || result.status || '',
+            verifiedAt: new Date().toISOString(),
+          })
+          sessionStorage.removeItem('magicland:pendingPayment')
+        } catch (receiptError) {
+          console.error('Khalti receipt email event failed', receiptError)
+          trackEvent('payment_receipt_email_event_error', { gateway: 'khalti', booking_id: bookingId })
+        }
         setStatus({ type: 'success', message: 'Payment verified. Magic Land will confirm your booking by phone.' })
       } catch (error) {
         console.error('Khalti verification failed', error)
@@ -1729,6 +1775,23 @@ function EsewaReturnPage() {
       try {
         const result = await verifyEsewaPayment({ data })
         trackEvent('esewa_payment_verified', { status: result.status, booking_id: bookingId })
+        try {
+          const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
+          await createPaymentReceipt('esewa', {
+            ...pending,
+            bookingId: bookingId || pending.bookingId || '',
+            gatewayReference: result.data?.ref_id || result.decoded?.transaction_code || '',
+            transactionUuid: result.decoded?.transaction_uuid || result.data?.transaction_uuid || '',
+            amount: Number(result.decoded?.total_amount || result.data?.total_amount || pending.amount || 0),
+            paidAmount: Number(result.decoded?.total_amount || result.data?.total_amount || pending.amount || 0),
+            rawStatus: result.data?.status || result.decoded?.status || result.status || '',
+            verifiedAt: new Date().toISOString(),
+          })
+          sessionStorage.removeItem('magicland:pendingPayment')
+        } catch (receiptError) {
+          console.error('eSewa receipt email event failed', receiptError)
+          trackEvent('payment_receipt_email_event_error', { gateway: 'esewa', booking_id: bookingId })
+        }
         setStatus({ type: 'success', message: 'eSewa payment verified. Magic Land will confirm your booking by phone.' })
       } catch (error) {
         console.error('eSewa verification failed', error)

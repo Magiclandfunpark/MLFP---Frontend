@@ -38,6 +38,15 @@
         }
       }
     },
+    "paymentReceipts": {
+      "$gateway": {
+        "$receiptId": {
+          ".read": "auth != null && root.child('staff').child(auth.uid).exists()",
+          ".write": "!data.exists() && auth != null && ($gateway == 'khalti' || $gateway == 'esewa') && newData.child('status').val() == 'verified' && newData.child('authUid').val() == auth.uid && newData.child('createdAt').isString()",
+          ".validate": true
+        }
+      }
+    },
     "staff": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
