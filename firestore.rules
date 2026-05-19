@@ -45,7 +45,7 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasOnly([
           'name', 'phone', 'email', 'ticketName', 'unitPrice', 'guests', 'visitDate',
           'note', 'total', 'source', 'pagePath', 'userAgent', 'status', 'createdAt',
-          'authUid', 'authEmail', 'authPhone'
+          'authUid', 'authEmail', 'authPhone', 'paymentMethod'
         ])
         && basePublicRequest()
         && optionalAuthContext()
@@ -60,6 +60,7 @@ service cloud.firestore {
         && request.resource.data.guests <= 50
         && request.resource.data.total is number
         && request.resource.data.total >= 0
+        && optionalText('paymentMethod', 40)
         && optionalText('email', 120)
         && optionalText('note', 500);
       allow read, update, delete: if isStaff();

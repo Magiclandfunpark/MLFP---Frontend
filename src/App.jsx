@@ -38,6 +38,7 @@ import {
   trackEvent,
   trackPageView,
 } from './firebaseClient'
+import { initiateKhaltiPayment, verifyKhaltiPayment } from './paymentClient'
 
 const park = { lng: 85.3239042, lat: 27.7836311 }
 const tokhaMunicipality = { lng: 85.32746, lat: 27.74526 }
@@ -176,6 +177,7 @@ const pagePaths = {
   contact: '/contact',
   account: '/account',
   more: '/more',
+  khaltiReturn: '/payment/khalti/return',
 }
 
 const pathAliases = {
@@ -198,6 +200,7 @@ const pathAliases = {
   '/account': 'account',
   '/login': 'account',
   '/more': 'more',
+  '/payment/khalti/return': 'khaltiReturn',
 }
 
 const zoneFilters = ['All', 'VR & Simulators', 'Family Rides', 'Kids Play', 'Arcade & Skill', 'Creative Village']
@@ -356,6 +359,7 @@ function App() {
         {page === 'terms' && <TermsPage />}
         {page === 'contact' && <ContactPage />}
         {page === 'account' && <AccountPage />}
+        {page === 'khaltiReturn' && <KhaltiReturnPage />}
         {page === 'more' && <MorePage setPage={navigate} />}
       </main>
       <Footer setPage={navigate} />
@@ -813,6 +817,7 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
 function TicketsPage() {
   const [selected, setSelected] = useState(ticketOptions[0])
   const [form, setForm] = useState({ name: '', phone: '', visitDate: '', guests: 2, note: '' })
+  const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
   const guests = Number(form.guests) || 1
   const total = selected.price * guests
@@ -826,7 +831,7 @@ function TicketsPage() {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
     const payloadGuests = Number(formData.get('guests')) || guests
-    setStatus({ type: 'loading', message: 'Sending your booking request...' })
+    setStatus({ type: 'loading', message: paymentMethod === 'khalti' ? 'Saving booking and opening Khalti...' : 'Sending your booking request...' })
     try {
       const result = await createPublicRequest('bookingRequests', {
         name: String(formData.get('name') || form.name).trim(),
@@ -837,13 +842,33 @@ function TicketsPage() {
         visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
         note: String(formData.get('note') || form.note).trim(),
         total: selected.price * payloadGuests,
+        paymentMethod,
       })
       trackEvent('booking_request_submitted', {
         ticket_name: selected.name,
         guests: payloadGuests,
         total: selected.price * payloadGuests,
         store: result.store,
+        payment_method: paymentMethod,
       })
+      if (paymentMethod === 'khalti') {
+        const payment = await initiateKhaltiPayment({
+          amount: selected.price * payloadGuests,
+          purchaseOrderId: result.id,
+          purchaseOrderName: selected.name,
+          customerInfo: {
+            name: String(formData.get('name') || form.name).trim(),
+            phone: String(formData.get('phone') || form.phone).trim(),
+          },
+        })
+        trackEvent('khalti_payment_initiated', {
+          ticket_name: selected.name,
+          total: selected.price * payloadGuests,
+          request_id: result.id,
+        })
+        window.location.href = payment.payment_url
+        return
+      }
       setStatus({
         type: 'success',
         message: result.offline
@@ -886,12 +911,30 @@ function TicketsPage() {
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input name="guests" type="number" min="1" max="50" value={form.guests} onChange={(e) => updateForm('guests', e.target.value)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Birthday, group visit, or special request" /></label>
+            <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
+              Payment option
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  ['khalti', 'Pay now with Khalti'],
+                  ['pay_at_park', 'Reserve, pay at park'],
+                ].map(([value, label]) => (
+                  <button
+                    type="button"
+                    key={value}
+                    onClick={() => { setPaymentMethod(value); trackEvent('payment_method_select', { method: value }) }}
+                    className={`rounded-2xl border px-4 py-3 text-left text-sm font-extrabold ${paymentMethod === value ? 'border-[var(--secondary)] bg-[var(--surface-3)] text-[var(--primary)]' : 'border-[var(--line)] bg-white text-[var(--muted)]'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
               <Line label={selected.name} value={`Rs. ${selected.price.toLocaleString()}`} />
               <Line label="Guests" value={guests} />
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
-            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Sending...' : 'Reserve Visit'}</button>
+            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : 'Reserve Visit'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
             <p className="text-xs leading-5 text-[var(--muted)]">No account required. Magic Land can confirm details by phone before payment collection.</p>
           </div>
@@ -1530,6 +1573,42 @@ function AccountPage() {
           )}
           {status.message && <p className={`mt-4 text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
         </aside>
+      </div>
+    </PageShell>
+  )
+}
+
+function KhaltiReturnPage() {
+  const [status, setStatus] = useState({ type: 'loading', message: 'Verifying Khalti payment...' })
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const pidx = params.get('pidx')
+    const amount = Number(params.get('amount') || 0)
+    const run = async () => {
+      if (!pidx) {
+        setStatus({ type: 'error', message: 'Khalti did not return a payment ID. Please contact Magic Land with your booking details.' })
+        return
+      }
+      try {
+        const result = await verifyKhaltiPayment({ pidx, amount })
+        trackEvent('khalti_payment_verified', { pidx, status: result.status, paid_amount: result.paidAmount })
+        setStatus({ type: 'success', message: 'Payment verified. Magic Land will confirm your booking by phone.' })
+      } catch (error) {
+        console.error('Khalti verification failed', error)
+        trackEvent('khalti_payment_verify_error', { pidx })
+        setStatus({ type: 'error', message: 'We could not verify this payment automatically. If money was deducted, please contact Magic Land with your Khalti transaction details.' })
+      }
+    }
+    run()
+  }, [])
+
+  return (
+    <PageShell eyebrow="Khalti Payment" title={status.type === 'success' ? 'Payment received' : 'Payment verification'}>
+      <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <Wallet className={status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'} />
+        <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{status.message}</h2>
+        <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">For safety, Magic Land verifies gateway payments from the server. Do not rely on screenshots alone for final confirmation.</p>
       </div>
     </PageShell>
   )
