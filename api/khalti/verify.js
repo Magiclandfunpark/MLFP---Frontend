@@ -39,7 +39,8 @@ export default async function handler(request, response) {
     }
 
     const paidAmount = Number(data.total_amount || 0) / 100
-    const amountMatches = expectedAmount > 0 ? Math.abs(paidAmount - expectedAmount) < 0.01 : true
+    const expectedAmountNpr = expectedAmount > 100000 ? expectedAmount / 100 : expectedAmount
+    const amountMatches = expectedAmountNpr > 0 ? Math.abs(paidAmount - expectedAmountNpr) < 0.01 : true
     const completed = data.status === 'Completed' || data.state?.name === 'Completed'
 
     return json(response, completed && amountMatches ? 200 : 400, {

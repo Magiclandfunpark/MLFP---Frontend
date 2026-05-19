@@ -1589,7 +1589,8 @@ function KhaltiReturnPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const pidx = params.get('pidx')
-    const amount = Number(params.get('amount') || 0)
+    const gatewayAmount = Number(params.get('total_amount') || params.get('amount') || 0)
+    const amount = gatewayAmount > 0 ? gatewayAmount / 100 : 0
     const run = async () => {
       if (!pidx) {
         setStatus({ type: 'error', message: 'Khalti did not return a payment ID. Please contact Magic Land with your booking details.' })
