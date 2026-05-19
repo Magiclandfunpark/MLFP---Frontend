@@ -228,28 +228,33 @@ export async function createPublicRequest(collectionName, payload) {
 
   const db = await getDb()
   if (db) {
-    const docRef = await addDoc(collection(db, collectionName), {
-      ...enrichedPayload,
-      status: 'new',
-      createdAt: serverTimestamp(),
-    })
-
     try {
-      const realtimeDb = await getRealtimeDb()
-      if (realtimeDb) {
-        await set(ref(realtimeDb, `publicRequests/${collectionName}/${docRef.id}`), {
-          ...enrichedPayload,
-          status: 'new',
-          createdAt: new Date().toISOString(),
-          firestoreId: docRef.id,
-        })
-      }
-    } catch {
-      // Firestore is the source of truth for reservations. RTDB mirroring is
-      // only a convenience for live previews and existing notification hooks.
-    }
+      const docRef = await addDoc(collection(db, collectionName), {
+        ...enrichedPayload,
+        status: 'new',
+        createdAt: serverTimestamp(),
+      })
 
-    return { id: docRef.id, offline: false, store: 'firestore' }
+      try {
+        const realtimeDb = await getRealtimeDb()
+        if (realtimeDb) {
+          await set(ref(realtimeDb, `publicRequests/${collectionName}/${docRef.id}`), {
+            ...enrichedPayload,
+            status: 'new',
+            createdAt: new Date().toISOString(),
+            firestoreId: docRef.id,
+          })
+        }
+      } catch {
+        // Firestore is the source of truth for reservations. RTDB mirroring is
+        // only a convenience for live previews and existing notification hooks.
+      }
+
+      return { id: docRef.id, offline: false, store: 'firestore' }
+    } catch {
+      // If Firestore rules are not deployed yet, keep the public reservation
+      // path working by falling back to RTDB.
+    }
   }
 
   const realtimeDb = await getRealtimeDb()
