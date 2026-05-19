@@ -2,13 +2,13 @@
 
 This project uses Firebase as the lightweight public request system first. Public users can create requests only. Staff/admin reads and updates are reserved for future authenticated staff accounts listed in the `staff/{uid}` collection.
 
-Firestore is the recommended long-term database for reservations, memberships, customers, payments, and reporting. Realtime Database is used for live park status and as a Spark-plan fallback for public requests while Firestore billing/default database setup is pending.
+Firestore is the source of truth for reservations, memberships, customers, future payments, and reporting. Realtime Database is used for public live park status and a mirrored copy of public requests for existing notification hooks and lightweight realtime workflows.
 
 ## Collections
 
 - `bookingRequests`
   - Website ticket and visit reservations.
-  - Fields: `name`, `phone`, `email`, `ticketName`, `unitPrice`, `guests`, `visitDate`, `note`, `total`, `status`, `createdAt`, `source`, `pagePath`.
+  - Fields: `name`, `phone`, `email`, `ticketName`, `unitPrice`, `guests`, `visitDate`, `note`, `total`, `status`, `createdAt`, `source`, `pagePath`, `authUid`, `authEmail`, `authPhone`.
 
 - `membershipRequests`
   - Membership purchase and callback requests.
@@ -43,9 +43,19 @@ When the park operations dashboard is ready, add:
 - `staffTasks`
 - `auditLogs`
 
-## Checkout Approach
+## Checkout and Payment Approach
 
-The website should start with a one-click reservation style flow: choose ticket or membership, enter name, phone, date, and submit. Payment can be added later with a hosted gateway or Firebase Cloud Functions once the business decides on the provider.
+The website starts with a one-click reservation style flow: choose ticket or membership, enter name, phone, date, and submit. Khalti/eSewa should be added through server-side endpoints only. Never put Khalti or eSewa secret keys in `VITE_` variables or frontend code.
+
+Recommended payment collections:
+
+- `paymentIntents`
+  - Created before redirecting to Khalti/eSewa.
+  - Fields: `requestType`, `requestId`, `amount`, `currency`, `gateway`, `status`, `createdAt`, `updatedAt`, `customerName`, `customerPhone`.
+
+- `payments`
+  - Created or updated only after server-side gateway verification.
+  - Fields: `paymentIntentId`, `gateway`, `gatewayTransactionId`, `amount`, `status`, `verifiedAt`, `rawGatewayStatus`.
 
 ## Realtime Database Paths
 

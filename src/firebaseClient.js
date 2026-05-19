@@ -226,6 +226,32 @@ export async function createPublicRequest(collectionName, payload) {
     authPhone: auth?.currentUser?.phoneNumber ?? '',
   }
 
+  const db = await getDb()
+  if (db) {
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...enrichedPayload,
+      status: 'new',
+      createdAt: serverTimestamp(),
+    })
+
+    try {
+      const realtimeDb = await getRealtimeDb()
+      if (realtimeDb) {
+        await set(ref(realtimeDb, `publicRequests/${collectionName}/${docRef.id}`), {
+          ...enrichedPayload,
+          status: 'new',
+          createdAt: new Date().toISOString(),
+          firestoreId: docRef.id,
+        })
+      }
+    } catch {
+      // Firestore is the source of truth for reservations. RTDB mirroring is
+      // only a convenience for live previews and existing notification hooks.
+    }
+
+    return { id: docRef.id, offline: false, store: 'firestore' }
+  }
+
   const realtimeDb = await getRealtimeDb()
   if (realtimeDb) {
     const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`
@@ -235,17 +261,6 @@ export async function createPublicRequest(collectionName, payload) {
       createdAt: new Date().toISOString(),
     })
     return { id, offline: false, store: 'realtime-database' }
-  }
-
-  const db = await getDb()
-  if (db) {
-    const docRef = await addDoc(collection(db, collectionName), {
-      ...enrichedPayload,
-      status: 'new',
-      createdAt: serverTimestamp(),
-    })
-
-    return { id: docRef.id, offline: false, store: 'firestore' }
   }
 
   return { id: saveLocalFallback(collectionName, enrichedPayload).id, offline: true, store: 'local-preview' }
