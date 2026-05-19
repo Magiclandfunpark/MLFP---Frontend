@@ -23,6 +23,7 @@ const envConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || 'default',
 }
 
 const hasEnvConfig = Boolean(envConfig.apiKey && envConfig.projectId && envConfig.appId)
@@ -72,7 +73,7 @@ async function getApp() {
 
 async function getDb() {
   if (!dbPromise) {
-    dbPromise = getApp().then((app) => (app ? getFirestore(app) : null))
+    dbPromise = getApp().then((app) => (app ? getFirestore(app, envConfig.firestoreDatabaseId) : null))
   }
   return dbPromise
 }

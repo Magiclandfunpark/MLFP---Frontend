@@ -38,6 +38,16 @@ service cloud.firestore {
         && optionalText('sessionId', 140);
     }
 
+    function safeBookingPaymentContext() {
+      return !('paymentMethod' in request.resource.data)
+        || request.resource.data.paymentMethod == 'pay_at_park'
+        || (
+          signedIn()
+          && request.resource.data.authUid == request.auth.uid
+          && request.resource.data.paymentMethod in ['khalti', 'esewa']
+        );
+    }
+
     match /staff/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
@@ -69,6 +79,7 @@ service cloud.firestore {
         && request.resource.data.total is number
         && request.resource.data.total >= 0
         && optionalText('paymentMethod', 40)
+        && safeBookingPaymentContext()
         && optionalText('email', 120)
         && optionalText('note', 500);
       allow read, update, delete: if isStaff();

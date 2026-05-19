@@ -15,14 +15,15 @@ Secret keys must live only in a server environment such as Vercel Serverless Fun
 ## Recommended checkout flow
 
 1. Guest chooses ticket or membership.
-2. Website creates a Firestore request: `bookingRequests` or `membershipRequests`.
-3. Server creates `paymentIntents/{id}` with `status: initiated`.
-4. Server calls Khalti/eSewa initiate API using secret key.
-5. Guest is redirected to payment gateway.
-6. Gateway returns to `/payment/success` or `/payment/failure`.
-7. Server verifies payment with Khalti/eSewa lookup API.
-8. Server updates `paymentIntents/{id}` and `payments/{id}` to `completed`.
-9. Booking/membership request status changes to `paid` or `confirmed`.
+2. For Khalti/eSewa, guest logs in with Google, email, or phone before checkout.
+3. Website creates a Firestore request: `bookingRequests` or `membershipRequests` with `authUid`, `visitorId`, and `sessionId`.
+4. Server creates `paymentIntents/{id}` with `status: initiated`.
+5. Server calls Khalti/eSewa initiate API using secret key.
+6. Guest is redirected to payment gateway.
+7. Gateway returns to `/payment/success` or `/payment/failure`.
+8. Server verifies payment with Khalti/eSewa lookup API.
+9. Server updates `paymentIntents/{id}` and `payments/{id}` to `completed`.
+10. Booking/membership request status changes to `paid` or `confirmed`.
 
 ## Vercel environment variable format
 
@@ -39,6 +40,12 @@ ESEWA_PAYMENT_URL=https://epay.esewa.com.np/api/epay/main/v2/form
 ESEWA_VERIFY_URL=https://epay.esewa.com.np/api/epay/transaction/status/
 
 PAYMENT_BASE_URL=https://magiclandfunpark.com
+```
+
+Use this public frontend variable in Vercel too, because this Firebase project uses a named Firestore database:
+
+```env
+VITE_FIREBASE_FIRESTORE_DATABASE_ID=default
 ```
 
 For sandbox/testing, use sandbox URLs and sandbox keys only.

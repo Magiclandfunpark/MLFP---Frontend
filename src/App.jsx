@@ -157,7 +157,7 @@ const moreNav = [
   { id: 'privacy', label: 'Privacy', icon: Wallet },
   { id: 'terms', label: 'Terms', icon: CreditCard },
   { id: 'contact', label: 'Contact', icon: Mail },
-  { id: 'account', label: 'Guest Login', icon: UserRound },
+  { id: 'account', label: 'Account', icon: UserRound },
 ]
 
 const socialLinks = [
@@ -357,7 +357,7 @@ function App() {
       <main>
         {page === 'home' && <HomePage setPage={navigate} />}
         {page === 'attractions' && <AttractionsPage setPage={navigate} />}
-        {page === 'tickets' && <TicketsPage />}
+        {page === 'tickets' && <TicketsPage setPage={navigate} />}
         {page === 'memberships' && <MembershipPage />}
         {page === 'birthdays' && <BirthdaysPage />}
         {page === 'map' && <MapPage />}
@@ -826,7 +826,8 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
   )
 }
 
-function TicketsPage() {
+function TicketsPage({ setPage }) {
+  const { user, loading: authLoading } = useAuthUser()
   const [selected, setSelected] = useState(ticketOptions[0])
   const [form, setForm] = useState({ name: '', phone: '', visitDate: '', guests: 2, note: '' })
   const [paymentMethod, setPaymentMethod] = useState('khalti')
@@ -843,6 +844,16 @@ function TicketsPage() {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
     const payloadGuests = Number(formData.get('guests')) || guests
+    const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
+    if (wantsOnlinePayment && !user) {
+      setStatus({
+        type: 'error',
+        message: 'Please login or create a Magic Land account before online payment. This keeps payment records tied to the right guest.',
+      })
+      trackEvent('online_payment_auth_required', { payment_method: paymentMethod, ticket_name: selected.name })
+      return
+    }
+
     setStatus({ type: 'loading', message: paymentMethod === 'khalti' ? 'Saving booking and opening Khalti...' : 'Sending your booking request...' })
     try {
       const result = await createPublicRequest('bookingRequests', {
@@ -959,14 +970,21 @@ function TicketsPage() {
                 ))}
               </div>
             </div>
+            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && !user && (
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
+                <p className="font-extrabold">Account required for online payment</p>
+                <p className="mt-1 text-[var(--muted)]">Login with Google, email, or phone first. Then return here to continue securely to {paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}.</p>
+                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => setPage('account')}>Login or create account</button>
+              </div>
+            )}
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
               <Line label={selected.name} value={`Rs. ${selected.price.toLocaleString()}`} />
               <Line label="Guests" value={guests} />
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
-            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
+            <button disabled={status.type === 'loading' || authLoading} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
-            <p className="text-xs leading-5 text-[var(--muted)]">No account required. Magic Land can confirm details by phone before payment collection.</p>
+            <p className="text-xs leading-5 text-[var(--muted)]">Online payment requires login. Pay-at-park reservations can still be confirmed by phone before collection.</p>
           </div>
         </form>
       </div>
@@ -1546,14 +1564,14 @@ function AccountPage() {
   const logout = () => runAuthAction('auth_logout', signOutUser, 'Signed out.')
 
   return (
-    <PageShell eyebrow="Guest Login" title="A secure guest account for smoother visits">
+    <PageShell eyebrow="Magic Land Account" title="Secure login for bookings and online payments">
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <section className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           <ShieldCheck className="text-[var(--secondary)]" />
-          <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Login is optional, but useful.</h2>
-          <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">Guests can still reserve tickets in one step. A secure account helps Magic Land connect future bookings, memberships, phone numbers, and visit history more cleanly.</p>
+          <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Online payment needs a verified account.</h2>
+          <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">Before Khalti or eSewa checkout, guests must login with Google, email, or phone. This keeps bookings, payment references, memberships, and visit history attached to the right person.</p>
           <div className="mt-6 grid gap-3 md:grid-cols-2">
-            {['Google, email, or phone login', 'Profile stored under your Firebase UID', 'Bookings can include signed-in guest ID', 'No payment details stored on this website'].map((item) => (
+            {['Required before Khalti or eSewa payment', 'Profile stored under your Firebase UID', 'Bookings include signed-in guest ID', 'No card or wallet password stored here'].map((item) => (
               <div key={item} className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-extrabold text-[var(--primary)]">{item}</div>
             ))}
           </div>
