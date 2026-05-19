@@ -12,10 +12,12 @@ Firebase does not send email directly from the frontend. The safe setup is a Clo
 
 ## Email Templates
 
-The function sends two emails:
+The functions send branded emails for request and account events:
 
 - Staff notification to `BOOKING_NOTIFICATION_EMAIL`
 - Guest confirmation email when the request contains an email address
+- Verified payment receipt emails after Khalti or eSewa returns successfully
+- Welcome email when a new guest profile is created
 
 Templates are branded HTML emails using Magic Land colors, a clear details table, and a fallback plain-text version for deliverability.
 
@@ -34,11 +36,18 @@ firebase functions:secrets:set BOOKING_NOTIFICATION_EMAIL --project magic-land-f
 ```
 
 Use `info@magiclandfunpark.com` for `BOOKING_NOTIFICATION_EMAIL`.
+For staff copies, use:
+
+```text
+info@magiclandfunpark.com,prabinthapaliyaus@gmail.com
+```
+
+`SMTP_PASS` is not created in Firebase Service Accounts. It should be a Google Workspace Gmail app password or SMTP provider password, stored with `firebase functions:secrets:set SMTP_PASS`.
 
 4. Deploy the email functions:
 
 ```bash
-firebase deploy --only functions:emailPublicRequest,functions:emailPaymentReceipt --project magic-land-fun-park
+firebase deploy --only functions:emailPublicRequest,functions:emailPaymentReceipt,functions:emailUserWelcome --project magic-land-fun-park
 ```
 
 5. Deploy Realtime Database rules so payment receipt events can be recorded by signed-in guests:

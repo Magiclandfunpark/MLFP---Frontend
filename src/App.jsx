@@ -276,6 +276,8 @@ const membershipPlans = [
     perVisit: 'Valid for 3 months',
     regular: 'Individual access',
     savings: 'Flexible usage within validity',
+    comparison: 'Normal 5 entries cost Rs. 7,500. Membership is Rs. 2,999.',
+    outingText: 'Enough for weekend visits, school holidays, and surprise play days across 3 months.',
     includes: ['5 visits', 'Valid for 3 months', 'Individual access', 'Flexible usage within validity'],
     bestFor: ['Weekend visits', 'Holiday outings', 'Kids who love repeat experiences', 'Families exploring Magic Land regularly'],
   },
@@ -287,6 +289,8 @@ const membershipPlans = [
     perVisit: 'Valid for 3 months',
     regular: 'Shared usage for 2 family members',
     savings: 'Flexible parent-child visits',
+    comparison: 'Normal 10 entries cost Rs. 15,000. Membership is Rs. 5,499.',
+    outingText: 'Made for parent-child days, quick weekend plans, and shared family routines.',
     includes: ['10 shared visits', 'Valid for 3 months', 'Shared usage for 2 family members'],
     bestFor: ['Parent-child visits', 'Weekend family time', 'Flexible family usage', 'Repeat outings without repeated ticket purchases'],
   },
@@ -298,6 +302,8 @@ const membershipPlans = [
     perVisit: 'Valid for 3 months',
     regular: 'Designed for families of 4',
     savings: 'The complete family experience package',
+    comparison: 'Normal 20 entries cost Rs. 30,000. Membership is Rs. 9,499.',
+    outingText: 'About 5 full family outings for a family of 4 when everyone visits together.',
     includes: ['20 shared visits', 'Valid for 3 months', 'Designed for families of 4'],
     bestFor: ['Family weekends', 'Holiday experiences', 'Sibling outings', 'Frequent visitors', 'Building memorable family routines'],
   },
@@ -833,12 +839,16 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
 function TicketsPage({ setPage }) {
   const { user, loading: authLoading } = useAuthUser()
   const [selected, setSelected] = useState(ticketOptions[0])
-  const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: 2, note: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: 2 })
   const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
   const guests = Number(form.guests) || 1
   const total = selected.price * guests
-  const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+  const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
+  const updateForm = (field, value) => {
+    const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
+    setForm((current) => ({ ...current, [field]: nextValue }))
+  }
   const chooseTicket = (ticket) => {
     setSelected(ticket)
     trackEvent('ticket_select', { ticket_name: ticket.name, price: ticket.price })
@@ -857,6 +867,14 @@ function TicketsPage({ setPage }) {
       trackEvent('online_payment_auth_required', { payment_method: paymentMethod, ticket_name: selected.name })
       return
     }
+    if (wantsOnlinePayment && emailNeedsVerification) {
+      setStatus({
+        type: 'error',
+        message: 'Please verify your email before online payment. Check your inbox, then return here to continue.',
+      })
+      trackEvent('online_payment_email_verification_required', { payment_method: paymentMethod, ticket_name: selected.name })
+      return
+    }
 
     setStatus({ type: 'loading', message: paymentMethod === 'khalti' ? 'Saving booking and opening Khalti...' : 'Sending your booking request...' })
     try {
@@ -868,7 +886,6 @@ function TicketsPage({ setPage }) {
         unitPrice: selected.price,
         guests: payloadGuests,
         visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
-        note: String(formData.get('note') || form.note).trim(),
         total: selected.price * payloadGuests,
         paymentMethod,
       })
@@ -971,7 +988,7 @@ function TicketsPage({ setPage }) {
         total: selected.price * payloadGuests,
       })
       setStatus({ type: 'success', message: thankYouDetails.message })
-      setForm({ name: '', phone: '', email: '', visitDate: '', guests: 2, note: '' })
+      setForm({ name: '', phone: '', email: '', visitDate: '', guests: 2 })
       setPage('thankYou')
     } catch (error) {
       console.error('Booking request failed', error)
@@ -1009,11 +1026,10 @@ function TicketsPage({ setPage }) {
           </div>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or guest name" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input name="guests" type="number" min="1" max="50" value={form.guests} onChange={(e) => updateForm('guests', e.target.value)} className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Birthday, group visit, or special request" /></label>
             <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
               Payment option
               <div className="grid gap-2 sm:grid-cols-3">
@@ -1043,6 +1059,13 @@ function TicketsPage({ setPage }) {
                 }}>Login or create account</button>
               </div>
             )}
+            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && emailNeedsVerification && (
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
+                <p className="font-extrabold">Email verification required</p>
+                <p className="mt-1 text-[var(--muted)]">We sent a verification link when this account was created. Verify your email before continuing to online payment.</p>
+                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => setPage('account')}>Open account</button>
+              </div>
+            )}
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
               <Line label={selected.name} value={`Rs. ${selected.price.toLocaleString()}`} />
               <Line label="Guests" value={guests} />
@@ -1069,7 +1092,10 @@ function MembershipPage() {
     trackEvent('membership_plan_select', { plan_name: planName })
     window.requestAnimationFrame(() => document.getElementById('membership-booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
-  const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+  const updateForm = (field, value) => {
+    const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
+    setForm((current) => ({ ...current, [field]: nextValue }))
+  }
 
   const submitMembership = async (event) => {
     event.preventDefault()
@@ -1154,6 +1180,10 @@ function MembershipPage() {
                 {plan.includes.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
               </ul>
             </div>
+            <div className="mt-4 rounded-2xl bg-[var(--surface-2)] p-4">
+              <p className="text-sm font-extrabold text-[var(--primary)]">{plan.comparison}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{plan.outingText}</p>
+            </div>
             <h4 className="font-display mt-5 text-xl font-bold text-[var(--primary)]">Perfect for</h4>
             <ul className="mt-3 grid gap-2">
               {plan.bestFor.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
@@ -1162,6 +1192,19 @@ function MembershipPage() {
           </article>
         ))}
       </div>
+
+      <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
+        <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">How shared visits work</p>
+          <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">One visit = one person entry.</h2>
+          <p className="mt-4 leading-8 text-[var(--muted)]">Each park entry by one registered member counts as 1 visit. A family of 4 visiting together uses 4 visits from the shared balance, so 20 shared visits equals about 5 full family outings.</p>
+        </div>
+        <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">For bigger families</p>
+          <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Keep the plan simple at launch.</h2>
+          <p className="mt-4 leading-8 text-[var(--muted)]">Extra family members can join using normal entry pricing for now. Once visit data is collected, Magic Land can add extra-member credit packs, annual passes, and school or corporate packages.</p>
+        </div>
+      </section>
 
       <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
         <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">A smarter way to enjoy Magic Land</p>
@@ -1210,7 +1253,7 @@ function MembershipPage() {
           <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or member name" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input name="startDate" required type="date" value={form.startDate} onChange={(e) => updateForm('startDate', e.target.value)} className="soft-field" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Family member names, optional<input name="familyMembers" value={form.familyMembers} onChange={(e) => updateForm('familyMembers', e.target.value)} className="soft-field" placeholder="Useful for Duo and Family passes" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Preferred call time or special request" /></label>
@@ -1612,7 +1655,7 @@ function AccountPage({ setPage }) {
       await action()
       setStatus({ type: 'success', message: successMessage })
       trackEvent(`${eventName}_success`)
-      if (eventName !== 'auth_phone_otp_request') {
+      if (!['auth_phone_otp_request', 'auth_email_register'].includes(eventName)) {
         try {
           const returnPage = sessionStorage.getItem('magicland:returnAfterLogin')
           if (returnPage) {
@@ -1632,7 +1675,7 @@ function AccountPage({ setPage }) {
 
   const loginGoogle = () => runAuthAction('auth_google', signInWithGoogle, 'Signed in with Google.')
   const loginEmail = () => runAuthAction('auth_email_login', () => signInWithEmail(emailForm.email, emailForm.password), 'Signed in with email.')
-  const registerEmail = () => runAuthAction('auth_email_register', () => createEmailAccount(emailForm.email, emailForm.password), 'Account created. You are signed in.')
+  const registerEmail = () => runAuthAction('auth_email_register', () => createEmailAccount(emailForm.email, emailForm.password), 'Account created. Please verify your email before online payment.')
   const requestOtp = () => runAuthAction('auth_phone_otp_request', async () => {
     const result = await sendPhoneOtp(phoneForm.phone)
     setConfirmationResult(result)
@@ -1641,20 +1684,16 @@ function AccountPage({ setPage }) {
   const logout = () => runAuthAction('auth_logout', signOutUser, 'Signed out.')
 
   return (
-    <PageShell eyebrow="Magic Land Account" title="Secure login for bookings and online payments">
-      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-        <section className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-          <ShieldCheck className="text-[var(--secondary)]" />
-          <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Online payment needs a verified account.</h2>
-          <p className="mt-3 max-w-2xl leading-8 text-[var(--muted)]">Before Khalti or eSewa checkout, guests must login with Google, email, or phone. This keeps bookings, payment references, memberships, and visit history attached to the right person.</p>
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            {['Required before Khalti or eSewa payment', 'Profile stored under your Firebase UID', 'Bookings include signed-in guest ID', 'No card or wallet password stored here'].map((item) => (
-              <div key={item} className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-extrabold text-[var(--primary)]">{item}</div>
-            ))}
+    <PageShell eyebrow="Magic Land Account" title="Login to continue checkout">
+      <div className="mx-auto max-w-xl">
+        <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
+          <div className="mb-5 flex items-start gap-3 rounded-2xl bg-[var(--surface-3)] p-4">
+            <ShieldCheck className="mt-0.5 text-[var(--secondary)]" size={20} />
+            <div>
+              <p className="text-sm font-extrabold text-[var(--primary)]">Online payment needs a verified account.</p>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">Login with Google, email, or phone. Magic Land stores payment references under your guest ID.</p>
+            </div>
           </div>
-        </section>
-
-        <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           {loading ? (
             <p className="font-bold text-[var(--muted)]">Checking login status...</p>
           ) : user ? (
@@ -1663,6 +1702,7 @@ function AccountPage({ setPage }) {
               <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{user.displayName || user.email || user.phoneNumber || 'Magic Land Guest'}</h3>
               <div className="mt-4 rounded-2xl bg-[var(--surface-3)] p-4 text-sm leading-7 text-[var(--muted)]">
                 {user.email && <p><strong>Email:</strong> {user.email}</p>}
+                {user.email && <p><strong>Email status:</strong> {user.emailVerified ? 'Verified' : 'Needs verification before online payment'}</p>}
                 {user.phoneNumber && <p><strong>Phone:</strong> {user.phoneNumber}</p>}
                 <p><strong>Guest ID:</strong> {user.uid.slice(0, 10)}...</p>
               </div>
@@ -1680,6 +1720,7 @@ function AccountPage({ setPage }) {
                   <button className="rounded-full bg-[var(--primary)] px-5 py-3 text-sm font-extrabold text-white" onClick={loginEmail}>Sign in</button>
                   <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 text-sm font-extrabold text-[var(--primary)]" onClick={registerEmail}>Create account</button>
                 </div>
+                <p className="text-xs leading-5 text-[var(--muted)]">New email accounts receive a verification link. Online payments unlock after verification.</p>
               </div>
 
               <div className="grid gap-3 border-t border-[var(--line)] pt-5">

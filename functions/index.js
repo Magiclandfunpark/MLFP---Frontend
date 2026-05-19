@@ -7,6 +7,8 @@ const smtpPort = defineSecret('SMTP_PORT')
 const smtpUser = defineSecret('SMTP_USER')
 const smtpPass = defineSecret('SMTP_PASS')
 const mailTo = defineSecret('BOOKING_NOTIFICATION_EMAIL')
+const defaultSenderEmail = 'info@magiclandfunpark.com'
+const defaultStaffRecipients = ['info@magiclandfunpark.com', 'prabinthapaliyaus@gmail.com']
 
 const brand = {
   name: 'Magic Land Family Fun Park',
@@ -231,6 +233,49 @@ function receiptText(data) {
   ].join('\n')
 }
 
+function userWelcomeHtml(data) {
+  return emailShell({
+    eyebrow: 'Magic Land Account',
+    title: 'Welcome to Magic Land Family Fun Park',
+    intro: 'Your Magic Land account is ready. You can now use it for secure online payments, booking references, and future membership experiences.',
+    children: `
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        ${rows([
+          ['Name', data.displayName || 'Magic Land Guest'],
+          ['Email', data.email || '-'],
+          ['Phone', data.phoneNumber || '-'],
+          ['Guest ID', data.uid || '-'],
+        ])}
+      </table>
+      <div style="margin-top:22px;padding:16px;border-radius:18px;background:#f6f7ff;color:#4f5b76;line-height:1.7;font-size:14px;">
+        Keep this email for reference. Magic Land will never ask for your wallet password, OTP, or payment PIN.
+      </div>
+    `,
+    ctaLabel: 'Book your visit',
+    ctaUrl: 'https://magiclandfunpark.com/tickets',
+  })
+}
+
+function userWelcomeText(data) {
+  return [
+    'Welcome to Magic Land Family Fun Park',
+    '',
+    'Your Magic Land account is ready.',
+    `Name: ${data.displayName || 'Magic Land Guest'}`,
+    `Email: ${data.email || '-'}`,
+    `Phone: ${data.phoneNumber || '-'}`,
+    `Guest ID: ${data.uid || '-'}`,
+  ].join('\n')
+}
+
+function staffRecipients() {
+  const configured = mailTo.value()
+  const recipients = configured
+    ? configured.split(',').map((item) => item.trim()).filter(Boolean)
+    : defaultStaffRecipients
+  return [...new Set([...recipients, ...defaultStaffRecipients])].join(', ')
+}
+
 function transporter() {
   return nodemailer.createTransport({
     host: smtpHost.value(),
@@ -245,8 +290,8 @@ function transporter() {
 
 async function sendStaffAndGuest({ staffSubject, staffHtml, staffText, guestEmail, guestSubject, guestHtml, guestText, replyTo }) {
   const mailer = transporter()
-  const from = `"Magic Land Family Fun Park" <${smtpUser.value()}>`
-  const to = mailTo.value() || 'info@magiclandfunpark.com'
+  const from = `"Magic Land Family Fun Park" <${smtpUser.value() || defaultSenderEmail}>`
+  const to = staffRecipients()
 
   await mailer.sendMail({
     from,
@@ -308,6 +353,28 @@ exports.emailPaymentReceipt = onValueCreated(
       guestHtml: guestReceiptHtml(data),
       guestText: receiptText(data),
       replyTo: data.email,
+    })
+  }
+)
+
+exports.emailUserWelcome = onValueCreated(
+  {
+    ref: '/users/{uid}',
+    region: 'us-central1',
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPass, mailTo],
+  },
+  async (event) => {
+    const data = event.data.val() || {}
+    if (!data.email) return
+
+    const mailer = transporter()
+    await mailer.sendMail({
+      from: `"Magic Land Family Fun Park" <${smtpUser.value() || defaultSenderEmail}>`,
+      to: data.email,
+      replyTo: staffRecipients(),
+      subject: 'Welcome to Magic Land Family Fun Park',
+      text: userWelcomeText(data),
+      html: userWelcomeHtml(data),
     })
   }
 )

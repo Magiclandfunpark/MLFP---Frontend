@@ -6,6 +6,7 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   RecaptchaVerifier,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
   signInWithPopup,
@@ -153,6 +154,11 @@ function getSessionId() {
   }
 }
 
+function verificationActionSettings() {
+  const origin = globalThis.location?.origin
+  return origin ? { url: `${origin}/account`, handleCodeInApp: false } : undefined
+}
+
 export async function trackEvent(name, params = {}) {
   try {
     const analytics = await getAnalyticsClient()
@@ -238,6 +244,9 @@ export async function createEmailAccount(email, password) {
   if (!auth) throw new Error('Firebase Auth is not configured.')
   const result = await createUserWithEmailAndPassword(auth, email, password)
   await saveUserProfile(result.user)
+  if (result.user.email && !result.user.emailVerified) {
+    await sendEmailVerification(result.user, verificationActionSettings()).catch(() => {})
+  }
   return result.user
 }
 
