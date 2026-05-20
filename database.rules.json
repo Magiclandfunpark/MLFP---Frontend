@@ -78,6 +78,9 @@
         "lastSeenAt": {
           ".validate": "newData.isString()"
         },
+        "visitorId": {
+          ".validate": "newData.isString() && newData.val().length <= 140"
+        },
         "$other": {
           ".validate": false
         }
