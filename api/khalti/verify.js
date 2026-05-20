@@ -22,13 +22,14 @@ const khaltiMode = () => {
 const khaltiLookupUrlForMode = (mode) => (
   mode === 'test'
     ? 'https://dev.khalti.com/api/v2/epayment/lookup/'
-    : 'https://a.khalti.com/api/v2/epayment/lookup/'
+    : 'https://khalti.com/api/v2/epayment/lookup/'
 )
 
 const cleanConfiguredUrl = (value) => {
   let nextValue = cleanEnvValue(value, 'KHALTI_LOOKUP_URL')
   if (!nextValue) return ''
   nextValue = nextValue.replace(/^https:\//i, 'https://').replace(/^http:\//i, 'http://')
+  nextValue = nextValue.replace('https://a.khalti.com/api/v2/', 'https://khalti.com/api/v2/')
   return /^https?:\/\//i.test(nextValue) ? nextValue : ''
 }
 
@@ -36,7 +37,7 @@ const safeLookupUrl = (mode) => {
   const configured = cleanConfiguredUrl(process.env.KHALTI_LOOKUP_URL)
   if (!configured) return khaltiLookupUrlForMode(mode)
   const isTestUrl = configured.includes('dev.khalti.com')
-  const isLiveUrl = configured.includes('a.khalti.com')
+  const isLiveUrl = configured.includes('khalti.com') && !isTestUrl
   if (mode === 'production' && isTestUrl) return khaltiLookupUrlForMode('production')
   if (mode === 'test' && isLiveUrl) return khaltiLookupUrlForMode('test')
   return configured
