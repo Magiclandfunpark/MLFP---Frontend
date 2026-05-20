@@ -23,8 +23,19 @@ const verifyUrlForMode = (mode) => (
     : 'https://rc.esewa.com.np/api/epay/transaction/status/'
 )
 
+const cleanConfiguredUrl = (value) => {
+  let nextValue = String(value || '').trim()
+  if (!nextValue) return ''
+
+  nextValue = nextValue.replace(/^ESEWA_VERIFY_URL\s*=\s*/i, '').trim()
+  nextValue = nextValue.replace(/^["']|["']$/g, '')
+  nextValue = nextValue.replace(/^https:\//i, 'https://').replace(/^http:\//i, 'http://')
+
+  return /^https?:\/\//i.test(nextValue) ? nextValue : ''
+}
+
 const safeVerifyUrl = (mode) => {
-  const configured = String(process.env.ESEWA_VERIFY_URL || '').trim()
+  const configured = cleanConfiguredUrl(process.env.ESEWA_VERIFY_URL)
   if (!configured) return verifyUrlForMode(mode)
 
   const isSandboxUrl = configured.includes('rc.esewa.com.np')

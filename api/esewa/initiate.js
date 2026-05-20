@@ -43,8 +43,19 @@ const paymentUrlForMode = (mode) => (
     : 'https://rc-epay.esewa.com.np/api/epay/main/v2/form'
 )
 
+const cleanConfiguredUrl = (value) => {
+  let nextValue = String(value || '').trim()
+  if (!nextValue) return ''
+
+  nextValue = nextValue.replace(/^ESEWA_PAYMENT_URL\s*=\s*/i, '').trim()
+  nextValue = nextValue.replace(/^["']|["']$/g, '')
+  nextValue = nextValue.replace(/^https:\//i, 'https://').replace(/^http:\//i, 'http://')
+
+  return /^https?:\/\//i.test(nextValue) ? nextValue : ''
+}
+
 const safePaymentUrl = (mode) => {
-  const configured = String(process.env.ESEWA_PAYMENT_URL || '').trim()
+  const configured = cleanConfiguredUrl(process.env.ESEWA_PAYMENT_URL)
   if (!configured) return paymentUrlForMode(mode)
 
   const isSandboxUrl = configured.includes('rc-epay.esewa.com.np')
