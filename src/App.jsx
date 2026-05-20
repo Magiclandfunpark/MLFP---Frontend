@@ -260,11 +260,9 @@ const attractionList = [
 ]
 
 const ticketOptions = [
-  { name: 'One-Time Entry', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A single Magic Land visit for rides, VR games, arcade fun, and family attractions.' },
-  { name: 'Individual Fun Pass', price: 2999, kind: 'membership', defaultGuests: 1, visits: 5, detail: '5 visits, 3 months validity, and flexible individual access.' },
-  { name: 'Family Duo Pass', price: 5499, kind: 'membership', defaultGuests: 2, visits: 10, detail: '10 shared visits for 2 family members, valid for 3 months.' },
-  { name: 'Family Magic Pass', price: 9499, kind: 'membership', defaultGuests: 4, visits: 20, detail: '20 shared visits for families of 4, valid for 3 months.' },
-  { name: 'Gift Ticket', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A shareable entry for birthdays, friends, and family celebrations.' },
+  { name: 'One-Time Entry', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'Best for families planning one Magic Land visit with rides, VR games, arcade fun, and Creative Village access.' },
+  { name: 'Gift Ticket', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A simple entry gift for birthdays, friends, cousins, and family celebrations.' },
+  { name: 'Group Day Visit', price: 1500, kind: 'entry', defaultGuests: 10, detail: 'For schools, teams, offices, and larger family groups. Magic Land can confirm final timing by phone.' },
 ]
 
 const membershipPlans = [
@@ -843,13 +841,8 @@ function TicketsPage({ setPage }) {
   const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
   const checkoutRef = useRef(null)
-  const isMembershipTicket = selected.kind === 'membership'
-  const includedMembers = selected.defaultGuests || 1
-  const guests = Math.max(Number(form.guests) || includedMembers, includedMembers)
-  const addOnMembers = isMembershipTicket ? Math.max(guests - includedMembers, 0) : 0
-  const addOnUnitPrice = isMembershipTicket ? Math.round(selected.price / includedMembers) : selected.price
-  const addOnTotal = addOnMembers * addOnUnitPrice
-  const total = isMembershipTicket ? selected.price + addOnTotal : selected.price * guests
+  const guests = Math.max(Number(form.guests) || selected.defaultGuests || 1, 1)
+  const total = selected.price * guests
   const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
   const updateForm = (field, value) => {
     const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
@@ -884,7 +877,7 @@ function TicketsPage({ setPage }) {
   const submitBooking = async (event) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
-    const payloadGuests = Math.max(Number(formData.get('guests')) || guests, includedMembers)
+    const payloadGuests = Math.max(Number(formData.get('guests')) || guests, selected.defaultGuests || 1)
     const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
     if (wantsOnlinePayment && !user) {
       setStatus({
@@ -912,8 +905,6 @@ function TicketsPage({ setPage }) {
         ticketName: selected.name,
         unitPrice: selected.price,
         guests: payloadGuests,
-        addOnMembers,
-        addOnUnitPrice,
         visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
         total,
         paymentMethod,
@@ -1031,20 +1022,24 @@ function TicketsPage({ setPage }) {
   }
 
   return (
-    <PageShell eyebrow="Tickets" title="Choose one visit or unlock three months of fun">
+    <PageShell eyebrow="Tickets" title="Day tickets for a simple Magic Land visit">
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid content-start gap-4">
+          <div className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm">
+            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Quick visit</p>
+            <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Buy entry for today, a planned date, or a group outing.</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Use this page for regular tickets. If your family plans to visit again and again, memberships are handled separately so the value and shared-visit rules stay clear.</p>
+            <button type="button" className="mt-4 rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 text-sm font-extrabold text-[var(--primary)]" onClick={() => setPage('memberships')}>
+              See membership plans
+            </button>
+          </div>
           {ticketOptions.map((ticket) => (
             <button key={ticket.name} onClick={() => chooseTicket(ticket)} className={`storybook-card rounded-[2rem] p-5 text-left transition ${selected.name === ticket.name ? 'ring-4 ring-[#bbc3ff]' : ''}`}>
               <Ticket className="text-[var(--secondary)]" />
               <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{ticket.name}</h3>
               <p className="mt-2 text-2xl font-extrabold">Rs. {ticket.price.toLocaleString()}</p>
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{ticket.detail}</p>
-              {ticket.kind === 'membership' && (
-                <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-extrabold text-[var(--primary)]">
-                  Checkout starts with {ticket.defaultGuests} registered member{ticket.defaultGuests > 1 ? 's' : ''}; add more members if needed.
-                </p>
-              )}
+              {ticket.name === 'Group Day Visit' && <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-extrabold text-[var(--primary)]">Starts at 10 guests. Final coordination can happen by phone.</p>}
             </button>
           ))}
         </div>
@@ -1064,23 +1059,7 @@ function TicketsPage({ setPage }) {
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">
-              {isMembershipTicket ? 'Registered members' : 'Guests'}
-              <input
-                name="guests"
-                type="number"
-                min={includedMembers}
-                max="50"
-                value={form.guests}
-                onChange={(e) => updateForm('guests', e.target.value)}
-                className="soft-field"
-              />
-              {isMembershipTicket && (
-                <span className="text-xs leading-5 text-[var(--muted)]">
-                  Includes {includedMembers} member{includedMembers > 1 ? 's' : ''}. Extra members add 5 visit credits each at Rs. {addOnUnitPrice.toLocaleString()}.
-                </span>
-              )}
-            </label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input name="guests" type="number" min={selected.defaultGuests || 1} max="50" value={form.guests} onChange={(e) => updateForm('guests', e.target.value)} className="soft-field" /></label>
             <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
               Payment option
               <div className="grid gap-2 sm:grid-cols-3">
@@ -1122,9 +1101,7 @@ function TicketsPage({ setPage }) {
             )}
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
               <Line label={selected.name} value={`Rs. ${selected.price.toLocaleString()}`} />
-              <Line label={isMembershipTicket ? 'Included members' : 'Guests'} value={isMembershipTicket ? includedMembers : guests} />
-              {isMembershipTicket && <Line label="Registered members" value={guests} />}
-              {addOnMembers > 0 && <Line label={`Extra member add-ons (${addOnMembers} x Rs. ${addOnUnitPrice.toLocaleString()})`} value={`Rs. ${addOnTotal.toLocaleString()}`} />}
+              <Line label="Guests" value={guests} />
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
             <button disabled={status.type === 'loading' || authLoading} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
