@@ -1238,122 +1238,101 @@ function MembershipPage({ setPage }) {
   }
 
   return (
-    <PageShell eyebrow="Membership Program" title="More visits. More smiles. More family memories.">
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="rounded-[2rem] bg-[var(--primary)] p-6 text-white shadow-xl md:p-8">
-          <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffdad6]">Designed for families who love coming back</p>
-          <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-5xl">Turn weekends, holidays, and celebrations into repeat family moments.</h2>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/86">Magic Land memberships encourage repeat family experiences, weekend outings, celebrations, and unforgettable moments together while giving members better value every time they visit.</p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {['Simple plans', '3 months validity', 'Family value'].map((item) => (
-              <span key={item} className="rounded-2xl bg-white/12 px-4 py-3 text-sm font-extrabold text-white">{item}</span>
+    <PageShell eyebrow="Membership" title="A smarter way to visit more often">
+      <section className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="p-6 md:p-8 lg:p-10">
+            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">3 month visit credits</p>
+            <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-5xl">More weekends, more smiles, one simple membership.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)] md:text-lg">Choose a visit-credit plan for repeat family outings. One visit credit means one person entry, so the pricing stays clear before checkout.</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {['Starts Rs. 2,999', 'Valid 3 months', 'Khalti or eSewa'].map((item) => (
+                <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>
+              ))}
+            </div>
+          </div>
+          <div className="relative min-h-[260px] bg-[var(--surface-3)]">
+            <SmartImage src={img.familyGames} alt="Family enjoying Magic Land membership" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.72)] via-transparent to-transparent" />
+            <div className="absolute bottom-5 left-5 right-5 rounded-[1.5rem] bg-white/92 p-4 shadow-sm backdrop-blur">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Best for repeat visits</p>
+              <p className="font-display mt-1 text-2xl font-bold text-[var(--primary)]">Families who want Magic Land to become a habit.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_420px]">
+        <div className="grid content-start gap-5">
+          <section className="grid gap-4 lg:grid-cols-3">
+            {membershipPlans.map((plan, index) => {
+              const isActive = activePlan.name === plan.name
+              return (
+                <button
+                  key={plan.name}
+                  type="button"
+                  onClick={() => choosePlan(plan.name)}
+                  className={`relative rounded-[1.75rem] border p-5 text-left shadow-sm transition hover:-translate-y-1 ${isActive ? 'border-[var(--secondary)] bg-[var(--surface-3)] ring-2 ring-[rgba(255,82,101,0.16)]' : 'border-[var(--line)] bg-white'}`}
+                >
+                  {index === 2 && <span className="absolute right-4 top-4 rounded-full bg-[var(--secondary)] px-3 py-1 text-[11px] font-extrabold uppercase text-white">Family</span>}
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">{plan.subtitle}</p>
+                  <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{plan.name}</h3>
+                  <p className="font-display mt-4 text-4xl font-bold text-[var(--primary)]">{plan.price}</p>
+                  <p className="mt-1 text-sm font-extrabold text-[var(--muted)]">{plan.entries} · {plan.perVisit}</p>
+                  <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-bold leading-6 text-[var(--primary)]">{plan.comparison}</p>
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{plan.outingText}</p>
+                </button>
+              )
+            })}
+          </section>
+
+          <section className="grid gap-4 md:grid-cols-3">
+            {[
+              ['How credits work', 'One visit credit = one person entry. A family of 4 uses 4 credits per visit.'],
+              ['Bigger families', 'Add extra family members in the request. Magic Land confirms the best add-on balance by phone.'],
+              ['Members enjoy', 'VR racing, bumper cars, carousel, arcade games, Creative Village, and seasonal activities.'],
+            ].map(([title, copy]) => (
+              <article key={title} className="rounded-[1.5rem] border border-[var(--line)] bg-white p-5 shadow-sm">
+                <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{title}</p>
+                <p className="mt-3 text-sm font-semibold leading-6 text-[var(--muted)]">{copy}</p>
+              </article>
             ))}
-          </div>
-        </div>
-        <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-          <Crown className="text-[var(--secondary)]" />
-          <h3 className="font-display mt-4 text-2xl font-bold text-[var(--primary)] md:text-3xl">Families who revisit create stronger memories.</h3>
-          <div className="mt-5 space-y-3">
-            {['Encourage more family outings', 'Create repeat experiences for children', 'Unlock better value over time', 'Make celebrations more spontaneous and fun'].map((perk) => <p key={perk} className="text-sm font-bold leading-6 text-[var(--muted)]">- {perk}</p>)}
-          </div>
-        </aside>
-      </div>
+          </section>
 
-      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Beyond park entry</p>
-        <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Members often make every visit fuller.</h2>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-          {['Food & snacks', 'Arcade games', 'Attractions', 'Activities', 'Birthdays', 'Seasonal events'].map((item) => (
-            <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>
-          ))}
-        </div>
-      </section>
-
-      <div className="mt-6 grid gap-5 lg:grid-cols-3">
-        {membershipPlans.map((plan, index) => (
-          <article key={plan.name} className={`relative overflow-hidden rounded-[2rem] border p-6 shadow-sm ${index === 0 ? 'border-[#bbc3ff] bg-[var(--surface-3)]' : 'border-[var(--line)] bg-white'}`}>
-            {index === 0 && <span className="absolute right-5 top-5 rounded-full bg-[var(--secondary)] px-3 py-1 text-xs font-extrabold uppercase text-white">Best value</span>}
-            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{plan.subtitle}</p>
-            <h3 className="font-display mt-2 text-3xl font-bold text-[var(--primary)] md:text-4xl">{plan.name}</h3>
-            <div className="mt-5 flex flex-wrap items-end gap-3">
-              <p className="font-display text-4xl font-bold text-[var(--primary)] md:text-5xl">{plan.price}</p>
-              <p className="pb-2 text-sm font-extrabold text-[var(--muted)]">{plan.entries}</p>
+          <section className="rounded-[1.75rem] border border-[var(--line)] bg-white p-5 shadow-sm">
+            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership FAQ</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {[
+                ['Validity', 'All memberships are valid for 3 months from activation.'],
+                ['Shared visits', 'Family plans share one visit-credit balance among registered members.'],
+                ['Refunds', 'Membership purchases are non-refundable once activated.'],
+                ['Unused visits', 'Unused visits expire after the validity period ends.'],
+              ].map(([question, answer]) => (
+                <div key={question} className="rounded-2xl bg-[var(--surface-3)] p-4">
+                  <h3 className="font-display text-lg font-bold text-[var(--primary)]">{question}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{answer}</p>
+                </div>
+              ))}
             </div>
-            <div className="mt-5 rounded-2xl bg-white p-4 md:p-5">
-              <p className="font-display text-xl font-bold text-[var(--secondary)] md:text-2xl">Includes</p>
-              <ul className="mt-3 grid gap-2">
-                {plan.includes.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
-              </ul>
-            </div>
-            <div className="mt-4 rounded-2xl bg-[var(--surface-2)] p-4">
-              <p className="text-sm font-extrabold text-[var(--primary)]">{plan.comparison}</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{plan.outingText}</p>
-            </div>
-            <h4 className="font-display mt-5 text-xl font-bold text-[var(--primary)]">Perfect for</h4>
-            <ul className="mt-3 grid gap-2">
-              {plan.bestFor.map((item) => <li key={item} className="list-inside list-disc text-sm font-semibold text-[var(--muted)]">{item}</li>)}
-            </ul>
-            <button className="sunset mt-6 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(plan.name)}>Buy Membership</button>
-          </article>
-        ))}
-      </div>
-
-      <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
-        <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">How shared visits work</p>
-          <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">One visit = one person entry.</h2>
-          <p className="mt-4 leading-8 text-[var(--muted)]">Each park entry by one registered member counts as 1 visit. A family of 4 visiting together uses 4 visits from the shared balance, so 20 shared visits equals about 5 full family outings.</p>
+          </section>
         </div>
-        <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Family add-on</p>
-          <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Add more members when your family group is bigger.</h2>
-          <p className="mt-4 leading-8 text-[var(--muted)]">Need to include more than 2 or 4 registered members? Magic Land can add extra family members to the same membership request, then confirm the best add-on price and visit balance by phone before activation.</p>
-        </div>
-      </section>
 
-      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">A smarter way to enjoy Magic Land</p>
-        <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Membership is not just a discount. It is a better family entertainment rhythm.</h2>
-        <p className="mt-4 max-w-3xl leading-8 text-[var(--muted)]">Instead of paying full entry every visit, families can plan multiple experiences across weekends, holidays, celebrations, and special occasions. The goal is to encourage repeat visits, make celebrations easier, reward returning families, and build a stronger community around Magic Land.</p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {['Better family value', 'More flexibility', 'More reasons to revisit', 'Stronger long-term memories'].map((item) => (
-            <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Attractions members love</p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ['VR Racing', img.vrBike],
-            ['Bumper Cars', img.familyGames],
-            ['Carousel', img.carousel],
-            ['Shooting Games', img.vrShooting],
-            ['Creative Village', img.pottery],
-            ['Family Play Arena', img.kidsPlay],
-            ['Arcade Games', img.arcade],
-            ['Seasonal Activities', img.parade],
-          ].map(([title, image]) => (
-            <div key={title} className="overflow-hidden rounded-2xl bg-[var(--surface-3)]">
-              <SmartImage src={image} alt={title} className="h-28 w-full object-cover" />
-              <p className="p-3 text-sm font-extrabold text-[var(--primary)]">{title}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="mx-auto mt-6 max-w-xl">
-        <form id="membership-booking" onSubmit={submitMembership} className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+        <div className="xl:sticky xl:top-28 xl:self-start">
+          <form id="membership-booking" onSubmit={submitMembership} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
-          <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
-          <div className="mt-5 grid gap-4">
+          <div className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4">
+            <h3 className="font-display text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
+            <div className="mt-3 text-sm font-bold text-[var(--muted)]">
+              <Line label={activePlan.entries} value={activePlan.price} />
+              <Line label="Validity" value="3 months" />
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3">
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or member name" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input name="startDate" required type="date" value={form.startDate} onChange={(e) => updateForm('startDate', e.target.value)} className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Family member names, optional<input name="familyMembers" value={form.familyMembers} onChange={(e) => updateForm('familyMembers', e.target.value)} className="soft-field" placeholder="Useful for Duo and Family passes" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Note, optional<input name="note" value={form.note} onChange={(e) => updateForm('note', e.target.value)} className="soft-field" placeholder="Preferred call time or special request" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Member names, optional<input name="familyMembers" value={form.familyMembers} onChange={(e) => updateForm('familyMembers', e.target.value)} className="soft-field" placeholder="Useful for family passes" /></label>
             <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
               Payment option
               <div className="grid gap-2 sm:grid-cols-3">
@@ -1389,35 +1368,12 @@ function MembershipPage({ setPage }) {
                 <p className="mt-1 text-[var(--muted)]">Verify your email before continuing to online membership payment.</p>
               </div>
             )}
-            <div className="rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--muted)]">{activePlan.entries} - {activePlan.price}</div>
             <button disabled={status.type === 'loading' || authLoading} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Submit Membership Request'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
           </div>
         </form>
       </div>
-
-      <section className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership FAQ</p>
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {[
-            ['How long are memberships valid?', 'All memberships are valid for 3 months from activation.'],
-            ['Can family visits be shared?', 'Yes. Family memberships include shared visits for registered family members.'],
-            ['Are memberships refundable?', 'Membership purchases are non-refundable once activated.'],
-            ['Can unused visits be carried forward?', 'Unused visits expire after validity ends.'],
-            ['Will members receive special offers?', 'Yes. Members may receive exclusive seasonal offers and event access.'],
-          ].map(([question, answer]) => (
-            <div key={question} className="rounded-2xl bg-[var(--surface-3)] p-4">
-              <h3 className="font-display text-lg font-bold text-[var(--primary)]">{question}</h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{answer}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 rounded-[1.5rem] bg-[var(--primary)] p-6 text-white">
-          <h2 className="font-display text-3xl font-bold">More family time starts here.</h2>
-          <p className="mt-3 max-w-2xl leading-7 text-white/85">Turn weekends, holidays, and celebrations into unforgettable memories with the Magic Land Membership Program.</p>
-          <button className="sunset mt-5 rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={() => choosePlan(membershipPlans[0].name)}>Become a Member</button>
-        </div>
-      </section>
+      </div>
     </PageShell>
   )
 }
