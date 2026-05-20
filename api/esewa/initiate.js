@@ -43,6 +43,17 @@ const paymentUrlForMode = (mode) => (
     : 'https://rc-epay.esewa.com.np/api/epay/main/v2/form'
 )
 
+const safePaymentUrl = (mode) => {
+  const configured = String(process.env.ESEWA_PAYMENT_URL || '').trim()
+  if (!configured) return paymentUrlForMode(mode)
+
+  const isSandboxUrl = configured.includes('rc-epay.esewa.com.np')
+  const isProductionUrl = configured.includes('epay.esewa.com.np') && !isSandboxUrl
+  if (mode === 'production' && isSandboxUrl) return paymentUrlForMode('production')
+  if (mode === 'test' && isProductionUrl) return paymentUrlForMode('test')
+  return configured
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST')
@@ -81,7 +92,7 @@ export default async function handler(request, response) {
     const mode = esewaMode(productCode)
 
     return json(response, 200, {
-      action: process.env.ESEWA_PAYMENT_URL || paymentUrlForMode(mode),
+      action: safePaymentUrl(mode),
       fields: {
         ...fields,
         signature: signEsewaPayload(secretKey, signatureMessage),

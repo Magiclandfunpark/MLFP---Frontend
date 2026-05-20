@@ -23,6 +23,17 @@ const verifyUrlForMode = (mode) => (
     : 'https://rc.esewa.com.np/api/epay/transaction/status/'
 )
 
+const safeVerifyUrl = (mode) => {
+  const configured = String(process.env.ESEWA_VERIFY_URL || '').trim()
+  if (!configured) return verifyUrlForMode(mode)
+
+  const isSandboxUrl = configured.includes('rc.esewa.com.np')
+  const isProductionUrl = configured.includes('esewa.com.np') && !isSandboxUrl
+  if (mode === 'production' && isSandboxUrl) return verifyUrlForMode('production')
+  if (mode === 'test' && isProductionUrl) return verifyUrlForMode('test')
+  return configured
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST')
@@ -44,7 +55,7 @@ export default async function handler(request, response) {
       return json(response, 400, { error: 'Invalid eSewa return data.', decoded })
     }
 
-    const verifyUrl = new URL(process.env.ESEWA_VERIFY_URL || verifyUrlForMode(mode))
+    const verifyUrl = new URL(safeVerifyUrl(mode))
     verifyUrl.searchParams.set('product_code', productCode)
     verifyUrl.searchParams.set('total_amount', String(totalAmount))
     verifyUrl.searchParams.set('transaction_uuid', transactionUuid)
