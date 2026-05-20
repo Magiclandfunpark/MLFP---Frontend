@@ -10,6 +10,19 @@ function decodeEsewaData(data) {
   return JSON.parse(decoded)
 }
 
+const esewaMode = (productCode) => {
+  const configuredMode = String(process.env.ESEWA_ENV || '').trim().toLowerCase()
+  if (configuredMode === 'production' || configuredMode === 'live') return 'production'
+  if (configuredMode === 'test' || configuredMode === 'sandbox') return 'test'
+  return productCode === 'EPAYTEST' ? 'test' : 'production'
+}
+
+const verifyUrlForMode = (mode) => (
+  mode === 'production'
+    ? 'https://esewa.com.np/api/epay/transaction/status/'
+    : 'https://rc.esewa.com.np/api/epay/transaction/status/'
+)
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST')
@@ -22,7 +35,8 @@ export default async function handler(request, response) {
     if (!dataParam) return json(response, 400, { error: 'Missing eSewa return data.' })
 
     const decoded = decodeEsewaData(dataParam)
-    const productCode = process.env.ESEWA_MERCHANT_CODE || 'EPAYTEST'
+    const productCode = String(process.env.ESEWA_MERCHANT_CODE || 'EPAYTEST').trim()
+    const mode = esewaMode(productCode)
     const totalAmount = Number(decoded.total_amount || 0)
     const transactionUuid = String(decoded.transaction_uuid || '')
 
@@ -30,7 +44,7 @@ export default async function handler(request, response) {
       return json(response, 400, { error: 'Invalid eSewa return data.', decoded })
     }
 
-    const verifyUrl = new URL(process.env.ESEWA_VERIFY_URL || 'https://rc.esewa.com.np/api/epay/transaction/status/')
+    const verifyUrl = new URL(process.env.ESEWA_VERIFY_URL || verifyUrlForMode(mode))
     verifyUrl.searchParams.set('product_code', productCode)
     verifyUrl.searchParams.set('total_amount', String(totalAmount))
     verifyUrl.searchParams.set('transaction_uuid', transactionUuid)

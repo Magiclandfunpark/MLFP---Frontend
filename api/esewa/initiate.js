@@ -30,14 +30,27 @@ const signEsewaPayload = (secretKey, message) => crypto
   .update(message)
   .digest('base64')
 
+const esewaMode = (productCode) => {
+  const configuredMode = String(process.env.ESEWA_ENV || '').trim().toLowerCase()
+  if (configuredMode === 'production' || configuredMode === 'live') return 'production'
+  if (configuredMode === 'test' || configuredMode === 'sandbox') return 'test'
+  return productCode === 'EPAYTEST' ? 'test' : 'production'
+}
+
+const paymentUrlForMode = (mode) => (
+  mode === 'production'
+    ? 'https://epay.esewa.com.np/api/epay/main/v2/form'
+    : 'https://rc-epay.esewa.com.np/api/epay/main/v2/form'
+)
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST')
     return json(response, 405, { error: 'Method not allowed' })
   }
 
-  const secretKey = process.env.ESEWA_SECRET_KEY
-  const productCode = process.env.ESEWA_MERCHANT_CODE || 'EPAYTEST'
+  const secretKey = String(process.env.ESEWA_SECRET_KEY || '').trim()
+  const productCode = String(process.env.ESEWA_MERCHANT_CODE || 'EPAYTEST').trim()
   if (!secretKey) return json(response, 500, { error: 'eSewa secret key is not configured.' })
 
   try {
@@ -65,13 +78,15 @@ export default async function handler(request, response) {
       signed_field_names: 'total_amount,transaction_uuid,product_code',
     }
     const signatureMessage = `total_amount=${fields.total_amount},transaction_uuid=${fields.transaction_uuid},product_code=${fields.product_code}`
+    const mode = esewaMode(productCode)
 
     return json(response, 200, {
-      action: process.env.ESEWA_PAYMENT_URL || 'https://rc-epay.esewa.com.np/api/epay/main/v2/form',
+      action: process.env.ESEWA_PAYMENT_URL || paymentUrlForMode(mode),
       fields: {
         ...fields,
         signature: signEsewaPayload(secretKey, signatureMessage),
       },
+      mode,
     })
   } catch (error) {
     return json(response, 500, { error: 'Could not initiate eSewa payment.', details: error.message })
