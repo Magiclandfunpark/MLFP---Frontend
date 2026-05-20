@@ -84,6 +84,7 @@ service cloud.firestore {
           'name', 'phone', 'email', 'ticketName', 'unitPrice', 'guests', 'visitDate',
           'note', 'total', 'source', 'pagePath', 'userAgent', 'status', 'createdAt',
           'authUid', 'authEmail', 'authPhone', 'visitorId', 'sessionId', 'paymentMethod',
+          'addOnMembers', 'addOnUnitPrice',
           'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'
         ])
         && basePublicRequest()
@@ -99,6 +100,8 @@ service cloud.firestore {
         && request.resource.data.guests is int
         && request.resource.data.guests >= 1
         && request.resource.data.guests <= 50
+        && (!('addOnMembers' in request.resource.data) || (request.resource.data.addOnMembers is int && request.resource.data.addOnMembers >= 0 && request.resource.data.addOnMembers <= 46))
+        && (!('addOnUnitPrice' in request.resource.data) || (request.resource.data.addOnUnitPrice is number && request.resource.data.addOnUnitPrice >= 0 && request.resource.data.addOnUnitPrice <= 10000))
         && request.resource.data.total is number
         && request.resource.data.total >= 0
         && optionalText('paymentMethod', 40)

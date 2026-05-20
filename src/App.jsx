@@ -260,11 +260,11 @@ const attractionList = [
 ]
 
 const ticketOptions = [
-  { name: 'One-Time Entry', price: 1500, detail: 'A single Magic Land visit for rides, VR games, arcade fun, and family attractions.' },
-  { name: 'Individual Fun Pass', price: 2999, detail: '5 visits, 3 months validity, and flexible individual access.' },
-  { name: 'Family Duo Pass', price: 5499, detail: '10 shared visits for 2 family members, valid for 3 months.' },
-  { name: 'Family Magic Pass', price: 9499, detail: '20 shared visits for families of 4, valid for 3 months.' },
-  { name: 'Gift Ticket', price: 1500, detail: 'A shareable entry for birthdays, friends, and family celebrations.' },
+  { name: 'One-Time Entry', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A single Magic Land visit for rides, VR games, arcade fun, and family attractions.' },
+  { name: 'Individual Fun Pass', price: 2999, kind: 'membership', defaultGuests: 1, visits: 5, detail: '5 visits, 3 months validity, and flexible individual access.' },
+  { name: 'Family Duo Pass', price: 5499, kind: 'membership', defaultGuests: 2, visits: 10, detail: '10 shared visits for 2 family members, valid for 3 months.' },
+  { name: 'Family Magic Pass', price: 9499, kind: 'membership', defaultGuests: 4, visits: 20, detail: '20 shared visits for families of 4, valid for 3 months.' },
+  { name: 'Gift Ticket', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A shareable entry for birthdays, friends, and family celebrations.' },
 ]
 
 const membershipPlans = [
@@ -839,11 +839,17 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
 function TicketsPage({ setPage }) {
   const { user, loading: authLoading } = useAuthUser()
   const [selected, setSelected] = useState(ticketOptions[0])
-  const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: 2 })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: ticketOptions[0].defaultGuests })
   const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
-  const guests = Number(form.guests) || 1
-  const total = selected.price * guests
+  const checkoutRef = useRef(null)
+  const isMembershipTicket = selected.kind === 'membership'
+  const includedMembers = selected.defaultGuests || 1
+  const guests = Math.max(Number(form.guests) || includedMembers, includedMembers)
+  const addOnMembers = isMembershipTicket ? Math.max(guests - includedMembers, 0) : 0
+  const addOnUnitPrice = isMembershipTicket ? Math.round(selected.price / includedMembers) : selected.price
+  const addOnTotal = addOnMembers * addOnUnitPrice
+  const total = isMembershipTicket ? selected.price + addOnTotal : selected.price * guests
   const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
   const updateForm = (field, value) => {
     const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
@@ -851,18 +857,39 @@ function TicketsPage({ setPage }) {
   }
   const chooseTicket = (ticket) => {
     setSelected(ticket)
+    setStatus({ type: '', message: '' })
+    setForm((current) => ({ ...current, guests: ticket.defaultGuests || 1 }))
     trackEvent('ticket_select', { ticket_name: ticket.name, price: ticket.price })
+    window.requestAnimationFrame(() => checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+  const quickGoogleLogin = async () => {
+    setStatus({ type: 'loading', message: 'Opening Google login...' })
+    trackEvent('checkout_inline_google_login_start', { ticket_name: selected.name, payment_method: paymentMethod })
+    try {
+      const signedInUser = await signInWithGoogle()
+      setForm((current) => ({
+        ...current,
+        name: current.name || signedInUser.displayName || '',
+        email: current.email || signedInUser.email || '',
+        phone: current.phone || (signedInUser.phoneNumber ? signedInUser.phoneNumber.replace(/\D/g, '').slice(-10) : ''),
+      }))
+      setStatus({ type: 'success', message: 'Signed in. Please review the total and continue payment.' })
+      trackEvent('checkout_inline_google_login_success', { ticket_name: selected.name })
+    } catch (error) {
+      setStatus({ type: 'error', message: error?.message || 'Google login could not be completed.' })
+      trackEvent('checkout_inline_google_login_error', { ticket_name: selected.name, code: error?.code ?? 'unknown' })
+    }
   }
 
   const submitBooking = async (event) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
-    const payloadGuests = Number(formData.get('guests')) || guests
+    const payloadGuests = Math.max(Number(formData.get('guests')) || guests, includedMembers)
     const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
     if (wantsOnlinePayment && !user) {
       setStatus({
         type: 'error',
-        message: 'Please login or create a Magic Land account before online payment. This keeps payment records tied to the right guest.',
+        message: 'Login is needed before online payment. Use the Google button in this checkout, then continue.',
       })
       trackEvent('online_payment_auth_required', { payment_method: paymentMethod, ticket_name: selected.name })
       return
@@ -885,20 +912,22 @@ function TicketsPage({ setPage }) {
         ticketName: selected.name,
         unitPrice: selected.price,
         guests: payloadGuests,
+        addOnMembers,
+        addOnUnitPrice,
         visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
-        total: selected.price * payloadGuests,
+        total,
         paymentMethod,
       })
       trackEvent('booking_request_submitted', {
         ticket_name: selected.name,
         guests: payloadGuests,
-        total: selected.price * payloadGuests,
+        total,
         store: result.store,
         payment_method: paymentMethod,
       })
       if (paymentMethod === 'khalti' || paymentMethod === 'esewa') {
         const paymentPayload = {
-          amount: selected.price * payloadGuests,
+          amount: total,
           purchaseOrderId: result.id,
           purchaseOrderName: selected.name,
           customerInfo: {
@@ -911,7 +940,7 @@ function TicketsPage({ setPage }) {
           trackEvent('payment_checkout_click', {
             gateway: 'khalti',
             ticket_name: selected.name,
-            total: selected.price * payloadGuests,
+            total,
             request_id: result.id,
           })
           const payment = await initiateKhaltiPayment(paymentPayload)
@@ -920,7 +949,7 @@ function TicketsPage({ setPage }) {
               gateway: 'khalti',
               bookingId: result.id,
               ticketName: selected.name,
-              amount: selected.price * payloadGuests,
+              amount: total,
               guests: payloadGuests,
               name: String(formData.get('name') || form.name).trim(),
               phone: String(formData.get('phone') || form.phone).trim(),
@@ -931,7 +960,7 @@ function TicketsPage({ setPage }) {
           }
           trackEvent('khalti_payment_initiated', {
             ticket_name: selected.name,
-            total: selected.price * payloadGuests,
+            total,
             request_id: result.id,
           })
           window.location.href = payment.payment_url
@@ -941,7 +970,7 @@ function TicketsPage({ setPage }) {
         trackEvent('payment_checkout_click', {
           gateway: 'esewa',
           ticket_name: selected.name,
-          total: selected.price * payloadGuests,
+          total,
           request_id: result.id,
         })
         const payment = await initiateEsewaPayment(paymentPayload)
@@ -950,7 +979,7 @@ function TicketsPage({ setPage }) {
             gateway: 'esewa',
             bookingId: result.id,
             ticketName: selected.name,
-            amount: selected.price * payloadGuests,
+            amount: total,
             guests: payloadGuests,
             name: String(formData.get('name') || form.name).trim(),
             phone: String(formData.get('phone') || form.phone).trim(),
@@ -961,7 +990,7 @@ function TicketsPage({ setPage }) {
         }
         trackEvent('esewa_payment_initiated', {
           ticket_name: selected.name,
-          total: selected.price * payloadGuests,
+          total,
           request_id: result.id,
         })
         submitEsewaForm(payment)
@@ -975,7 +1004,7 @@ function TicketsPage({ setPage }) {
         requestId: result.id,
         paymentMethod,
         ticketName: selected.name,
-        total: selected.price * payloadGuests,
+        total,
       }
       try {
         sessionStorage.setItem('magicland:thankYou', JSON.stringify(thankYouDetails))
@@ -985,10 +1014,10 @@ function TicketsPage({ setPage }) {
       trackEvent('booking_thank_you_view_ready', {
         request_id: result.id,
         ticket_name: selected.name,
-        total: selected.price * payloadGuests,
+        total,
       })
       setStatus({ type: 'success', message: thankYouDetails.message })
-      setForm({ name: '', phone: '', email: '', visitDate: '', guests: 2 })
+      setForm({ name: '', phone: '', email: '', visitDate: '', guests: selected.defaultGuests || 1 })
       setPage('thankYou')
     } catch (error) {
       console.error('Booking request failed', error)
@@ -1011,10 +1040,15 @@ function TicketsPage({ setPage }) {
               <h3 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{ticket.name}</h3>
               <p className="mt-2 text-2xl font-extrabold">Rs. {ticket.price.toLocaleString()}</p>
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{ticket.detail}</p>
+              {ticket.kind === 'membership' && (
+                <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-extrabold text-[var(--primary)]">
+                  Checkout starts with {ticket.defaultGuests} registered member{ticket.defaultGuests > 1 ? 's' : ''}; add more members if needed.
+                </p>
+              )}
             </button>
           ))}
         </div>
-        <form onSubmit={submitBooking} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
+        <form ref={checkoutRef} id="ticket-checkout" onSubmit={submitBooking} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
           <div className="mb-5 flex items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--surface-3)] text-[var(--primary)]">
               <Ticket size={21} />
@@ -1022,6 +1056,7 @@ function TicketsPage({ setPage }) {
             <div>
               <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">Quick booking</p>
               <h3 className="font-display text-2xl font-bold text-[var(--primary)]">Reserve in one step</h3>
+              <p className="mt-1 text-xs font-bold text-[var(--muted)]">{selected.name} selected</p>
             </div>
           </div>
           <div className="mt-5 grid gap-4">
@@ -1029,7 +1064,23 @@ function TicketsPage({ setPage }) {
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input name="guests" type="number" min="1" max="50" value={form.guests} onChange={(e) => updateForm('guests', e.target.value)} className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">
+              {isMembershipTicket ? 'Registered members' : 'Guests'}
+              <input
+                name="guests"
+                type="number"
+                min={includedMembers}
+                max="50"
+                value={form.guests}
+                onChange={(e) => updateForm('guests', e.target.value)}
+                className="soft-field"
+              />
+              {isMembershipTicket && (
+                <span className="text-xs leading-5 text-[var(--muted)]">
+                  Includes {includedMembers} member{includedMembers > 1 ? 's' : ''}. Extra members add 5 visit credits each at Rs. {addOnUnitPrice.toLocaleString()}.
+                </span>
+              )}
+            </label>
             <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
               Payment option
               <div className="grid gap-2 sm:grid-cols-3">
@@ -1051,12 +1102,15 @@ function TicketsPage({ setPage }) {
             </div>
             {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && !user && (
               <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
-                <p className="font-extrabold">Account required for online payment</p>
-                <p className="mt-1 text-[var(--muted)]">Login with Google, email, or phone first. Then return here to continue securely to {paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}.</p>
-                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => {
-                  sessionStorage.setItem('magicland:returnAfterLogin', 'tickets')
-                  setPage('account')
-                }}>Login or create account</button>
+                <p className="font-extrabold">Login here, then pay</p>
+                <p className="mt-1 text-[var(--muted)]">Online payment needs a guest account so the booking and payment reference stay together.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" className="sunset rounded-full px-4 py-2 text-sm font-extrabold shadow-sm" onClick={quickGoogleLogin}>Continue with Google</button>
+                  <button type="button" className="rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => {
+                    sessionStorage.setItem('magicland:returnAfterLogin', 'tickets')
+                    setPage('account')
+                  }}>Email or phone login</button>
+                </div>
               </div>
             )}
             {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && emailNeedsVerification && (
@@ -1068,7 +1122,9 @@ function TicketsPage({ setPage }) {
             )}
             <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
               <Line label={selected.name} value={`Rs. ${selected.price.toLocaleString()}`} />
-              <Line label="Guests" value={guests} />
+              <Line label={isMembershipTicket ? 'Included members' : 'Guests'} value={isMembershipTicket ? includedMembers : guests} />
+              {isMembershipTicket && <Line label="Registered members" value={guests} />}
+              {addOnMembers > 0 && <Line label={`Extra member add-ons (${addOnMembers} x Rs. ${addOnUnitPrice.toLocaleString()})`} value={`Rs. ${addOnTotal.toLocaleString()}`} />}
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
             <button disabled={status.type === 'loading' || authLoading} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
