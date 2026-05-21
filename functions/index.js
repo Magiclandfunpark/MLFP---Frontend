@@ -1,11 +1,10 @@
 const { onValueCreated } = require('firebase-functions/v2/database')
 const { defineSecret } = require('firebase-functions/params')
-const nodemailer = require('nodemailer')
 
-const smtpHost = defineSecret('SMTP_HOST')
-const smtpPort = defineSecret('SMTP_PORT')
-const smtpUser = defineSecret('SMTP_USER')
-const smtpPass = defineSecret('SMTP_PASS')
+const gmailClientId = defineSecret('GMAIL_CLIENT_ID')
+const gmailClientSecret = defineSecret('GMAIL_CLIENT_SECRET')
+const gmailRefreshToken = defineSecret('GMAIL_REFRESH_TOKEN')
+const gmailSenderEmail = defineSecret('GMAIL_SENDER_EMAIL')
 const mailTo = defineSecret('BOOKING_NOTIFICATION_EMAIL')
 const defaultSenderEmail = 'info@magiclandfunpark.com'
 const defaultStaffRecipients = ['info@magiclandfunpark.com', 'prabinthapaliyaus@gmail.com']
@@ -276,25 +275,111 @@ function staffRecipients() {
   return [...new Set([...recipients, ...defaultStaffRecipients])].join(', ')
 }
 
-function transporter() {
-  return nodemailer.createTransport({
-    host: smtpHost.value(),
-    port: Number(smtpPort.value() || 587),
-    secure: Number(smtpPort.value()) === 465,
-    auth: {
-      user: smtpUser.value(),
-      pass: smtpPass.value(),
-    },
+function senderEmail() {
+  return gmailSenderEmail.value() || defaultSenderEmail
+}
+
+function encodeHeader(value = '') {
+  return String(value).replace(/[\r\n]+/g, ' ').trim()
+}
+
+function base64Url(value) {
+  return Buffer.from(value)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+}
+
+function recipientList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ')
+  return String(value || '').trim()
+}
+
+function createRawEmail({ from, to, replyTo, subject, text, html }) {
+  const boundary = `magicland-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  const headers = [
+    `From: ${encodeHeader(from)}`,
+    `To: ${encodeHeader(recipientList(to))}`,
+    replyTo ? `Reply-To: ${encodeHeader(replyTo)}` : '',
+    `Subject: ${encodeHeader(subject)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+  ].filter(Boolean)
+
+  const body = [
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    text || '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    html || '',
+    `--${boundary}--`,
+  ].join('\r\n')
+
+  return base64Url(`${headers.join('\r\n')}\r\n\r\n${body}`)
+}
+
+async function gmailAccessToken() {
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: gmailClientId.value(),
+      client_secret: gmailClientSecret.value(),
+      refresh_token: gmailRefreshToken.value(),
+      grant_type: 'refresh_token',
+    }),
   })
+
+  const json = await response.json()
+  if (!response.ok || !json.access_token) {
+    throw new Error(`Gmail token refresh failed: ${JSON.stringify(json)}`)
+  }
+
+  return json.access_token
+}
+
+async function sendGmail({ to, replyTo, subject, text, html }) {
+  const accessToken = await gmailAccessToken()
+  const fromEmail = senderEmail()
+  const raw = createRawEmail({
+    from: `"Magic Land Family Fun Park" <${fromEmail}>`,
+    to,
+    replyTo,
+    subject,
+    text,
+    html,
+  })
+
+  const response = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(fromEmail)}/messages/send`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ raw }),
+    }
+  )
+
+  const json = await response.json()
+  if (!response.ok) {
+    throw new Error(`Gmail send failed: ${JSON.stringify(json)}`)
+  }
+
+  return json
 }
 
 async function sendStaffAndGuest({ staffSubject, staffHtml, staffText, guestEmail, guestSubject, guestHtml, guestText, replyTo }) {
-  const mailer = transporter()
-  const from = `"Magic Land Family Fun Park" <${smtpUser.value() || defaultSenderEmail}>`
   const to = staffRecipients()
 
-  await mailer.sendMail({
-    from,
+  await sendGmail({
     to,
     replyTo: replyTo || guestEmail || undefined,
     subject: staffSubject,
@@ -303,8 +388,7 @@ async function sendStaffAndGuest({ staffSubject, staffHtml, staffText, guestEmai
   })
 
   if (guestEmail) {
-    await mailer.sendMail({
-      from,
+    await sendGmail({
       to: guestEmail,
       replyTo: to,
       subject: guestSubject,
@@ -318,7 +402,7 @@ exports.emailPublicRequest = onValueCreated(
   {
     ref: '/publicRequests/{requestType}/{requestId}',
     region: 'us-central1',
-    secrets: [smtpHost, smtpPort, smtpUser, smtpPass, mailTo],
+    secrets: [gmailClientId, gmailClientSecret, gmailRefreshToken, gmailSenderEmail, mailTo],
   },
   async (event) => {
     const data = event.data.val() || {}
@@ -340,7 +424,7 @@ exports.emailPaymentReceipt = onValueCreated(
   {
     ref: '/paymentReceipts/{gateway}/{receiptId}',
     region: 'us-central1',
-    secrets: [smtpHost, smtpPort, smtpUser, smtpPass, mailTo],
+    secrets: [gmailClientId, gmailClientSecret, gmailRefreshToken, gmailSenderEmail, mailTo],
   },
   async (event) => {
     const data = { ...(event.data.val() || {}), gateway: event.params.gateway }
@@ -361,15 +445,13 @@ exports.emailUserWelcome = onValueCreated(
   {
     ref: '/users/{uid}',
     region: 'us-central1',
-    secrets: [smtpHost, smtpPort, smtpUser, smtpPass, mailTo],
+    secrets: [gmailClientId, gmailClientSecret, gmailRefreshToken, gmailSenderEmail, mailTo],
   },
   async (event) => {
     const data = event.data.val() || {}
     if (!data.email) return
 
-    const mailer = transporter()
-    await mailer.sendMail({
-      from: `"Magic Land Family Fun Park" <${smtpUser.value() || defaultSenderEmail}>`,
+    await sendGmail({
       to: data.email,
       replyTo: staffRecipients(),
       subject: 'Welcome to Magic Land Family Fun Park',
