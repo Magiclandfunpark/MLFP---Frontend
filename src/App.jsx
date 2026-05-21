@@ -261,7 +261,6 @@ const attractionList = [
 
 const ticketOptions = [
   { name: 'One-Time Entry', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'Best for families planning one Magic Land visit with rides, VR games, arcade fun, and Creative Village access.' },
-  { name: 'Ice Cream Test Pass', price: 10, kind: 'entry', defaultGuests: 1, detail: 'Small Rs. 10 live payment test item for checking Khalti and eSewa checkout.' },
   { name: 'Gift Ticket', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A simple entry gift for birthdays, friends, cousins, and family celebrations.' },
   { name: 'Group Day Visit', price: 1500, kind: 'entry', defaultGuests: 10, detail: 'For schools, teams, offices, and larger family groups. Magic Land can confirm final timing by phone.' },
 ]
