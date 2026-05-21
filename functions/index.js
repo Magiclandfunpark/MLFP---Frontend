@@ -1,5 +1,7 @@
 const { onValueCreated } = require('firebase-functions/v2/database')
 const { defineSecret } = require('firebase-functions/params')
+const MailComposer = require('nodemailer/lib/mail-composer')
+const QRCode = require('qrcode')
 
 const gmailClientId = defineSecret('GMAIL_CLIENT_ID')
 const gmailClientSecret = defineSecret('GMAIL_CLIENT_SECRET')
@@ -158,6 +160,54 @@ function receiptSubject(data) {
   return `Magic Land payment received - ${gateway}`
 }
 
+function ticketReference(data) {
+  return data.ticketId || data.bookingId || data.requestId || data.gatewayReference || data.pidx || data.transactionUuid || ''
+}
+
+function visitCount(data) {
+  const guests = Number(data.guests || data.quantity || data.visitCredits || 1)
+  return Number.isFinite(guests) && guests > 0 ? guests : 1
+}
+
+function ticketQrPayload(data) {
+  return {
+    type: 'magic_land_ticket',
+    version: 1,
+    reference: ticketReference(data),
+    gateway: data.gateway || '',
+    gatewayReference: data.gatewayReference || data.pidx || data.transactionUuid || '',
+    name: data.name || '',
+    email: data.email || '',
+    phone: data.phone || '',
+    item: data.ticketName || data.planName || 'Magic Land Entry',
+    visitDate: data.visitDate || data.startDate || '',
+    quantity: visitCount(data),
+    amount: Number(data.amount || data.paidAmount || data.total || 0),
+    verifiedAt: data.verifiedAt || data.createdAt || '',
+  }
+}
+
+async function ticketQrAttachment(data) {
+  const payload = ticketQrPayload(data)
+  const dataUrl = await QRCode.toDataURL(JSON.stringify(payload), {
+    errorCorrectionLevel: 'M',
+    margin: 2,
+    width: 360,
+    color: {
+      dark: brand.ink,
+      light: '#ffffff',
+    },
+  })
+
+  return {
+    cid: 'magicland-ticket-qr',
+    filename: `magic-land-ticket-${payload.reference || Date.now()}.png`,
+    content: Buffer.from(dataUrl.split(',')[1], 'base64'),
+    contentType: 'image/png',
+    payload,
+  }
+}
+
 function receiptRows(data) {
   return rows([
     ['Gateway', data.gateway || '-'],
@@ -165,6 +215,8 @@ function receiptRows(data) {
     ['Phone', data.phone || '-'],
     ['Email', data.email || '-'],
     ['Ticket', data.ticketName || '-'],
+    ['Visit date', data.visitDate || data.startDate || '-'],
+    ['Entry quantity', visitCount(data)],
     ['Amount paid', money(data.amount || data.paidAmount || data.total)],
     ['Booking reference', data.bookingId || data.requestId || '-'],
     ['Gateway reference', data.gatewayReference || data.pidx || data.transactionUuid || '-'],
@@ -172,12 +224,48 @@ function receiptRows(data) {
   ])
 }
 
+function ticketPanelHtml(data, qrCid = 'magicland-ticket-qr') {
+  const payload = ticketQrPayload(data)
+  return `
+    <div style="margin-top:24px;padding:18px;border-radius:22px;background:#fff8fb;border:1px solid ${brand.line};">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="vertical-align:top;padding-right:16px;">
+            <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:${brand.accent};font-weight:900;">Entry QR</div>
+            <h2 style="margin:8px 0 10px;color:${brand.primary};font-size:24px;line-height:1.15;">Magic Land Ticket</h2>
+            <p style="margin:0;color:#4f5b76;font-size:14px;line-height:1.7;">
+              Show this QR at the park entrance. Each person entry counts as one use.
+            </p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:12px;">
+              ${rows([
+                ['Ticket reference', payload.reference || '-'],
+                ['Ticket / plan', payload.item || '-'],
+                ['Guest name', payload.name || '-'],
+                ['Email', payload.email || '-'],
+                ['Phone', payload.phone || '-'],
+                ['Visit date', payload.visitDate || '-'],
+                ['Entries included', payload.quantity || 1],
+              ])}
+            </table>
+          </td>
+          <td width="150" style="vertical-align:top;text-align:center;">
+            <img src="cid:${qrCid}" width="148" height="148" alt="Magic Land ticket QR code" style="display:block;width:148px;height:148px;border-radius:18px;border:1px solid ${brand.line};background:#fff;padding:8px;" />
+          </td>
+        </tr>
+      </table>
+    </div>
+  `
+}
+
 function staffReceiptHtml(data) {
   return emailShell({
     eyebrow: 'Payment verified',
     title: receiptSubject(data),
     intro: 'A website payment was verified. Please reconcile this with the booking request and confirm the visit if needed.',
-    children: `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">${receiptRows(data)}</table>`,
+    children: `
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${receiptRows(data)}</table>
+      ${ticketPanelHtml(data)}
+    `,
     ctaLabel: 'Open Firebase Console',
     ctaUrl: 'https://console.firebase.google.com/project/magic-land-fun-park/database',
   })
@@ -186,12 +274,13 @@ function staffReceiptHtml(data) {
 function guestReceiptHtml(data) {
   return emailShell({
     eyebrow: 'Payment received',
-    title: 'Thank you. Your Magic Land payment is received.',
-    intro: 'Your payment has been verified. Magic Land will confirm the final visit details by phone or email if needed.',
+    title: 'Your Magic Land ticket is ready.',
+    intro: 'Your payment has been verified. Please keep this email and show the QR code at the park entrance.',
     children: `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${receiptRows(data)}</table>
+      ${ticketPanelHtml(data)}
       <div style="margin-top:22px;padding:16px;border-radius:18px;background:#f6f7ff;color:#4f5b76;line-height:1.7;font-size:14px;">
-        Please show this email or your payment wallet receipt at the park if requested.
+        For security, Magic Land staff may verify the name, phone number, payment reference, and QR details before entry.
       </div>
     `,
     ctaLabel: 'View Magic Land',
@@ -226,9 +315,13 @@ function receiptText(data) {
     `Phone: ${data.phone || '-'}`,
     `Email: ${data.email || '-'}`,
     `Ticket: ${data.ticketName || '-'}`,
+    `Visit date: ${data.visitDate || data.startDate || '-'}`,
+    `Entry quantity: ${visitCount(data)}`,
     `Amount paid: ${money(data.amount || data.paidAmount || data.total)}`,
     `Booking reference: ${data.bookingId || data.requestId || '-'}`,
     `Gateway reference: ${data.gatewayReference || data.pidx || data.transactionUuid || '-'}`,
+    '',
+    'A QR ticket is attached to this email. Show it at the Magic Land entrance.',
   ].join('\n')
 }
 
@@ -296,32 +389,19 @@ function recipientList(value) {
   return String(value || '').trim()
 }
 
-function createRawEmail({ from, to, replyTo, subject, text, html }) {
-  const boundary = `magicland-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  const headers = [
-    `From: ${encodeHeader(from)}`,
-    `To: ${encodeHeader(recipientList(to))}`,
-    replyTo ? `Reply-To: ${encodeHeader(replyTo)}` : '',
-    `Subject: ${encodeHeader(subject)}`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-  ].filter(Boolean)
+async function createRawEmail({ from, to, replyTo, subject, text, html, attachments = [] }) {
+  const message = new MailComposer({
+    from: encodeHeader(from),
+    to: recipientList(to),
+    replyTo: replyTo ? encodeHeader(replyTo) : undefined,
+    subject: encodeHeader(subject),
+    text: text || '',
+    html: html || '',
+    attachments,
+  })
 
-  const body = [
-    `--${boundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    'Content-Transfer-Encoding: 7bit',
-    '',
-    text || '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    'Content-Transfer-Encoding: 7bit',
-    '',
-    html || '',
-    `--${boundary}--`,
-  ].join('\r\n')
-
-  return base64Url(`${headers.join('\r\n')}\r\n\r\n${body}`)
+  const compiled = await message.compile().build()
+  return base64Url(compiled)
 }
 
 async function gmailAccessToken() {
@@ -344,16 +424,17 @@ async function gmailAccessToken() {
   return json.access_token
 }
 
-async function sendGmail({ to, replyTo, subject, text, html }) {
+async function sendGmail({ to, replyTo, subject, text, html, attachments = [] }) {
   const accessToken = await gmailAccessToken()
   const fromEmail = senderEmail()
-  const raw = createRawEmail({
+  const raw = await createRawEmail({
     from: `"Magic Land Family Fun Park" <${fromEmail}>`,
     to,
     replyTo,
     subject,
     text,
     html,
+    attachments,
   })
 
   const response = await fetch(
@@ -376,7 +457,7 @@ async function sendGmail({ to, replyTo, subject, text, html }) {
   return json
 }
 
-async function sendStaffAndGuest({ staffSubject, staffHtml, staffText, guestEmail, guestSubject, guestHtml, guestText, replyTo }) {
+async function sendStaffAndGuest({ staffSubject, staffHtml, staffText, guestEmail, guestSubject, guestHtml, guestText, replyTo, attachments = [] }) {
   const to = staffRecipients()
 
   await sendGmail({
@@ -385,6 +466,7 @@ async function sendStaffAndGuest({ staffSubject, staffHtml, staffText, guestEmai
     subject: staffSubject,
     text: staffText,
     html: staffHtml,
+    attachments,
   })
 
   if (guestEmail) {
@@ -394,6 +476,7 @@ async function sendStaffAndGuest({ staffSubject, staffHtml, staffText, guestEmai
       subject: guestSubject,
       text: guestText,
       html: guestHtml,
+      attachments,
     })
   }
 }
@@ -428,6 +511,13 @@ exports.emailPaymentReceipt = onValueCreated(
   },
   async (event) => {
     const data = { ...(event.data.val() || {}), gateway: event.params.gateway }
+    const qr = await ticketQrAttachment(data)
+    const attachments = [{
+      filename: qr.filename,
+      content: qr.content,
+      contentType: qr.contentType,
+      cid: qr.cid,
+    }]
     await sendStaffAndGuest({
       staffSubject: receiptSubject(data),
       staffHtml: staffReceiptHtml(data),
@@ -437,6 +527,7 @@ exports.emailPaymentReceipt = onValueCreated(
       guestHtml: guestReceiptHtml(data),
       guestText: receiptText(data),
       replyTo: data.email,
+      attachments,
     })
   }
 )
