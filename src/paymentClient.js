@@ -15,12 +15,12 @@ async function readJsonResponse(response) {
   return response.json()
 }
 
-export async function initiateKhaltiPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo }) {
+export async function initiateKhaltiPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }) {
   const response = await withTimeout(
     fetch('/api/khalti/initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo }),
+      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }),
     }),
     15000,
     'Khalti initiation',
@@ -32,12 +32,12 @@ export async function initiateKhaltiPayment({ amount, purchaseOrderId, purchaseO
   return data
 }
 
-export async function initiateEsewaPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo }) {
+export async function initiateEsewaPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }) {
   const response = await withTimeout(
     fetch('/api/esewa/initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo }),
+      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }),
     }),
     15000,
     'eSewa initiation',
@@ -65,12 +65,12 @@ export function submitEsewaForm({ action, fields }) {
   document.body.removeChild(form)
 }
 
-export async function verifyKhaltiPayment({ pidx, amount }) {
+export async function verifyKhaltiPayment({ pidx, amount, purchaseOrderId }) {
   const response = await withTimeout(
     fetch('/api/khalti/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pidx, amount }),
+      body: JSON.stringify({ pidx, amount, purchaseOrderId }),
     }),
     15000,
     'Khalti verification',
@@ -82,12 +82,12 @@ export async function verifyKhaltiPayment({ pidx, amount }) {
   return data
 }
 
-export async function verifyEsewaPayment({ data }) {
+export async function verifyEsewaPayment({ data, purchaseOrderId }) {
   const response = await withTimeout(
     fetch('/api/esewa/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data }),
+      body: JSON.stringify({ data, purchaseOrderId }),
     }),
     15000,
     'eSewa verification',

@@ -269,6 +269,8 @@ const membershipPlans = [
   {
     name: 'Individual Fun Pass',
     price: 'Rs. 2,999',
+    basePrice: 2999,
+    baseMembers: 1,
     subtitle: 'Individual membership',
     entries: '5 visits',
     perVisit: 'Valid for 3 months',
@@ -282,6 +284,8 @@ const membershipPlans = [
   {
     name: 'Family Duo Pass',
     price: 'Rs. 5,499',
+    basePrice: 5499,
+    baseMembers: 2,
     subtitle: 'Family of 2 membership',
     entries: '10 shared visits',
     perVisit: 'Valid for 3 months',
@@ -295,6 +299,8 @@ const membershipPlans = [
   {
     name: 'Family Magic Pass',
     price: 'Rs. 9,499',
+    basePrice: 9499,
+    baseMembers: 4,
     subtitle: 'Family of 4 membership',
     entries: '20 shared visits',
     perVisit: 'Valid for 3 months',
@@ -306,6 +312,60 @@ const membershipPlans = [
     bestFor: ['Family weekends', 'Holiday experiences', 'Sibling outings', 'Frequent visitors', 'Building memorable family routines'],
   },
 ]
+
+const membershipAddOnPrice = 2000
+
+function ticketPriceBreakdown(ticket, guests) {
+  const subtotal = ticket.price * guests
+  const discountRate = guests >= 10 ? 0.1 : guests > 5 ? 0.05 : 0
+  const discount = Math.round(subtotal * discountRate)
+  const isGroupPrice = guests > 5
+  return {
+    subtotal,
+    discountRate,
+    discount,
+    isGroupPrice,
+    total: subtotal - discount,
+  }
+}
+
+function membershipPriceBreakdown(startingPlan, additionalMembers) {
+  const startingMembers = Number(startingPlan.baseMembers || 1)
+  const requestedAdditionalMembers = Math.max(Number(additionalMembers) || 0, 0)
+  const totalMembers = startingMembers + requestedAdditionalMembers
+  const individualPlan = membershipPlans[0]
+  const duoPlan = membershipPlans[1]
+  const familyPlan = membershipPlans[2]
+  const standardPlan = totalMembers >= 4 ? familyPlan : totalMembers >= 2 ? duoPlan : individualPlan
+  const standardMembers = Number(standardPlan.baseMembers || 1)
+  const addOnMembers = Math.max(totalMembers - standardMembers, 0)
+  const addOnTotal = addOnMembers * membershipAddOnPrice
+  const basePrice = Number(standardPlan.basePrice || String(standardPlan.price).replace(/\D/g, '') || 0)
+  return {
+    startingMembers,
+    requestedAdditionalMembers,
+    totalMembers,
+    standardPlan,
+    basePrice,
+    baseMembers: standardMembers,
+    addOnMembers,
+    addOnTotal,
+    total: basePrice + addOnTotal,
+  }
+}
+
+function ComparisonNote({ text }) {
+  const sentences = text.includes('. Membership')
+    ? [text.slice(0, text.indexOf('. Membership') + 1), text.slice(text.indexOf('Membership'))]
+    : [text]
+  return (
+    <div className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-bold leading-6 text-[var(--primary)]">
+      {sentences.map((sentence) => sentence.trim()).filter(Boolean).map((sentence) => (
+        <p key={sentence}>{sentence}</p>
+      ))}
+    </div>
+  )
+}
 
 
 function App() {
@@ -842,7 +902,8 @@ function TicketsPage({ setPage }) {
   const [status, setStatus] = useState({ type: '', message: '' })
   const checkoutRef = useRef(null)
   const guests = Math.max(Number(form.guests) || selected.defaultGuests || 1, 1)
-  const total = selected.price * guests
+  const priceBreakdown = ticketPriceBreakdown(selected, guests)
+  const total = priceBreakdown.total
   const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
   const updateForm = (field, value) => {
     const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
@@ -878,6 +939,8 @@ function TicketsPage({ setPage }) {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
     const payloadGuests = Math.max(Number(formData.get('guests')) || guests, selected.defaultGuests || 1)
+    const payloadBreakdown = ticketPriceBreakdown(selected, payloadGuests)
+    const payloadTotal = payloadBreakdown.total
     const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
     if (wantsOnlinePayment && !user) {
       setStatus({
@@ -906,21 +969,24 @@ function TicketsPage({ setPage }) {
         unitPrice: selected.price,
         guests: payloadGuests,
         visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
-        total,
+        note: payloadBreakdown.discount ? `Group discount applied: ${Math.round(payloadBreakdown.discountRate * 100)}% (Rs. ${payloadBreakdown.discount.toLocaleString()})` : '',
+        total: payloadTotal,
         paymentMethod,
       })
       trackEvent('booking_request_submitted', {
         ticket_name: selected.name,
         guests: payloadGuests,
-        total,
+        total: payloadTotal,
         store: result.store,
         payment_method: paymentMethod,
       })
       if (paymentMethod === 'khalti' || paymentMethod === 'esewa') {
         const paymentPayload = {
-          amount: total,
+          amount: payloadTotal,
           purchaseOrderId: result.id,
           purchaseOrderName: selected.name,
+          productType: 'ticket',
+          guests: payloadGuests,
           customerInfo: {
             name: String(formData.get('name') || form.name).trim(),
             phone: String(formData.get('phone') || form.phone).trim(),
@@ -931,7 +997,7 @@ function TicketsPage({ setPage }) {
           trackEvent('payment_checkout_click', {
             gateway: 'khalti',
             ticket_name: selected.name,
-            total,
+            total: payloadTotal,
             request_id: result.id,
           })
           const payment = await initiateKhaltiPayment(paymentPayload)
@@ -940,7 +1006,7 @@ function TicketsPage({ setPage }) {
               gateway: 'khalti',
               bookingId: result.id,
               ticketName: selected.name,
-              amount: total,
+              amount: payloadTotal,
               guests: payloadGuests,
               name: String(formData.get('name') || form.name).trim(),
               phone: String(formData.get('phone') || form.phone).trim(),
@@ -951,7 +1017,7 @@ function TicketsPage({ setPage }) {
           }
           trackEvent('khalti_payment_initiated', {
             ticket_name: selected.name,
-            total,
+            total: payloadTotal,
             request_id: result.id,
           })
           window.location.href = payment.payment_url
@@ -961,7 +1027,7 @@ function TicketsPage({ setPage }) {
         trackEvent('payment_checkout_click', {
           gateway: 'esewa',
           ticket_name: selected.name,
-          total,
+          total: payloadTotal,
           request_id: result.id,
         })
         const payment = await initiateEsewaPayment(paymentPayload)
@@ -970,7 +1036,7 @@ function TicketsPage({ setPage }) {
             gateway: 'esewa',
             bookingId: result.id,
             ticketName: selected.name,
-            amount: total,
+            amount: payloadTotal,
             guests: payloadGuests,
             name: String(formData.get('name') || form.name).trim(),
             phone: String(formData.get('phone') || form.phone).trim(),
@@ -981,7 +1047,7 @@ function TicketsPage({ setPage }) {
         }
         trackEvent('esewa_payment_initiated', {
           ticket_name: selected.name,
-          total,
+          total: payloadTotal,
           request_id: result.id,
         })
         submitEsewaForm(payment)
@@ -995,7 +1061,7 @@ function TicketsPage({ setPage }) {
         requestId: result.id,
         paymentMethod,
         ticketName: selected.name,
-        total,
+        total: payloadTotal,
       }
       try {
         sessionStorage.setItem('magicland:thankYou', JSON.stringify(thankYouDetails))
@@ -1005,7 +1071,7 @@ function TicketsPage({ setPage }) {
       trackEvent('booking_thank_you_view_ready', {
         request_id: result.id,
         ticket_name: selected.name,
-        total,
+        total: payloadTotal,
       })
       setStatus({ type: 'success', message: thankYouDetails.message })
       setForm({ name: '', phone: '', email: '', visitDate: '', guests: selected.defaultGuests || 1 })
@@ -1040,6 +1106,7 @@ function TicketsPage({ setPage }) {
               <p className="mt-2 text-2xl font-extrabold">Rs. {ticket.price.toLocaleString()}</p>
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{ticket.detail}</p>
               {ticket.name === 'Group Day Visit' && <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-extrabold text-[var(--primary)]">Starts at 10 guests. Final coordination can happen by phone.</p>}
+              {ticket.name === 'Group Day Visit' && <p className="mt-2 rounded-2xl bg-[var(--surface-3)] px-3 py-2 text-xs font-extrabold text-[var(--secondary)]">5% off for 6-9 guests. 10% off for 10+ guests.</p>}
             </button>
           ))}
         </div>
@@ -1099,8 +1166,15 @@ function TicketsPage({ setPage }) {
                 <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => setPage('account')}>Open account</button>
               </div>
             )}
-            <div className="rounded-2xl border border-[var(--line)] bg-white p-4 text-sm font-bold">
-              <Line label={selected.name} value={`Rs. ${selected.price.toLocaleString()}`} />
+            <div className="rounded-[1.5rem] border border-[var(--line)] bg-white p-4 text-sm font-bold shadow-sm">
+              <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">Price summary</p>
+              {priceBreakdown.isGroupPrice && selected.name !== 'Group Day Visit' && (
+                <p className="mb-3 rounded-2xl bg-[var(--surface-3)] px-3 py-2 text-xs font-extrabold leading-5 text-[var(--primary)]">
+                  Group pricing applied because this booking has more than 5 guests.
+                </p>
+              )}
+              <Line label={`${priceBreakdown.isGroupPrice ? 'Group Day Visit' : selected.name} (${guests} x Rs. ${selected.price.toLocaleString()})`} value={`Rs. ${priceBreakdown.subtotal.toLocaleString()}`} />
+              {priceBreakdown.discount > 0 && <Line label={`Group discount (${Math.round(priceBreakdown.discountRate * 100)}%)`} value={`- Rs. ${priceBreakdown.discount.toLocaleString()}`} />}
               <Line label="Guests" value={guests} />
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
@@ -1117,11 +1191,11 @@ function TicketsPage({ setPage }) {
 function MembershipPage({ setPage }) {
   const { user, loading: authLoading } = useAuthUser()
   const [selectedPlan, setSelectedPlan] = useState(membershipPlans[0].name)
-  const [form, setForm] = useState({ name: '', phone: '', email: '', startDate: '', familyMembers: '', note: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', startDate: '', familyMembers: '', additionalMembers: 0, note: '' })
   const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
   const activePlan = membershipPlans.find((plan) => plan.name === selectedPlan) ?? membershipPlans[0]
-  const activePrice = Number(activePlan.price.replace(/\D/g, '')) || 0
+  const membershipBreakdown = membershipPriceBreakdown(activePlan, form.additionalMembers)
   const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
   const choosePlan = (planName) => {
     setSelectedPlan(planName)
@@ -1130,13 +1204,20 @@ function MembershipPage({ setPage }) {
     window.requestAnimationFrame(() => document.getElementById('membership-booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
   const updateForm = (field, value) => {
-    const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
+    const nextValue = field === 'phone'
+      ? value.replace(/\D/g, '').slice(0, 10)
+      : field === 'additionalMembers'
+        ? Math.max(Number(value) || 0, 0)
+        : value
     setForm((current) => ({ ...current, [field]: nextValue }))
   }
 
   const submitMembership = async (event) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
+    const additionalMembers = Math.max(Number(formData.get('additionalMembers')) || 0, 0)
+    const checkoutBreakdown = membershipPriceBreakdown(activePlan, additionalMembers)
+    const checkoutTotal = checkoutBreakdown.total
     const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
     if (wantsOnlinePayment && !user) {
       setStatus({
@@ -1161,27 +1242,35 @@ function MembershipPage({ setPage }) {
         name: String(formData.get('name') || form.name).trim(),
         phone: String(formData.get('phone') || form.phone).trim(),
         email: String(formData.get('email') || form.email).trim(),
-        planName: activePlan.name,
-        price: activePlan.price,
-        visits: activePlan.entries,
-        validity: activePlan.perVisit,
+        planName: checkoutBreakdown.standardPlan.name,
+        price: `Rs. ${checkoutTotal.toLocaleString()}`,
+        visits: checkoutBreakdown.standardPlan.entries,
+        validity: checkoutBreakdown.standardPlan.perVisit,
         startDate: String(formData.get('startDate') || form.startDate).trim(),
         familyMembers: String(formData.get('familyMembers') || form.familyMembers).trim(),
-        note: String(formData.get('note') || form.note).trim(),
+        note: [
+          checkoutBreakdown.standardPlan.name !== activePlan.name ? `Auto-adjusted to ${checkoutBreakdown.standardPlan.name} for ${checkoutBreakdown.totalMembers} members` : '',
+          checkoutBreakdown.addOnMembers ? `Additional members: ${checkoutBreakdown.addOnMembers} x Rs. ${membershipAddOnPrice.toLocaleString()} = Rs. ${checkoutBreakdown.addOnTotal.toLocaleString()}` : '',
+          String(formData.get('note') || form.note).trim(),
+        ].filter(Boolean).join(' | '),
         paymentMethod,
       })
       trackEvent('membership_request_submitted', {
-        plan_name: activePlan.name,
-        price: activePlan.price,
-        visits: activePlan.entries,
+        plan_name: checkoutBreakdown.standardPlan.name,
+        price: `Rs. ${checkoutTotal.toLocaleString()}`,
+        visits: checkoutBreakdown.standardPlan.entries,
+        total_members: checkoutBreakdown.totalMembers,
+        additional_members: checkoutBreakdown.addOnMembers,
         store: result.store,
         payment_method: paymentMethod,
       })
       if (wantsOnlinePayment) {
         const paymentPayload = {
-          amount: activePrice,
+          amount: checkoutTotal,
           purchaseOrderId: result.id,
-          purchaseOrderName: activePlan.name,
+          purchaseOrderName: checkoutBreakdown.addOnMembers ? `${checkoutBreakdown.standardPlan.name} + ${checkoutBreakdown.addOnMembers} member add-on` : checkoutBreakdown.standardPlan.name,
+          productType: 'membership',
+          totalMembers: checkoutBreakdown.totalMembers,
           customerInfo: {
             name: String(formData.get('name') || form.name).trim(),
             phone: String(formData.get('phone') || form.phone).trim(),
@@ -1191,9 +1280,9 @@ function MembershipPage({ setPage }) {
         const pendingPayment = {
           gateway: paymentMethod,
           bookingId: result.id,
-          ticketName: activePlan.name,
-          amount: activePrice,
-          guests: 1,
+          ticketName: checkoutBreakdown.standardPlan.name,
+          amount: checkoutTotal,
+          guests: checkoutBreakdown.totalMembers,
           name: paymentPayload.customerInfo.name,
           phone: paymentPayload.customerInfo.phone,
           email: paymentPayload.customerInfo.email,
@@ -1206,13 +1295,15 @@ function MembershipPage({ setPage }) {
         }
         trackEvent('membership_payment_checkout_click', {
           gateway: paymentMethod,
-          plan_name: activePlan.name,
-          total: activePrice,
+          plan_name: checkoutBreakdown.standardPlan.name,
+          total: checkoutTotal,
+          total_members: checkoutBreakdown.totalMembers,
+          additional_members: checkoutBreakdown.addOnMembers,
           request_id: result.id,
         })
         if (paymentMethod === 'khalti') {
           const payment = await initiateKhaltiPayment(paymentPayload)
-          window.location.href = payment.payment_url
+          window.location.assign(payment.payment_url)
           return
         }
         const payment = await initiateEsewaPayment(paymentPayload)
@@ -1225,7 +1316,7 @@ function MembershipPage({ setPage }) {
           ? 'Saved in local preview. Add Firebase app config to send this to the console.'
           : 'Membership request received. Magic Land will confirm activation by phone.',
       })
-      setForm({ name: '', phone: '', email: '', startDate: '', familyMembers: '', note: '' })
+      setForm({ name: '', phone: '', email: '', startDate: '', familyMembers: '', additionalMembers: 0, note: '' })
     } catch (error) {
       console.error('Membership request failed', error)
       setStatus({
@@ -1238,25 +1329,31 @@ function MembershipPage({ setPage }) {
   }
 
   return (
-    <PageShell eyebrow="Membership" title="A smarter way to visit more often">
+    <PageShell eyebrow="Membership" title="Memberships that make repeat visits simple">
       <section className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
-        <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-0 lg:grid-cols-[1fr_380px]">
           <div className="p-6 md:p-8 lg:p-10">
             <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">3 month visit credits</p>
-            <h2 className="font-display mt-3 max-w-2xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-5xl">More weekends, more smiles, one simple membership.</h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)] md:text-lg">Choose a visit-credit plan for repeat family outings. One visit credit means one person entry, so the pricing stays clear before checkout.</p>
+            <h2 className="font-display mt-3 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-5xl">More visits. Clear credits. Better family value.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)] md:text-lg">Pick a plan, add members if needed, and see the exact math before payment. One visit credit always equals one person entry.</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {['Starts Rs. 2,999', 'Valid 3 months', 'Khalti or eSewa'].map((item) => (
-                <span key={item} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">{item}</span>
+              {[
+                ['From', 'Rs. 2,999'],
+                ['Validity', '3 months'],
+                ['Pay with', 'Khalti or eSewa'],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3">
+                  <span className="block text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted)]">{label}</span>
+                  <span className="font-display text-xl font-bold text-[var(--primary)]">{value}</span>
+                </div>
               ))}
             </div>
           </div>
-          <div className="relative min-h-[260px] bg-[var(--surface-3)]">
-            <SmartImage src={img.familyGames} alt="Family enjoying Magic Land membership" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.72)] via-transparent to-transparent" />
-            <div className="absolute bottom-5 left-5 right-5 rounded-[1.5rem] bg-white/92 p-4 shadow-sm backdrop-blur">
-              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Best for repeat visits</p>
-              <p className="font-display mt-1 text-2xl font-bold text-[var(--primary)]">Families who want Magic Land to become a habit.</p>
+          <div className="grid content-center gap-3 bg-[var(--surface-3)] p-6">
+            <div className="rounded-[1.5rem] bg-white p-5 shadow-sm">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">How it works</p>
+              <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">Credits are counted per person.</h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--muted)]">A family of 4 visiting together uses 4 credits. Bigger families can add members and the checkout updates automatically.</p>
             </div>
           </div>
         </div>
@@ -1278,8 +1375,12 @@ function MembershipPage({ setPage }) {
                   <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">{plan.subtitle}</p>
                   <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{plan.name}</h3>
                   <p className="font-display mt-4 text-4xl font-bold text-[var(--primary)]">{plan.price}</p>
-                  <p className="mt-1 text-sm font-extrabold text-[var(--muted)]">{plan.entries} · {plan.perVisit}</p>
-                  <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-bold leading-6 text-[var(--primary)]">{plan.comparison}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[plan.entries, plan.perVisit, `${plan.baseMembers} member${plan.baseMembers > 1 ? 's' : ''}`].map((item) => (
+                      <span key={item} className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--primary)]">{item}</span>
+                    ))}
+                  </div>
+                  <ComparisonNote text={plan.comparison} />
                   <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{plan.outingText}</p>
                 </button>
               )
@@ -1288,9 +1389,9 @@ function MembershipPage({ setPage }) {
 
           <section className="grid gap-4 md:grid-cols-3">
             {[
-              ['How credits work', 'One visit credit = one person entry. A family of 4 uses 4 credits per visit.'],
-              ['Bigger families', 'Add extra family members in the request. Magic Land confirms the best add-on balance by phone.'],
-              ['Members enjoy', 'VR racing, bumper cars, carousel, arcade games, Creative Village, and seasonal activities.'],
+              ['Credits', 'One credit = one person entry. The balance is shared by registered members.'],
+              ['Add-ons', `After Family Magic, add +1 member for Rs. ${membershipAddOnPrice.toLocaleString()}. The checkout shows the full math.`],
+              ['Perks', 'Members revisit for VR racing, bumper cars, arcade games, Creative Village, and seasonal activities.'],
             ].map(([title, copy]) => (
               <article key={title} className="rounded-[1.5rem] border border-[var(--line)] bg-white p-5 shadow-sm">
                 <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{title}</p>
@@ -1319,19 +1420,38 @@ function MembershipPage({ setPage }) {
 
         <div className="xl:sticky xl:top-28 xl:self-start">
           <form id="membership-booking" onSubmit={submitMembership} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
-          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
-          <div className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4">
-            <h3 className="font-display text-2xl font-bold text-[var(--primary)]">{activePlan.name}</h3>
-            <div className="mt-3 text-sm font-bold text-[var(--muted)]">
-              <Line label={activePlan.entries} value={activePlan.price} />
-              <Line label="Validity" value="3 months" />
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
+              <h3 className="font-display mt-1 text-2xl font-bold text-[var(--primary)]">{membershipBreakdown.standardPlan.name}</h3>
+              <p className="mt-1 text-xs font-bold text-[var(--muted)]">Auto-priced from your selected plan and member count.</p>
             </div>
+            <div className="rounded-2xl bg-[var(--surface-3)] px-3 py-2 text-right">
+              <span className="block text-[11px] font-extrabold uppercase text-[var(--muted)]">Members</span>
+              <span className="font-display text-2xl font-bold text-[var(--primary)]">{membershipBreakdown.totalMembers}</span>
+            </div>
+          </div>
+          {membershipBreakdown.standardPlan.name !== activePlan.name && (
+            <p className="mt-3 rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-xs font-extrabold leading-5 text-[var(--primary)]">
+              Updated to the best standard plan for {membershipBreakdown.totalMembers} members.
+            </p>
+          )}
+          <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--muted)]">
+              <Line label={`${membershipBreakdown.baseMembers} included member${membershipBreakdown.baseMembers > 1 ? 's' : ''}`} value={membershipBreakdown.standardPlan.price} />
+              {membershipBreakdown.addOnMembers > 0 && <Line label={`Add-on members (${membershipBreakdown.addOnMembers} x Rs. ${membershipAddOnPrice.toLocaleString()})`} value={`Rs. ${membershipBreakdown.addOnTotal.toLocaleString()}`} />}
+              <Line label="Validity" value="3 months" />
+              <Line label="Total" value={`Rs. ${membershipBreakdown.total.toLocaleString()}`} strong />
           </div>
           <div className="mt-5 grid gap-3">
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or member name" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input name="startDate" required type="date" value={form.startDate} onChange={(e) => updateForm('startDate', e.target.value)} className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">
+              Additional members
+              <input name="additionalMembers" type="number" min="0" max="20" value={form.additionalMembers} onChange={(e) => updateForm('additionalMembers', e.target.value)} className="soft-field" />
+              <span className="text-xs font-bold text-[var(--muted)]">We auto-pick the best plan. Extra member add-on: Rs. {membershipAddOnPrice.toLocaleString()}.</span>
+            </label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Member names, optional<input name="familyMembers" value={form.familyMembers} onChange={(e) => updateForm('familyMembers', e.target.value)} className="soft-field" placeholder="Useful for family passes" /></label>
             <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
               Payment option
@@ -1848,7 +1968,7 @@ function KhaltiReturnPage() {
         return
       }
       try {
-        const result = await verifyKhaltiPayment({ pidx, amount })
+        const result = await verifyKhaltiPayment({ pidx, amount, purchaseOrderId: bookingId })
         trackEvent('khalti_payment_verified', { pidx, booking_id: bookingId, status: result.status, paid_amount: result.paidAmount })
         try {
           const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
@@ -1902,7 +2022,7 @@ function EsewaReturnPage() {
         return
       }
       try {
-        const result = await verifyEsewaPayment({ data })
+        const result = await verifyEsewaPayment({ data, purchaseOrderId: bookingId })
         trackEvent('esewa_payment_verified', { status: result.status, booking_id: bookingId })
         try {
           const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
@@ -2092,7 +2212,12 @@ function EventRow({ time, title, place }) {
 }
 
 function Line({ label, value, strong }) {
-  return <div className={`flex justify-between border-b border-[var(--line)] py-2 last:border-b-0 ${strong ? 'text-lg text-[var(--primary)]' : 'text-[var(--muted)]'}`}><span>{label}</span><span>{value}</span></div>
+  return (
+    <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-[var(--line)] py-2.5 last:border-b-0 ${strong ? 'pt-3 text-xl text-[var(--primary)]' : 'text-[var(--muted)]'}`}>
+      <span className={`${strong ? 'font-extrabold' : 'font-bold'} leading-5`}>{label}</span>
+      <span className={`${strong ? 'font-extrabold' : 'font-bold'} whitespace-nowrap text-right leading-5`}>{value}</span>
+    </div>
+  )
 }
 
 function Footer({ setPage }) {
@@ -2146,4 +2271,5 @@ function BottomNav({ active, setPage }) {
 }
 
 export default App
+
 

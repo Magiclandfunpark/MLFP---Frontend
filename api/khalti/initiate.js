@@ -1,5 +1,7 @@
 /* global process */
 
+import { validatePaymentAmount } from '../_pricing.js'
+
 const json = (response, status, body) => {
   response.status(status).setHeader('Content-Type', 'application/json')
   response.end(JSON.stringify(body))
@@ -72,20 +74,20 @@ export default async function handler(request, response) {
 
   try {
     const body = request.body || {}
-    const amount = Number(body.amount)
     const purchaseOrderId = String(body.purchaseOrderId || '').trim()
     const purchaseOrderName = String(body.purchaseOrderName || 'Magic Land Booking').trim()
     const customer = body.customerInfo || {}
+    const priceCheck = validatePaymentAmount(body)
 
-    if (!Number.isFinite(amount) || amount <= 0 || !purchaseOrderId) {
-      return json(response, 400, { error: 'Missing or invalid payment details.' })
+    if (!purchaseOrderId || !priceCheck.ok) {
+      return json(response, 400, { error: priceCheck.error, expectedAmount: priceCheck.expectedAmount })
     }
 
     const baseUrl = cleanBaseUrl(request)
     const payload = {
       return_url: buildTrackingReturnUrl(baseUrl, '/payment/khalti/return', 'khalti', purchaseOrderId),
       website_url: baseUrl,
-      amount: Math.round(amount * 100),
+      amount: Math.round(priceCheck.amount * 100),
       purchase_order_id: purchaseOrderId,
       purchase_order_name: purchaseOrderName,
       customer_info: {

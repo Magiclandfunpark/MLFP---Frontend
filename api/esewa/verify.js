@@ -1,5 +1,7 @@
 /* global process, Buffer */
 
+import { sanitizeOrderId } from '../_pricing.js'
+
 const json = (response, status, body) => {
   response.status(status).setHeader('Content-Type', 'application/json')
   response.end(JSON.stringify(body))
@@ -54,6 +56,7 @@ export default async function handler(request, response) {
   try {
     const body = request.body || {}
     const dataParam = String(body.data || '').trim()
+    const expectedPurchaseOrderId = sanitizeOrderId(body.purchaseOrderId)
     if (!dataParam) return json(response, 400, { error: 'Missing eSewa return data.' })
 
     const decoded = decodeEsewaData(dataParam)
@@ -79,9 +82,11 @@ export default async function handler(request, response) {
 
     const completed = verifyData.status === 'COMPLETE' || decoded.status === 'COMPLETE'
     const sameTransaction = !verifyData.transaction_uuid || verifyData.transaction_uuid === transactionUuid
+    const orderMatches = expectedPurchaseOrderId ? transactionUuid.startsWith(`${expectedPurchaseOrderId}-`) : true
 
-    return json(response, completed && sameTransaction ? 200 : 400, {
-      status: completed && sameTransaction ? 'verified' : 'not_verified',
+    return json(response, completed && sameTransaction && orderMatches ? 200 : 400, {
+      status: completed && sameTransaction && orderMatches ? 'verified' : 'not_verified',
+      orderMatches,
       decoded,
       data: verifyData,
     })

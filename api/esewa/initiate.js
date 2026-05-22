@@ -1,6 +1,7 @@
 /* global process */
 
 import crypto from 'node:crypto'
+import { sanitizeOrderId, validatePaymentAmount } from '../_pricing.js'
 
 const json = (response, status, body) => {
   response.status(status).setHeader('Content-Type', 'application/json')
@@ -77,15 +78,15 @@ export default async function handler(request, response) {
 
   try {
     const body = request.body || {}
-    const amount = Number(body.amount)
     const purchaseOrderId = String(body.purchaseOrderId || '').trim()
+    const priceCheck = validatePaymentAmount(body)
 
-    if (!Number.isFinite(amount) || amount <= 0 || !purchaseOrderId) {
-      return json(response, 400, { error: 'Missing or invalid payment details.' })
+    if (!purchaseOrderId || !priceCheck.ok) {
+      return json(response, 400, { error: priceCheck.error, expectedAmount: priceCheck.expectedAmount })
     }
 
-    const totalAmount = amount.toFixed(0)
-    const transactionUuid = `${purchaseOrderId.replace(/[^a-zA-Z0-9-]/g, '-')}-${Date.now()}`
+    const totalAmount = priceCheck.amount.toFixed(0)
+    const transactionUuid = `${sanitizeOrderId(purchaseOrderId)}-${Date.now()}`
     const baseUrl = cleanBaseUrl(request)
     const fields = {
       amount: totalAmount,

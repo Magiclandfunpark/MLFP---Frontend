@@ -56,6 +56,7 @@ export default async function handler(request, response) {
     const body = request.body || {}
     const pidx = String(body.pidx || '').trim()
     const expectedAmount = Number(body.amount || 0)
+    const expectedPurchaseOrderId = String(body.purchaseOrderId || '').trim()
 
     if (!pidx) return json(response, 400, { error: 'Missing Khalti pidx.' })
 
@@ -80,11 +81,15 @@ export default async function handler(request, response) {
     const paidAmount = Number(data.total_amount || 0) / 100
     const expectedAmountNpr = expectedAmount > 100000 ? expectedAmount / 100 : expectedAmount
     const amountMatches = expectedAmountNpr > 0 ? Math.abs(paidAmount - expectedAmountNpr) < 0.01 : true
+    const orderMatches = expectedPurchaseOrderId && data.purchase_order_id
+      ? data.purchase_order_id === expectedPurchaseOrderId
+      : true
     const completed = data.status === 'Completed' || data.state?.name === 'Completed'
 
-    return json(response, completed && amountMatches ? 200 : 400, {
-      status: completed && amountMatches ? 'verified' : 'not_verified',
+    return json(response, completed && amountMatches && orderMatches ? 200 : 400, {
+      status: completed && amountMatches && orderMatches ? 'verified' : 'not_verified',
       amountMatches,
+      orderMatches,
       paidAmount,
       rawStatus: data.status || data.state?.name || '',
       data,
