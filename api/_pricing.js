@@ -2,6 +2,7 @@ const ticketPrices = new Map([
   ['One-Time Entry', 1500],
   ['Gift Ticket', 1500],
   ['Group Day Visit', 1500],
+  ['Test Ice Cream', 11],
 ])
 
 const membershipPlans = [

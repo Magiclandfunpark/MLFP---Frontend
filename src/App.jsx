@@ -263,6 +263,7 @@ const ticketOptions = [
   { name: 'One-Time Entry', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'Best for families planning one Magic Land visit with rides, VR games, arcade fun, and Creative Village access.' },
   { name: 'Gift Ticket', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A simple entry gift for birthdays, friends, cousins, and family celebrations.' },
   { name: 'Group Day Visit', price: 1500, kind: 'entry', defaultGuests: 10, detail: 'For schools, teams, offices, and larger family groups. Magic Land can confirm final timing by phone.' },
+  { name: 'Test Ice Cream', price: 11, kind: 'test', defaultGuests: 1, detail: 'Small live payment test item for Khalti and eSewa checkout verification.' },
 ]
 
 const membershipPlans = [
