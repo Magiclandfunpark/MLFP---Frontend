@@ -895,7 +895,6 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
 }
 
 function TicketsPage({ setPage }) {
-  const { user, loading: authLoading } = useAuthUser()
   const [selected, setSelected] = useState(ticketOptions[0])
   const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: ticketOptions[0].defaultGuests })
   const [paymentMethod, setPaymentMethod] = useState('khalti')
@@ -904,7 +903,6 @@ function TicketsPage({ setPage }) {
   const guests = Math.max(Number(form.guests) || selected.defaultGuests || 1, 1)
   const priceBreakdown = ticketPriceBreakdown(selected, guests)
   const total = priceBreakdown.total
-  const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
   const updateForm = (field, value) => {
     const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
     setForm((current) => ({ ...current, [field]: nextValue }))
@@ -916,24 +914,6 @@ function TicketsPage({ setPage }) {
     trackEvent('ticket_select', { ticket_name: ticket.name, price: ticket.price })
     window.requestAnimationFrame(() => checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
-  const quickGoogleLogin = async () => {
-    setStatus({ type: 'loading', message: 'Opening Google login...' })
-    trackEvent('checkout_inline_google_login_start', { ticket_name: selected.name, payment_method: paymentMethod })
-    try {
-      const signedInUser = await signInWithGoogle()
-      setForm((current) => ({
-        ...current,
-        name: current.name || signedInUser.displayName || '',
-        email: current.email || signedInUser.email || '',
-        phone: current.phone || (signedInUser.phoneNumber ? signedInUser.phoneNumber.replace(/\D/g, '').slice(-10) : ''),
-      }))
-      setStatus({ type: 'success', message: 'Signed in. Please review the total and continue payment.' })
-      trackEvent('checkout_inline_google_login_success', { ticket_name: selected.name })
-    } catch (error) {
-      setStatus({ type: 'error', message: error?.message || 'Google login could not be completed.' })
-      trackEvent('checkout_inline_google_login_error', { ticket_name: selected.name, code: error?.code ?? 'unknown' })
-    }
-  }
 
   const submitBooking = async (event) => {
     event.preventDefault()
@@ -941,25 +921,8 @@ function TicketsPage({ setPage }) {
     const payloadGuests = Math.max(Number(formData.get('guests')) || guests, selected.defaultGuests || 1)
     const payloadBreakdown = ticketPriceBreakdown(selected, payloadGuests)
     const payloadTotal = payloadBreakdown.total
-    const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
-    if (wantsOnlinePayment && !user) {
-      setStatus({
-        type: 'error',
-        message: 'Login is needed before online payment. Use the Google button in this checkout, then continue.',
-      })
-      trackEvent('online_payment_auth_required', { payment_method: paymentMethod, ticket_name: selected.name })
-      return
-    }
-    if (wantsOnlinePayment && emailNeedsVerification) {
-      setStatus({
-        type: 'error',
-        message: 'Please verify your email before online payment. Check your inbox, then return here to continue.',
-      })
-      trackEvent('online_payment_email_verification_required', { payment_method: paymentMethod, ticket_name: selected.name })
-      return
-    }
 
-    setStatus({ type: 'loading', message: paymentMethod === 'khalti' ? 'Saving booking and opening Khalti...' : 'Sending your booking request...' })
+    setStatus({ type: 'loading', message: paymentMethod === 'khalti' ? 'Saving booking and opening Khalti...' : paymentMethod === 'esewa' ? 'Saving booking and opening eSewa...' : 'Sending your booking request...' })
     try {
       const result = await createPublicRequest('bookingRequests', {
         name: String(formData.get('name') || form.name).trim(),
@@ -1146,26 +1109,6 @@ function TicketsPage({ setPage }) {
                 ))}
               </div>
             </div>
-            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && !user && (
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
-                <p className="font-extrabold">Login here, then pay</p>
-                <p className="mt-1 text-[var(--muted)]">Online payment needs a guest account so the booking and payment reference stay together.</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" className="sunset rounded-full px-4 py-2 text-sm font-extrabold shadow-sm" onClick={quickGoogleLogin}>Continue with Google</button>
-                  <button type="button" className="rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => {
-                    sessionStorage.setItem('magicland:returnAfterLogin', 'tickets')
-                    setPage('account')
-                  }}>Email or phone login</button>
-                </div>
-              </div>
-            )}
-            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && emailNeedsVerification && (
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
-                <p className="font-extrabold">Email verification required</p>
-                <p className="mt-1 text-[var(--muted)]">We sent a verification link when this account was created. Verify your email before continuing to online payment.</p>
-                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => setPage('account')}>Open account</button>
-              </div>
-            )}
             <div className="rounded-[1.5rem] border border-[var(--line)] bg-white p-4 text-sm font-bold shadow-sm">
               <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">Price summary</p>
               {priceBreakdown.isGroupPrice && selected.name !== 'Group Day Visit' && (
@@ -1178,9 +1121,9 @@ function TicketsPage({ setPage }) {
               <Line label="Guests" value={guests} />
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
-            <button disabled={status.type === 'loading' || authLoading} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
+            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
-            <p className="text-xs leading-5 text-[var(--muted)]">Online payment requires login. Pay-at-park reservations can still be confirmed by phone before collection.</p>
+            <p className="text-xs leading-5 text-[var(--muted)]">No account needed for day tickets. Keep your phone and email reachable for payment and visit confirmation.</p>
           </div>
         </form>
       </div>
