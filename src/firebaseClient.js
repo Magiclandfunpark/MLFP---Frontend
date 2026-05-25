@@ -13,7 +13,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getDatabase, onValue, ref, set, update } from 'firebase/database'
-import { addDoc, collection, doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
 
 const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -269,6 +269,15 @@ export async function signOutUser() {
   const auth = await getAuthClient()
   if (!auth) return
   await signOut(auth)
+}
+
+export async function getStaffProfile(uid) {
+  if (!uid) return null
+  const db = await getDb()
+  if (!db) return null
+  const snapshot = await getDoc(doc(db, 'staff', uid))
+  if (!snapshot.exists()) return null
+  return { id: snapshot.id, ...snapshot.data() }
 }
 
 function saveLocalFallback(collectionName, payload) {

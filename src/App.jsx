@@ -30,6 +30,7 @@ import {
   createEmailAccount,
   createPaymentReceipt,
   createPublicRequest,
+  getStaffProfile,
   sendPhoneOtp,
   signInWithEmail,
   signInWithGoogle,
@@ -46,6 +47,10 @@ import {
   verifyEsewaPayment,
   verifyKhaltiPayment,
 } from './paymentClient'
+
+const currentHostname = () => window.location.hostname.toLowerCase()
+const isStaffHostname = () => currentHostname().startsWith('staff.')
+const isAdminHostname = () => currentHostname().startsWith('admin.')
 
 const park = { lng: 85.3239042, lat: 27.7836311 }
 const tokhaMunicipality = { lng: 85.32746, lat: 27.74526 }
@@ -369,6 +374,13 @@ function ComparisonNote({ text }) {
 
 
 function App() {
+  if (isStaffHostname()) return <InternalPortal mode="staff" />
+  if (isAdminHostname()) return <InternalPortal mode="admin" />
+
+  return <PublicApp />
+}
+
+function PublicApp() {
   const pageFromLocation = () => {
     const hashPage = window.location.hash.replace(/^#\/?/, '')
     if (hashPage) return pathAliases[`/${hashPage}`] ?? hashPage
@@ -532,6 +544,206 @@ function useAuthUser() {
   }, [])
 
   return { user, loading }
+}
+
+function useStaffAccess(requiredMode) {
+  const { user, loading } = useAuthUser()
+  const [profile, setProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    if (loading) return undefined
+    if (!user?.uid) {
+      queueMicrotask(() => {
+        if (!active) return
+        setProfile(null)
+        setProfileLoading(false)
+      })
+      return undefined
+    }
+
+    queueMicrotask(() => {
+      if (!active) return
+      setProfile(null)
+      setProfileLoading(true)
+    })
+    getStaffProfile(user.uid)
+      .then((nextProfile) => {
+        if (!active) return
+        setProfile(nextProfile)
+      })
+      .catch(() => {
+        if (!active) return
+        setProfile(null)
+      })
+      .finally(() => {
+        if (!active) return
+        setProfileLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [loading, user?.uid])
+
+  const role = profile?.role || ''
+  const allowedRoles = requiredMode === 'admin' ? ['admin', 'manager'] : ['admin', 'manager', 'supervisor', 'entry_staff']
+  const allowed = Boolean(user && profile?.active === true && allowedRoles.includes(role))
+
+  return { user, profile, loading: loading || profileLoading, allowed }
+}
+
+function InternalPortal({ mode }) {
+  const [manualCode, setManualCode] = useState('')
+  const [scanResult, setScanResult] = useState(null)
+  const { user, profile, loading, allowed } = useStaffAccess(mode)
+  const isAdmin = mode === 'admin'
+
+  useEffect(() => {
+    const robots = document.querySelector('meta[name="robots"]') || document.createElement('meta')
+    robots.setAttribute('name', 'robots')
+    robots.setAttribute('content', 'noindex, nofollow')
+    document.head.appendChild(robots)
+    document.title = isAdmin ? 'Magic Land Admin' : 'Magic Land Staff Check-in'
+  }, [isAdmin])
+
+  const runManualCheck = () => {
+    const cleaned = manualCode.trim()
+    if (!cleaned) return
+    setScanResult({
+      code: cleaned,
+      status: 'Ready for validation',
+      message: 'Connect this QR value to issuedTickets or membershipPasses before live gate use.',
+    })
+    trackEvent('staff_manual_qr_entered', { portal: mode })
+  }
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle()
+      trackEvent('staff_google_login_success', { portal: mode })
+    } catch (error) {
+      setScanResult({ status: 'Login failed', message: error?.message || 'Could not complete Google login.' })
+    }
+  }
+
+  if (loading) {
+    return <InternalShell mode={mode}><div className="storybook-card rounded-[2rem] p-6">Checking staff access...</div></InternalShell>
+  }
+
+  if (!user) {
+    return (
+      <InternalShell mode={mode}>
+        <div className="mx-auto max-w-xl rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <ShieldCheck className="text-[var(--secondary)]" />
+          <h1 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{isAdmin ? 'Admin login' : 'Staff check-in login'}</h1>
+          <p className="mt-3 leading-7 text-[var(--muted)]">Only approved Magic Land staff can access this internal tool.</p>
+          <button className="sunset mt-6 w-full rounded-full px-5 py-3 font-extrabold" onClick={handleGoogleLogin}>Continue with Google</button>
+        </div>
+      </InternalShell>
+    )
+  }
+
+  if (!allowed) {
+    return (
+      <InternalShell mode={mode}>
+        <div className="mx-auto max-w-xl rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+          <ShieldCheck className="text-[var(--secondary)]" />
+          <h1 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Access not enabled</h1>
+          <p className="mt-3 leading-7 text-[var(--muted)]">This login is valid, but it is not listed as an active staff account for this portal.</p>
+          <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--primary)]">{user.email || user.phoneNumber || user.uid}</p>
+          <button className="mt-5 rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" onClick={signOutUser}>Sign out</button>
+        </div>
+      </InternalShell>
+    )
+  }
+
+  return (
+    <InternalShell mode={mode} profile={profile}>
+      {isAdmin ? (
+        <AdminDashboard profile={profile} />
+      ) : (
+        <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Gate scanner</p>
+            <h1 className="font-display mt-2 text-4xl font-bold text-[var(--primary)]">Scan ticket or membership QR</h1>
+            <div className="mt-6 rounded-[2rem] border-2 border-dashed border-[var(--line)] bg-[var(--surface-3)] p-8 text-center">
+              <Ticket className="mx-auto text-[var(--primary)]" size={48} />
+              <p className="mt-4 font-bold text-[var(--primary)]">Camera scanner placeholder</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Next step is adding camera scanning with `html5-qrcode` or `zxing-js`. Manual entry is active for setup testing.</p>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <input className="soft-field" value={manualCode} onChange={(event) => setManualCode(event.target.value)} placeholder="Paste or type QR code value" />
+              <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={runManualCheck}>Validate</button>
+            </div>
+          </div>
+          <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
+            <h2 className="font-display text-2xl font-bold text-[var(--primary)]">Validation result</h2>
+            {scanResult ? (
+              <div className="mt-5 rounded-2xl bg-[var(--surface-3)] p-4">
+                <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">{scanResult.status}</p>
+                <p className="mt-2 break-words font-bold text-[var(--primary)]">{scanResult.code}</p>
+                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{scanResult.message}</p>
+                <button disabled className="mt-4 w-full rounded-full bg-[var(--primary)] px-5 py-3 font-extrabold text-white opacity-50">Check in</button>
+              </div>
+            ) : (
+              <p className="mt-4 leading-7 text-[var(--muted)]">Scan a QR or enter a code to see ticket details here.</p>
+            )}
+            <div className="mt-6 rounded-2xl border border-[var(--line)] p-4 text-sm leading-6 text-[var(--muted)]">
+              <p className="font-extrabold text-[var(--primary)]">Signed in as</p>
+              <p>{profile?.name || user.email || user.phoneNumber}</p>
+              <p className="mt-2">Role: {profile?.role}</p>
+            </div>
+          </aside>
+        </section>
+      )}
+    </InternalShell>
+  )
+}
+
+function InternalShell({ mode, profile, children }) {
+  return (
+    <div className="min-h-screen bg-[var(--background)]">
+      <header className="border-b border-[var(--line)] bg-[rgba(251,248,255,0.96)] px-4 py-4 backdrop-blur-xl md:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <BrandLockup />
+          <div className="flex items-center gap-3">
+            <span className="hidden rounded-full bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)] sm:inline-flex">{mode === 'admin' ? 'Admin Portal' : 'Staff Portal'}</span>
+            {profile && <button className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)]" onClick={signOutUser}>Sign out</button>}
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">{children}</main>
+    </div>
+  )
+}
+
+function AdminDashboard({ profile }) {
+  const cards = [
+    ['Today check-ins', 'Coming next', 'Live count from checkIns collection.'],
+    ['Ticket sync', 'Coming next', 'Firebase to local server sync status.'],
+    ['Memberships', 'Coming next', 'Active passes, remaining credits, and renewals.'],
+  ]
+  return (
+    <section>
+      <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Admin dashboard</p>
+      <h1 className="font-display mt-2 text-4xl font-bold text-[var(--primary)]">Magic Land operations overview</h1>
+      <p className="mt-3 max-w-2xl leading-7 text-[var(--muted)]">Protected management space for reports, staff activity, memberships, and local-server sync.</p>
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {cards.map(([title, value, copy]) => (
+          <article key={title} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm">
+            <p className="text-sm font-extrabold uppercase text-[var(--secondary)]">{title}</p>
+            <h2 className="font-display mt-3 text-3xl font-bold text-[var(--primary)]">{value}</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{copy}</p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-6 rounded-[2rem] border border-[var(--line)] bg-white p-5 text-sm leading-6 text-[var(--muted)] shadow-sm">
+        Signed in as <strong className="text-[var(--primary)]">{profile?.name || profile?.email || 'Admin'}</strong>. Role: <strong className="text-[var(--primary)]">{profile?.role}</strong>.
+      </div>
+    </section>
+  )
 }
 
 function Header({ page, setPage, menuOpen, setMenuOpen }) {
