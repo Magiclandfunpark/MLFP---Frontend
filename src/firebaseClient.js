@@ -275,9 +275,12 @@ export async function getStaffProfile(uid) {
   if (!uid) return null
   const db = await getDb()
   if (!db) return null
-  const snapshot = await getDoc(doc(db, 'staff', uid))
-  if (!snapshot.exists()) return null
-  return { id: snapshot.id, ...snapshot.data() }
+  const staffCollections = ['staff', 'staff.magiclandfunpark.com']
+  for (const collectionName of staffCollections) {
+    const snapshot = await getDoc(doc(db, collectionName, uid))
+    if (snapshot.exists()) return { id: snapshot.id, collectionName, ...snapshot.data() }
+  }
+  return null
 }
 
 function saveLocalFallback(collectionName, payload) {
