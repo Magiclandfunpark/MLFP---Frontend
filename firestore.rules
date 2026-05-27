@@ -68,12 +68,20 @@ service cloud.firestore {
     }
 
     match /staff/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn()
+        && (
+          request.auth.uid == uid
+          || resource.data.email == request.auth.token.email
+        );
       allow write: if false;
     }
 
     match /staff.magiclandfunpark.com/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn()
+        && (
+          request.auth.uid == uid
+          || resource.data.email == request.auth.token.email
+        );
       allow write: if false;
     }
 

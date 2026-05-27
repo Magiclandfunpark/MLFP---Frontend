@@ -271,14 +271,17 @@ export async function signOutUser() {
   await signOut(auth)
 }
 
-export async function getStaffProfile(uid) {
-  if (!uid) return null
+export async function getStaffProfile(uid, email = '') {
+  if (!uid && !email) return null
   const db = await getDb()
   if (!db) return null
   const staffCollections = ['staff', 'staff.magiclandfunpark.com']
+  const profileIds = Array.from(new Set([uid, email.trim().toLowerCase()].filter(Boolean)))
   for (const collectionName of staffCollections) {
-    const snapshot = await getDoc(doc(db, collectionName, uid))
-    if (snapshot.exists()) return { id: snapshot.id, collectionName, ...snapshot.data() }
+    for (const profileId of profileIds) {
+      const snapshot = await getDoc(doc(db, collectionName, profileId))
+      if (snapshot.exists()) return { id: snapshot.id, collectionName, ...snapshot.data() }
+    }
   }
   return null
 }

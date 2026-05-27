@@ -568,7 +568,7 @@ function useStaffAccess(requiredMode) {
       setProfile(null)
       setProfileLoading(true)
     })
-    getStaffProfile(user.uid)
+    getStaffProfile(user.uid, user.email)
       .then((nextProfile) => {
         if (!active) return
         setProfile(nextProfile)
@@ -585,13 +585,14 @@ function useStaffAccess(requiredMode) {
     return () => {
       active = false
     }
-  }, [loading, user?.uid])
+  }, [loading, user?.email, user?.uid])
 
-  const role = profile?.role || ''
+  const role = String(profile?.role || '').trim()
   const allowedRoles = requiredMode === 'admin' ? ['admin', 'manager'] : ['admin', 'manager', 'supervisor', 'entry_staff']
-  const allowed = Boolean(user && profile?.active === true && allowedRoles.includes(role))
+  const isActive = profile?.active === true || String(profile?.active || '').toLowerCase() === 'true'
+  const allowed = Boolean(user && isActive && allowedRoles.includes(role))
 
-  return { user, profile, loading: loading || profileLoading, allowed }
+  return { user, profile, loading: loading || profileLoading, allowed, isActive, role }
 }
 
 function InternalPortal({ mode }) {
@@ -603,7 +604,7 @@ function InternalPortal({ mode }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const scanLoopRef = useRef(null)
-  const { user, profile, loading, allowed } = useStaffAccess(mode)
+  const { user, profile, loading, allowed, role } = useStaffAccess(mode)
   const isAdmin = mode === 'admin'
 
   useEffect(() => {
@@ -763,8 +764,10 @@ function InternalPortal({ mode }) {
           <div className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
             <p><span className="font-extrabold">Email:</span> {user.email || user.phoneNumber || '-'}</p>
             <p className="break-all"><span className="font-extrabold">Firebase UID:</span> {user.uid}</p>
+            <p><span className="font-extrabold">Staff profile:</span> {profile ? `Found in ${profile.collectionName}` : 'Not found'}</p>
+            {profile && <p><span className="font-extrabold">Active:</span> {String(profile.active)} · <span className="font-extrabold">Role:</span> {role || '-'}</p>}
           </div>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Create a Firestore document with this exact UID inside the `staff` or `staff.magiclandfunpark.com` collection, then set `active` to true.</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Create a Firestore document with this exact UID or the staff email as the document ID inside the `staff` collection, then set `active` to true and role to `entry_staff`.</p>
           <button className="mt-5 rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" onClick={signOutUser}>Sign out</button>
         </div>
       </InternalShell>
