@@ -597,6 +597,12 @@ function useStaffAccess(requiredMode) {
 function InternalPortal({ mode }) {
   const [manualCode, setManualCode] = useState('')
   const [scanResult, setScanResult] = useState(null)
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
+  const [cameraActive, setCameraActive] = useState(false)
+  const [cameraMessage, setCameraMessage] = useState('')
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
+  const scanLoopRef = useRef(null)
   const { user, profile, loading, allowed } = useStaffAccess(mode)
   const isAdmin = mode === 'admin'
 
@@ -608,23 +614,98 @@ function InternalPortal({ mode }) {
     document.title = isAdmin ? 'Magic Land Admin' : 'Magic Land Staff Check-in'
   }, [isAdmin])
 
+  useEffect(() => () => {
+    if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current)
+    streamRef.current?.getTracks?.().forEach((track) => track.stop())
+  }, [])
+
+  const stopCameraScan = () => {
+    if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current)
+    scanLoopRef.current = null
+    streamRef.current?.getTracks?.().forEach((track) => track.stop())
+    streamRef.current = null
+    setCameraActive(false)
+  }
+
+  const readQrValue = (value, source = 'QR scanned') => {
+    const cleaned = String(value || '').trim()
+    if (!cleaned) return
+    let details
+    try {
+      details = JSON.parse(cleaned)
+    } catch {
+      details = null
+    }
+    const isMagicLandQr = details?.type === 'magic_land_ticket'
+    const reference = details?.reference || cleaned
+    setManualCode(cleaned)
+    setScanResult({
+      code: reference,
+      status: isMagicLandQr ? source : 'Unknown QR',
+      message: isMagicLandQr
+        ? 'QR read successfully. Confirm guest details before check-in at the gate.'
+        : 'This QR was readable, but it does not look like a Magic Land ticket QR.',
+      details,
+    })
+    trackEvent('staff_qr_read', { portal: mode, source, valid_magicland_qr: isMagicLandQr })
+  }
+
+  const startCameraScan = async () => {
+    setCameraMessage('')
+    if (!('BarcodeDetector' in window)) {
+      setCameraMessage('Camera QR scanning is not supported in this browser. Use Chrome on Android or paste the QR value manually.')
+      return
+    }
+    try {
+      const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      })
+      streamRef.current = stream
+      setCameraActive(true)
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+
+      const scan = async () => {
+        const video = videoRef.current
+        if (!video || video.readyState < 2) {
+          scanLoopRef.current = requestAnimationFrame(scan)
+          return
+        }
+        const codes = await detector.detect(video).catch(() => [])
+        if (codes?.[0]?.rawValue) {
+          readQrValue(codes[0].rawValue, 'Camera scan')
+          stopCameraScan()
+          return
+        }
+        scanLoopRef.current = requestAnimationFrame(scan)
+      }
+      scanLoopRef.current = requestAnimationFrame(scan)
+      trackEvent('staff_camera_scanner_started', { portal: mode })
+    } catch (error) {
+      setCameraMessage(error?.message || 'Could not start the camera scanner.')
+      stopCameraScan()
+    }
+  }
+
   const runManualCheck = () => {
     const cleaned = manualCode.trim()
     if (!cleaned) return
-    setScanResult({
-      code: cleaned,
-      status: 'Ready for validation',
-      message: 'Connect this QR value to issuedTickets or membershipPasses before live gate use.',
-    })
-    trackEvent('staff_manual_qr_entered', { portal: mode })
+    readQrValue(cleaned, 'Manual entry')
   }
 
-  const handleGoogleLogin = async () => {
+  const handleStaffLogin = async (event) => {
+    event.preventDefault()
+    setScanResult({ status: 'Signing in', message: 'Checking staff credentials...' })
     try {
-      await signInWithGoogle()
-      trackEvent('staff_google_login_success', { portal: mode })
+      await signInWithEmail(loginForm.email, loginForm.password)
+      setScanResult(null)
+      trackEvent('staff_email_login_success', { portal: mode })
     } catch (error) {
-      setScanResult({ status: 'Login failed', message: error?.message || 'Could not complete Google login.' })
+      setScanResult({ status: 'Login failed', message: error?.message || 'Could not sign in with these staff credentials.' })
     }
   }
 
@@ -639,7 +720,34 @@ function InternalPortal({ mode }) {
           <ShieldCheck className="text-[var(--secondary)]" />
           <h1 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{isAdmin ? 'Admin login' : 'Staff check-in login'}</h1>
           <p className="mt-3 leading-7 text-[var(--muted)]">Only approved Magic Land staff can access this internal tool.</p>
-          <button className="sunset mt-6 w-full rounded-full px-5 py-3 font-extrabold" onClick={handleGoogleLogin}>Continue with Google</button>
+          <form className="mt-6 grid gap-4" onSubmit={handleStaffLogin}>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">
+              Staff email
+              <input
+                className="soft-field"
+                type="email"
+                autoComplete="username"
+                value={loginForm.email}
+                onChange={(event) => setLoginForm((current) => ({ ...current, email: event.target.value }))}
+                placeholder="gate1@magiclandfunpark.com"
+                required
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">
+              Password
+              <input
+                className="soft-field"
+                type="password"
+                autoComplete="current-password"
+                value={loginForm.password}
+                onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
+                placeholder="Staff password"
+                required
+              />
+            </label>
+            <button className="sunset w-full rounded-full px-5 py-3 font-extrabold">Sign in</button>
+          </form>
+          {scanResult?.status === 'Login failed' && <p className="mt-4 rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold leading-6 text-[var(--secondary)]">{scanResult.message}</p>}
         </div>
       </InternalShell>
     )
@@ -668,11 +776,22 @@ function InternalPortal({ mode }) {
           <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
             <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Gate scanner</p>
             <h1 className="font-display mt-2 text-4xl font-bold text-[var(--primary)]">Scan ticket or membership QR</h1>
-            <div className="mt-6 rounded-[2rem] border-2 border-dashed border-[var(--line)] bg-[var(--surface-3)] p-8 text-center">
-              <Ticket className="mx-auto text-[var(--primary)]" size={48} />
-              <p className="mt-4 font-bold text-[var(--primary)]">Camera scanner placeholder</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Next step is adding camera scanning with `html5-qrcode` or `zxing-js`. Manual entry is active for setup testing.</p>
+            <div className="mt-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-[var(--line)] bg-[var(--surface-3)] text-center">
+              {cameraActive ? (
+                <video ref={videoRef} className="h-80 w-full object-cover" playsInline muted />
+              ) : (
+                <div className="p-8">
+                  <Ticket className="mx-auto text-[var(--primary)]" size={48} />
+                  <p className="mt-4 font-bold text-[var(--primary)]">Use staff phone camera to scan guest QR</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Works best in Chrome on a phone. Manual QR entry stays available for backup.</p>
+                </div>
+              )}
             </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button className="sunset rounded-full px-5 py-3 font-extrabold" type="button" onClick={startCameraScan} disabled={cameraActive}>Start camera scanner</button>
+              {cameraActive && <button className="rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" type="button" onClick={stopCameraScan}>Stop scanner</button>}
+            </div>
+            {cameraMessage && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold leading-6 text-[var(--secondary)]">{cameraMessage}</p>}
             <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
               <input className="soft-field" value={manualCode} onChange={(event) => setManualCode(event.target.value)} placeholder="Paste or type QR code value" />
               <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={runManualCheck}>Validate</button>
@@ -685,6 +804,24 @@ function InternalPortal({ mode }) {
                 <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">{scanResult.status}</p>
                 <p className="mt-2 break-words font-bold text-[var(--primary)]">{scanResult.code}</p>
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{scanResult.message}</p>
+                {scanResult.details && (
+                  <dl className="mt-4 grid gap-2 text-sm">
+                    {[
+                      ['Name', scanResult.details.name],
+                      ['Item', scanResult.details.item],
+                      ['Date', scanResult.details.visitDate],
+                      ['Entries', scanResult.details.quantity],
+                      ['Amount', scanResult.details.amount ? `Rs. ${Number(scanResult.details.amount).toLocaleString('en-IN')}` : 'Pay at park'],
+                      ['Phone', scanResult.details.phone],
+                      ['Email', scanResult.details.email],
+                    ].filter(([, value]) => value !== undefined && value !== '').map(([label, value]) => (
+                      <div className="flex justify-between gap-3 border-b border-[var(--line)] pb-2" key={label}>
+                        <dt className="text-[var(--muted)]">{label}</dt>
+                        <dd className="text-right font-bold text-[var(--primary)]">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
                 <button disabled className="mt-4 w-full rounded-full bg-[var(--primary)] px-5 py-3 font-extrabold text-white opacity-50">Check in</button>
               </div>
             ) : (

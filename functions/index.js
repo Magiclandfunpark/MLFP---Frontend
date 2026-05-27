@@ -125,12 +125,19 @@ function requestRows(type, data) {
   ])
 }
 
+function isQrRequest(type) {
+  return type === 'bookingRequests' || type === 'membershipRequests'
+}
+
 function staffRequestHtml(type, data) {
   return emailShell({
     eyebrow: 'New website request',
     title: requestSubject(type, data),
     intro: 'A new guest request was submitted from the Magic Land website. Please follow up from the details below.',
-    children: `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">${requestRows(type, data)}</table>`,
+    children: `
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${requestRows(type, data)}</table>
+      ${isQrRequest(type) ? ticketPanelHtml(data) : ''}
+    `,
     ctaLabel: 'Open Firebase Console',
     ctaUrl: 'https://console.firebase.google.com/project/magic-land-fun-park/database',
   })
@@ -146,6 +153,7 @@ function guestRequestHtml(type, data) {
       : 'Thank you for reaching out. Our team will review your request and get back to you soon.',
     children: `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${requestRows(type, data)}</table>
+      ${isQrRequest(type) ? ticketPanelHtml(data) : ''}
       <div style="margin-top:22px;padding:16px;border-radius:18px;background:#f6f7ff;color:#4f5b76;line-height:1.7;font-size:14px;">
         Please keep this email for reference. If anything needs to change, reply to this email or contact Magic Land.
       </div>
@@ -226,6 +234,9 @@ function receiptRows(data) {
 
 function ticketPanelHtml(data, qrCid = 'magicland-ticket-qr') {
   const payload = ticketQrPayload(data)
+  const instruction = data.paymentMethod === 'pay_at_park'
+    ? 'Show this QR at the ticket counter. Staff will confirm payment before entry.'
+    : 'Show this QR at the park entrance. Each person entry counts as one use.'
   return `
     <div style="margin-top:24px;padding:18px;border-radius:22px;background:#fff8fb;border:1px solid ${brand.line};">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
@@ -234,7 +245,7 @@ function ticketPanelHtml(data, qrCid = 'magicland-ticket-qr') {
             <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:${brand.accent};font-weight:900;">Entry QR</div>
             <h2 style="margin:8px 0 10px;color:${brand.primary};font-size:24px;line-height:1.15;">Magic Land Ticket</h2>
             <p style="margin:0;color:#4f5b76;font-size:14px;line-height:1.7;">
-              Show this QR at the park entrance. Each person entry counts as one use.
+              ${escapeHtml(instruction)}
             </p>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:12px;">
               ${rows([
@@ -289,7 +300,7 @@ function guestReceiptHtml(data) {
 }
 
 function requestText(type, data) {
-  return [
+  const lines = [
     requestSubject(type, data),
     '',
     `Request type: ${requestLabel(type)}`,
@@ -303,7 +314,11 @@ function requestText(type, data) {
     `Payment choice: ${data.paymentMethod || '-'}`,
     `Reference: ${data.firestoreId || data.requestId || '-'}`,
     `Note: ${data.note || data.message || '-'}`,
-  ].join('\n')
+  ]
+  if (isQrRequest(type)) {
+    lines.push('', 'A QR code is attached to this email. Pay-at-park guests should show it at the ticket counter for confirmation.')
+  }
+  return lines.join('\n')
 }
 
 function receiptText(data) {
@@ -488,8 +503,21 @@ exports.emailPublicRequest = onValueCreated(
     secrets: [gmailClientId, gmailClientSecret, gmailRefreshToken, gmailSenderEmail, mailTo],
   },
   async (event) => {
-    const data = event.data.val() || {}
     const requestType = event.params.requestType
+    const data = {
+      ...(event.data.val() || {}),
+      requestId: event.params.requestId,
+    }
+    let attachments = []
+    if (isQrRequest(requestType)) {
+      const qr = await ticketQrAttachment(data)
+      attachments = [{
+        filename: qr.filename,
+        content: qr.content,
+        contentType: qr.contentType,
+        cid: qr.cid,
+      }]
+    }
     await sendStaffAndGuest({
       staffSubject: requestSubject(requestType, data),
       staffHtml: staffRequestHtml(requestType, data),
@@ -499,6 +527,7 @@ exports.emailPublicRequest = onValueCreated(
       guestHtml: guestRequestHtml(requestType, data),
       guestText: requestText(requestType, data),
       replyTo: data.email,
+      attachments,
     })
   }
 )
