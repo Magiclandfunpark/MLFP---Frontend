@@ -760,7 +760,11 @@ function InternalPortal({ mode }) {
           <ShieldCheck className="text-[var(--secondary)]" />
           <h1 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">Access not enabled</h1>
           <p className="mt-3 leading-7 text-[var(--muted)]">This login is valid, but it is not listed as an active staff account for this portal.</p>
-          <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--primary)]">{user.email || user.phoneNumber || user.uid}</p>
+          <div className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
+            <p><span className="font-extrabold">Email:</span> {user.email || user.phoneNumber || '-'}</p>
+            <p className="break-all"><span className="font-extrabold">Firebase UID:</span> {user.uid}</p>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Create a Firestore document with this exact UID inside the `staff` or `staff.magiclandfunpark.com` collection, then set `active` to true.</p>
           <button className="mt-5 rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" onClick={signOutUser}>Sign out</button>
         </div>
       </InternalShell>
