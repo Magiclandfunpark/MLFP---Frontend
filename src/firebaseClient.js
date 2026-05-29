@@ -272,24 +272,34 @@ export async function signOutUser() {
 }
 
 export async function getStaffProfile(uid, email = '') {
-  if (!uid && !email) return null
+  if (!uid && !email) return { missing: true, attempts: ['No Firebase UID or email was available.'] }
   const db = await getDb()
-  if (!db) return null
+  if (!db) return { missing: true, attempts: ['Firestore is not configured in this build.'] }
   const staffCollections = ['staff', 'staff.magiclandfunpark.com']
   const normalizedEmail = email.trim().toLowerCase()
   const profileIds = Array.from(new Set([uid, normalizedEmail].filter(Boolean)))
   const attempts = []
   for (const collectionName of staffCollections) {
     for (const profileId of profileIds) {
-      attempts.push(`${collectionName}/${profileId}`)
-      const snapshot = await getDoc(doc(db, collectionName, profileId))
-      if (snapshot.exists()) return { id: snapshot.id, collectionName, ...snapshot.data() }
+      const attemptLabel = `${collectionName}/${profileId}`
+      try {
+        const snapshot = await getDoc(doc(db, collectionName, profileId))
+        attempts.push(`${attemptLabel}: ${snapshot.exists() ? 'found' : 'not found'}`)
+        if (snapshot.exists()) return { id: snapshot.id, collectionName, attempts, ...snapshot.data() }
+      } catch (error) {
+        attempts.push(`${attemptLabel}: ${error?.code || 'error'} - ${error?.message || 'Read failed'}`)
+      }
     }
     if (normalizedEmail) {
-      attempts.push(`${collectionName} where email == ${normalizedEmail}`)
-      const snapshot = await getDocs(query(collection(db, collectionName), where('email', '==', normalizedEmail)))
-      const profile = snapshot.docs[0]
-      if (profile) return { id: profile.id, collectionName, ...profile.data() }
+      const attemptLabel = `${collectionName} where email == ${normalizedEmail}`
+      try {
+        const snapshot = await getDocs(query(collection(db, collectionName), where('email', '==', normalizedEmail)))
+        attempts.push(`${attemptLabel}: ${snapshot.docs.length} match${snapshot.docs.length === 1 ? '' : 'es'}`)
+        const profile = snapshot.docs[0]
+        if (profile) return { id: profile.id, collectionName, attempts, ...profile.data() }
+      } catch (error) {
+        attempts.push(`${attemptLabel}: ${error?.code || 'error'} - ${error?.message || 'Query failed'}`)
+      }
     }
   }
   return { missing: true, attempts }
