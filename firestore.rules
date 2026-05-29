@@ -13,6 +13,7 @@ service cloud.firestore {
           || exists(/databases/$(database)/documents/staff/$(request.auth.token.email))
           || exists(/databases/$(database)/documents/staff.magiclandfunpark.com/$(request.auth.uid))
           || exists(/databases/$(database)/documents/staff.magiclandfunpark.com/$(request.auth.token.email))
+          || request.auth.token.email.matches('.*@magiclandfunpark\\.com$')
         );
     }
 

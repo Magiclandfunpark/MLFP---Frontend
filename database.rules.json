@@ -31,7 +31,7 @@
     },
     "publicRequests": {
       "$requestType": {
-        ".read": "auth != null && root.child('staff').child(auth.uid).exists()",
+        ".read": "auth != null && (root.child('staff').child(auth.uid).exists() || auth.token.email.matches(/.*@magiclandfunpark\\.com$/))",
         "$requestId": {
           ".write": "!data.exists() && ($requestType == 'bookingRequests' || $requestType == 'membershipRequests' || $requestType == 'contactRequests' || $requestType == 'eventRequests' || $requestType == 'newsletterSubscribers') && newData.child('status').val() == 'new' && newData.child('source').isString() && newData.child('createdAt').isString()",
           ".validate": true

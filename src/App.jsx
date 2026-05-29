@@ -659,8 +659,16 @@ function InternalPortal({ mode }) {
   const stopCameraScan = () => {
     if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current)
     scanLoopRef.current = null
-    Promise.resolve(html5ScannerRef.current?.stop?.()).catch(() => {})
-    Promise.resolve(html5ScannerRef.current?.clear?.()).catch(() => {})
+    try {
+      Promise.resolve(html5ScannerRef.current?.stop?.()).catch(() => {})
+    } catch {
+      // Some mobile browsers throw synchronously if the scanner never fully started.
+    }
+    try {
+      Promise.resolve(html5ScannerRef.current?.clear?.()).catch(() => {})
+    } catch {
+      // Clearing is best-effort; the UI must still recover.
+    }
     html5ScannerRef.current = null
     streamRef.current?.getTracks?.().forEach((track) => track.stop())
     streamRef.current = null
@@ -725,8 +733,14 @@ function InternalPortal({ mode }) {
       }
       trackEvent('staff_camera_scanner_started', { portal: mode })
     } catch (error) {
-      setCameraMessage(error?.message || 'Could not start the camera scanner. Search the booking list below or paste the QR value manually.')
-      stopCameraScan()
+      const reason = error?.message ? ` ${error.message}` : ''
+      setCameraMessage(`Could not start the camera scanner.${reason} Use "Scan from photo" or search the booking list below.`)
+      if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current)
+      scanLoopRef.current = null
+      html5ScannerRef.current = null
+      streamRef.current?.getTracks?.().forEach((track) => track.stop())
+      streamRef.current = null
+      setCameraActive(false)
     }
   }
 
@@ -912,6 +926,7 @@ function InternalPortal({ mode }) {
             </div>
             <input ref={fileInputRef} className="hidden" type="file" accept="image/*" capture="environment" onChange={scanQrImageFile} />
             <div id={fileScannerElementId} className="hidden" />
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">If the live camera does not open on a phone, tap <span className="font-extrabold text-[var(--primary)]">Scan from photo</span>, take a photo of the guest QR, and the staff portal will read it.</p>
             {cameraMessage && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold leading-6 text-[var(--secondary)]">{cameraMessage}</p>}
             <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
               <input className="soft-field" value={manualCode} onChange={(event) => setManualCode(event.target.value)} placeholder="Paste or type QR code value" />
