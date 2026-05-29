@@ -13,7 +13,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getDatabase, onValue, ref, set, update } from 'firebase/database'
-import { addDoc, collection, doc, getDoc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, getFirestore, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 
 const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -276,11 +276,17 @@ export async function getStaffProfile(uid, email = '') {
   const db = await getDb()
   if (!db) return null
   const staffCollections = ['staff', 'staff.magiclandfunpark.com']
-  const profileIds = Array.from(new Set([uid, email.trim().toLowerCase()].filter(Boolean)))
+  const normalizedEmail = email.trim().toLowerCase()
+  const profileIds = Array.from(new Set([uid, normalizedEmail].filter(Boolean)))
   for (const collectionName of staffCollections) {
     for (const profileId of profileIds) {
       const snapshot = await getDoc(doc(db, collectionName, profileId))
       if (snapshot.exists()) return { id: snapshot.id, collectionName, ...snapshot.data() }
+    }
+    if (normalizedEmail) {
+      const snapshot = await getDocs(query(collection(db, collectionName), where('email', '==', normalizedEmail)))
+      const profile = snapshot.docs[0]
+      if (profile) return { id: profile.id, collectionName, ...profile.data() }
     }
   }
   return null
