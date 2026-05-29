@@ -573,9 +573,14 @@ function useStaffAccess(requiredMode) {
         if (!active) return
         setProfile(nextProfile)
       })
-      .catch(() => {
+      .catch((error) => {
         if (!active) return
-        setProfile(null)
+        setProfile({
+          missing: true,
+          errorCode: error?.code || '',
+          errorMessage: error?.message || 'Could not read staff profile.',
+          attempts: [`staff/${user.uid}`, `staff/${user.email || ''}`],
+        })
       })
       .finally(() => {
         if (!active) return
@@ -590,7 +595,7 @@ function useStaffAccess(requiredMode) {
   const role = String(profile?.role || '').trim()
   const allowedRoles = requiredMode === 'admin' ? ['admin', 'manager'] : ['admin', 'manager', 'supervisor', 'entry_staff']
   const isActive = profile?.active === true || String(profile?.active || '').toLowerCase() === 'true'
-  const allowed = Boolean(user && isActive && allowedRoles.includes(role))
+  const allowed = Boolean(user && !profile?.missing && isActive && allowedRoles.includes(role))
 
   return { user, profile, loading: loading || profileLoading, allowed, isActive, role }
 }
@@ -764,8 +769,17 @@ function InternalPortal({ mode }) {
           <div className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
             <p><span className="font-extrabold">Email:</span> {user.email || user.phoneNumber || '-'}</p>
             <p className="break-all"><span className="font-extrabold">Firebase UID:</span> {user.uid}</p>
-            <p><span className="font-extrabold">Staff profile:</span> {profile ? `Found in ${profile.collectionName}` : 'Not found'}</p>
-            {profile && <p><span className="font-extrabold">Active:</span> {String(profile.active)} · <span className="font-extrabold">Role:</span> {role || '-'}</p>}
+            <p><span className="font-extrabold">Staff profile:</span> {profile && !profile.missing ? `Found in ${profile.collectionName}` : 'Not found'}</p>
+            {profile && !profile.missing && <p><span className="font-extrabold">Active:</span> {String(profile.active)} · <span className="font-extrabold">Role:</span> {role || '-'}</p>}
+            {profile?.missing && (
+              <div className="mt-3 rounded-xl bg-white/70 p-3">
+                {profile.errorMessage && <p className="mb-2 break-words font-bold text-[var(--secondary)]">{profile.errorCode ? `${profile.errorCode}: ` : ''}{profile.errorMessage}</p>}
+                <p className="font-extrabold">Lookup attempts:</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {profile.attempts?.map((attempt) => <li className="break-all" key={attempt}>{attempt}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Create a Firestore document with this exact UID or the staff email as the document ID inside the `staff` collection, then set `active` to true and role to `entry_staff`.</p>
           <button className="mt-5 rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" onClick={signOutUser}>Sign out</button>

@@ -278,18 +278,21 @@ export async function getStaffProfile(uid, email = '') {
   const staffCollections = ['staff', 'staff.magiclandfunpark.com']
   const normalizedEmail = email.trim().toLowerCase()
   const profileIds = Array.from(new Set([uid, normalizedEmail].filter(Boolean)))
+  const attempts = []
   for (const collectionName of staffCollections) {
     for (const profileId of profileIds) {
+      attempts.push(`${collectionName}/${profileId}`)
       const snapshot = await getDoc(doc(db, collectionName, profileId))
       if (snapshot.exists()) return { id: snapshot.id, collectionName, ...snapshot.data() }
     }
     if (normalizedEmail) {
+      attempts.push(`${collectionName} where email == ${normalizedEmail}`)
       const snapshot = await getDocs(query(collection(db, collectionName), where('email', '==', normalizedEmail)))
       const profile = snapshot.docs[0]
       if (profile) return { id: profile.id, collectionName, ...profile.data() }
     }
   }
-  return null
+  return { missing: true, attempts }
 }
 
 function saveLocalFallback(collectionName, payload) {
