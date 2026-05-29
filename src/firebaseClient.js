@@ -13,7 +13,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getDatabase, onValue, ref, set, update } from 'firebase/database'
-import { addDoc, collection, doc, getDoc, getDocs, getFirestore, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, getFirestore, limit, orderBy, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 
 const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -303,6 +303,47 @@ export async function getStaffProfile(uid, email = '') {
     }
   }
   return { missing: true, attempts }
+}
+
+export async function getStaffRequestQueue(maxItems = 80) {
+  const db = await getDb()
+  if (!db) return { items: [], error: 'Firestore is not configured in this build.' }
+  const collections = [
+    { collectionName: 'bookingRequests', type: 'ticket' },
+    { collectionName: 'membershipRequests', type: 'membership' },
+  ]
+  const results = []
+
+  for (const item of collections) {
+    try {
+      const snapshot = await getDocs(query(collection(db, item.collectionName), orderBy('createdAt', 'desc'), limit(maxItems)))
+      snapshot.docs.forEach((documentSnapshot) => {
+        const data = documentSnapshot.data()
+        results.push({
+          id: documentSnapshot.id,
+          type: item.type,
+          collectionName: item.collectionName,
+          ...data,
+        })
+      })
+    } catch (error) {
+      results.push({
+        id: `${item.collectionName}-error`,
+        type: 'error',
+        collectionName: item.collectionName,
+        errorCode: error?.code || 'error',
+        errorMessage: error?.message || `Could not load ${item.collectionName}.`,
+      })
+    }
+  }
+
+  results.sort((a, b) => {
+    const aTime = (a.createdAt?.toMillis?.() ?? Date.parse(a.createdAt || '')) || 0
+    const bTime = (b.createdAt?.toMillis?.() ?? Date.parse(b.createdAt || '')) || 0
+    return bTime - aTime
+  })
+
+  return { items: results.slice(0, maxItems), error: '' }
 }
 
 function saveLocalFallback(collectionName, payload) {

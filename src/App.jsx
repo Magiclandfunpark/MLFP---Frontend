@@ -31,6 +31,7 @@ import {
   createPaymentReceipt,
   createPublicRequest,
   getStaffProfile,
+  getStaffRequestQueue,
   sendPhoneOtp,
   signInWithEmail,
   signInWithGoogle,
@@ -606,11 +607,15 @@ function InternalPortal({ mode }) {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraMessage, setCameraMessage] = useState('')
-  const videoRef = useRef(null)
+  const [staffRequests, setStaffRequests] = useState([])
+  const [requestSearch, setRequestSearch] = useState('')
+  const [requestQueueMessage, setRequestQueueMessage] = useState('')
   const streamRef = useRef(null)
   const scanLoopRef = useRef(null)
+  const html5ScannerRef = useRef(null)
   const { user, profile, loading, allowed, role } = useStaffAccess(mode)
   const isAdmin = mode === 'admin'
+  const scannerElementId = 'magicland-staff-qr-reader'
 
   useEffect(() => {
     const robots = document.querySelector('meta[name="robots"]') || document.createElement('meta')
@@ -622,12 +627,39 @@ function InternalPortal({ mode }) {
 
   useEffect(() => () => {
     if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current)
+    Promise.resolve(html5ScannerRef.current?.stop?.()).catch(() => {})
+    Promise.resolve(html5ScannerRef.current?.clear?.()).catch(() => {})
     streamRef.current?.getTracks?.().forEach((track) => track.stop())
   }, [])
+
+  useEffect(() => {
+    let active = true
+    if (!allowed || isAdmin) return undefined
+    queueMicrotask(() => {
+      if (active) setRequestQueueMessage('Loading booking requests...')
+    })
+    getStaffRequestQueue()
+      .then((result) => {
+        if (!active) return
+        setStaffRequests(result.items || [])
+        setRequestQueueMessage(result.error || '')
+      })
+      .catch((error) => {
+        if (!active) return
+        setStaffRequests([])
+        setRequestQueueMessage(error?.message || 'Could not load booking requests.')
+      })
+    return () => {
+      active = false
+    }
+  }, [allowed, isAdmin])
 
   const stopCameraScan = () => {
     if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current)
     scanLoopRef.current = null
+    Promise.resolve(html5ScannerRef.current?.stop?.()).catch(() => {})
+    Promise.resolve(html5ScannerRef.current?.clear?.()).catch(() => {})
+    html5ScannerRef.current = null
     streamRef.current?.getTracks?.().forEach((track) => track.stop())
     streamRef.current = null
     setCameraActive(false)
@@ -658,41 +690,39 @@ function InternalPortal({ mode }) {
 
   const startCameraScan = async () => {
     setCameraMessage('')
-    if (!('BarcodeDetector' in window)) {
-      setCameraMessage('Camera QR scanning is not supported in this browser. Use Chrome on Android or paste the QR value manually.')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraMessage('Camera access is not available in this browser. Search the booking list below or paste the QR value manually.')
       return
     }
     try {
-      const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      })
-      streamRef.current = stream
       setCameraActive(true)
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-
-      const scan = async () => {
-        const video = videoRef.current
-        if (!video || video.readyState < 2) {
-          scanLoopRef.current = requestAnimationFrame(scan)
-          return
-        }
-        const codes = await detector.detect(video).catch(() => [])
-        if (codes?.[0]?.rawValue) {
-          readQrValue(codes[0].rawValue, 'Camera scan')
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      const { Html5Qrcode } = await import('html5-qrcode')
+      const scanner = new Html5Qrcode(scannerElementId, { verbose: false })
+      html5ScannerRef.current = scanner
+      await scanner.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight)
+            const size = Math.max(180, Math.floor(minEdge * 0.72))
+            return { width: size, height: size }
+          },
+          aspectRatio: 1,
+        },
+        (decodedText) => {
+          readQrValue(decodedText, 'Camera scan')
           stopCameraScan()
-          return
-        }
-        scanLoopRef.current = requestAnimationFrame(scan)
+        },
+        () => {},
+      )
+      if (!window.isSecureContext) {
+        setCameraMessage('Tip: mobile browsers usually require HTTPS for camera access. Use staff.magiclandfunpark.com on the phone.')
       }
-      scanLoopRef.current = requestAnimationFrame(scan)
       trackEvent('staff_camera_scanner_started', { portal: mode })
     } catch (error) {
-      setCameraMessage(error?.message || 'Could not start the camera scanner.')
+      setCameraMessage(error?.message || 'Could not start the camera scanner. Search the booking list below or paste the QR value manually.')
       stopCameraScan()
     }
   }
@@ -701,6 +731,52 @@ function InternalPortal({ mode }) {
     const cleaned = manualCode.trim()
     if (!cleaned) return
     readQrValue(cleaned, 'Manual entry')
+  }
+
+  const filteredStaffRequests = useMemo(() => {
+    const search = requestSearch.trim().toLowerCase()
+    const searchableItems = staffRequests.filter((item) => item.type !== 'error')
+    if (!search) return searchableItems
+    return searchableItems.filter((item) => [
+      item.id,
+      item.name,
+      item.email,
+      item.phone,
+      item.ticketName,
+      item.planName,
+      item.visitDate,
+      item.startDate,
+      item.paymentMethod,
+      item.status,
+    ].some((value) => String(value || '').toLowerCase().includes(search)))
+  }, [requestSearch, staffRequests])
+
+  const requestErrors = staffRequests.filter((item) => item.type === 'error')
+
+  const staffRequestDetails = (item) => ({
+    type: 'magic_land_ticket',
+    reference: item.id,
+    name: item.name,
+    phone: item.phone,
+    email: item.email,
+    item: item.ticketName || item.planName || (item.type === 'membership' ? 'Membership request' : 'Ticket request'),
+    visitDate: item.visitDate || item.startDate,
+    quantity: item.guests || item.visits || '',
+    amount: item.total || Number(String(item.price || '').replace(/[^\d]/g, '')) || '',
+    paymentMethod: item.paymentMethod || 'pay_at_park',
+    status: item.status || 'new',
+  })
+
+  const openStaffRequest = (item) => {
+    const details = staffRequestDetails(item)
+    setManualCode(item.id)
+    setScanResult({
+      code: item.id,
+      status: 'Booking selected',
+      message: 'Request loaded from staff list. Confirm guest identity before entry.',
+      details,
+    })
+    trackEvent('staff_request_selected', { portal: mode, request_type: item.type, payment_method: details.paymentMethod })
   }
 
   const handleStaffLogin = async (event) => {
@@ -799,12 +875,12 @@ function InternalPortal({ mode }) {
             <h1 className="font-display mt-2 text-4xl font-bold text-[var(--primary)]">Scan ticket or membership QR</h1>
             <div className="mt-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-[var(--line)] bg-[var(--surface-3)] text-center">
               {cameraActive ? (
-                <video ref={videoRef} className="h-80 w-full object-cover" playsInline muted />
+                <div id={scannerElementId} className="min-h-80 w-full overflow-hidden bg-black [&_video]:h-80 [&_video]:w-full [&_video]:object-cover" />
               ) : (
                 <div className="p-8">
                   <Ticket className="mx-auto text-[var(--primary)]" size={48} />
                   <p className="mt-4 font-bold text-[var(--primary)]">Use staff phone camera to scan guest QR</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Works best in Chrome on a phone. Manual QR entry stays available for backup.</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Works best on the secure staff domain. Manual lookup stays available for backup.</p>
                 </div>
               )}
             </div>
@@ -816,6 +892,75 @@ function InternalPortal({ mode }) {
             <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
               <input className="soft-field" value={manualCode} onChange={(event) => setManualCode(event.target.value)} placeholder="Paste or type QR code value" />
               <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={runManualCheck}>Validate</button>
+            </div>
+            <div className="mt-8 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Booking lookup</p>
+                  <h2 className="font-display mt-1 text-2xl font-bold text-[var(--primary)]">Recent ticket and membership requests</h2>
+                </div>
+                <button
+                  className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)]"
+                  type="button"
+                  onClick={() => {
+                    setRequestQueueMessage('Refreshing booking requests...')
+                    getStaffRequestQueue().then((result) => {
+                      setStaffRequests(result.items || [])
+                      setRequestQueueMessage(result.error || '')
+                    }).catch((error) => setRequestQueueMessage(error?.message || 'Could not refresh booking requests.'))
+                  }}
+                >
+                  Refresh
+                </button>
+              </div>
+              <input
+                className="soft-field mt-4"
+                value={requestSearch}
+                onChange={(event) => setRequestSearch(event.target.value)}
+                placeholder="Search by name, email, phone, ticket, or reference"
+              />
+              {requestQueueMessage && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-3 text-sm font-bold text-[var(--secondary)]">{requestQueueMessage}</p>}
+              {requestErrors.map((item) => (
+                <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-3 text-sm font-bold text-[var(--secondary)]" key={item.id}>
+                  {item.collectionName}: {item.errorCode} {item.errorMessage}
+                </p>
+              ))}
+              <div className="mt-4 grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
+                {filteredStaffRequests.slice(0, 60).map((item) => {
+                  const title = item.ticketName || item.planName || (item.type === 'membership' ? 'Membership request' : 'Ticket request')
+                  const displayDate = item.visitDate || item.startDate || '-'
+                  const total = item.total || Number(String(item.price || '').replace(/[^\d]/g, '')) || 0
+                  return (
+                    <button
+                      className="rounded-2xl border border-[var(--line)] bg-white p-4 text-left shadow-sm transition hover:border-[var(--accent)]"
+                      type="button"
+                      key={`${item.collectionName}-${item.id}`}
+                      onClick={() => openStaffRequest(item)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">{item.type === 'membership' ? 'Membership' : 'Ticket'} · {item.paymentMethod || 'pay_at_park'}</p>
+                          <p className="mt-1 font-extrabold text-[var(--primary)]">{item.name || 'Guest'} · {title}</p>
+                        </div>
+                        <span className="rounded-full bg-[var(--surface-3)] px-3 py-1 text-xs font-extrabold text-[var(--primary)]">{item.status || 'new'}</span>
+                      </div>
+                      <div className="mt-3 grid gap-1 text-sm leading-6 text-[var(--muted)] sm:grid-cols-2">
+                        <p>{item.phone || '-'}</p>
+                        <p className="break-all">{item.email || '-'}</p>
+                        <p>Date: {displayDate}</p>
+                        <p>{item.guests ? `${item.guests} guest${Number(item.guests) === 1 ? '' : 's'}` : item.visits || ''}</p>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-3 text-sm">
+                        <span className="break-all text-[var(--muted)]">{item.id}</span>
+                        <span className="font-extrabold text-[var(--primary)]">{total ? `Rs. ${Number(total).toLocaleString('en-IN')}` : 'Pay at park'}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+                {!requestQueueMessage && filteredStaffRequests.length === 0 && (
+                  <p className="rounded-2xl bg-white p-4 text-sm font-bold text-[var(--muted)]">No matching requests found.</p>
+                )}
+              </div>
             </div>
           </div>
           <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
