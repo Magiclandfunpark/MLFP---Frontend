@@ -316,7 +316,12 @@ export async function getStaffRequestQueue(maxItems = 80) {
 
   for (const item of collections) {
     try {
-      const snapshot = await getDocs(query(collection(db, item.collectionName), orderBy('createdAt', 'desc'), limit(maxItems)))
+      let snapshot
+      try {
+        snapshot = await getDocs(query(collection(db, item.collectionName), orderBy('createdAt', 'desc'), limit(maxItems)))
+      } catch {
+        snapshot = await getDocs(query(collection(db, item.collectionName), limit(maxItems)))
+      }
       snapshot.docs.forEach((documentSnapshot) => {
         const data = documentSnapshot.data()
         results.push({

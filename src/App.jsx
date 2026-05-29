@@ -613,9 +613,11 @@ function InternalPortal({ mode }) {
   const streamRef = useRef(null)
   const scanLoopRef = useRef(null)
   const html5ScannerRef = useRef(null)
+  const fileInputRef = useRef(null)
   const { user, profile, loading, allowed, role } = useStaffAccess(mode)
   const isAdmin = mode === 'admin'
   const scannerElementId = 'magicland-staff-qr-reader'
+  const fileScannerElementId = 'magicland-file-qr-reader'
 
   useEffect(() => {
     const robots = document.querySelector('meta[name="robots"]') || document.createElement('meta')
@@ -700,8 +702,10 @@ function InternalPortal({ mode }) {
       const { Html5Qrcode } = await import('html5-qrcode')
       const scanner = new Html5Qrcode(scannerElementId, { verbose: false })
       html5ScannerRef.current = scanner
+      const cameras = await Html5Qrcode.getCameras().catch(() => [])
+      const backCamera = cameras.find((camera) => /back|rear|environment/i.test(camera.label || ''))
       await scanner.start(
-        { facingMode: 'environment' },
+        backCamera?.id ? { deviceId: { exact: backCamera.id } } : { facingMode: 'environment' },
         {
           fps: 10,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
@@ -709,7 +713,6 @@ function InternalPortal({ mode }) {
             const size = Math.max(180, Math.floor(minEdge * 0.72))
             return { width: size, height: size }
           },
-          aspectRatio: 1,
         },
         (decodedText) => {
           readQrValue(decodedText, 'Camera scan')
@@ -724,6 +727,24 @@ function InternalPortal({ mode }) {
     } catch (error) {
       setCameraMessage(error?.message || 'Could not start the camera scanner. Search the booking list below or paste the QR value manually.')
       stopCameraScan()
+    }
+  }
+
+  const scanQrImageFile = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setCameraMessage('Reading QR from selected image...')
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode')
+      const scanner = new Html5Qrcode(fileScannerElementId, { verbose: false })
+      const decodedText = await scanner.scanFile(file, false)
+      await scanner.clear().catch(() => {})
+      readQrValue(decodedText, 'Image scan')
+      setCameraMessage('QR image read successfully.')
+    } catch (error) {
+      setCameraMessage(error?.message || 'Could not read a QR from that image. Try a clearer photo or search by phone/email below.')
+    } finally {
+      event.target.value = ''
     }
   }
 
@@ -886,8 +907,11 @@ function InternalPortal({ mode }) {
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
               <button className="sunset rounded-full px-5 py-3 font-extrabold" type="button" onClick={startCameraScan} disabled={cameraActive}>Start camera scanner</button>
+              <button className="rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" type="button" onClick={() => fileInputRef.current?.click()}>Scan from photo</button>
               {cameraActive && <button className="rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" type="button" onClick={stopCameraScan}>Stop scanner</button>}
             </div>
+            <input ref={fileInputRef} className="hidden" type="file" accept="image/*" capture="environment" onChange={scanQrImageFile} />
+            <div id={fileScannerElementId} className="hidden" />
             {cameraMessage && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold leading-6 text-[var(--secondary)]">{cameraMessage}</p>}
             <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
               <input className="soft-field" value={manualCode} onChange={(event) => setManualCode(event.target.value)} placeholder="Paste or type QR code value" />
@@ -923,6 +947,7 @@ function InternalPortal({ mode }) {
               {requestErrors.map((item) => (
                 <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-3 text-sm font-bold text-[var(--secondary)]" key={item.id}>
                   {item.collectionName}: {item.errorCode} {item.errorMessage}
+                  <span className="mt-1 block text-[var(--muted)]">If this says permission-denied, confirm this login has a matching active staff document in Firestore.</span>
                 </p>
               ))}
               <div className="mt-4 grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
