@@ -619,6 +619,20 @@ function InternalPortal({ mode }) {
   const scannerElementId = 'magicland-staff-qr-reader'
   const fileScannerElementId = 'magicland-file-qr-reader'
 
+  const friendlyQrError = (message = '') => {
+    const text = String(message)
+    if (/No MultiFormat Readers|NotFoundException|No QR code|detect the code|not found/i.test(text)) {
+      return 'No QR found in this photo. Move closer, keep the QR flat and bright, or search by phone/email below.'
+    }
+    if (/Permission|NotAllowed|denied/i.test(text)) {
+      return 'Camera permission was blocked. Allow camera access in the browser, or use photo/search lookup.'
+    }
+    if (/NotReadable|TrackStart|device/i.test(text)) {
+      return 'Camera is busy or unavailable on this phone. Use photo/search lookup for this guest.'
+    }
+    return text || 'Could not read the QR. Use photo/search lookup for this guest.'
+  }
+
   useEffect(() => {
     const robots = document.querySelector('meta[name="robots"]') || document.createElement('meta')
     robots.setAttribute('name', 'robots')
@@ -733,8 +747,7 @@ function InternalPortal({ mode }) {
       }
       trackEvent('staff_camera_scanner_started', { portal: mode })
     } catch (error) {
-      const reason = error?.message ? ` ${error.message}` : ''
-      setCameraMessage(`Could not start the camera scanner.${reason} Use "Scan from photo" or search the booking list below.`)
+      setCameraMessage(`${friendlyQrError(error?.message)} Search the booking list below if needed.`)
       if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current)
       scanLoopRef.current = null
       html5ScannerRef.current = null
@@ -756,7 +769,7 @@ function InternalPortal({ mode }) {
       readQrValue(decodedText, 'Image scan')
       setCameraMessage('QR image read successfully.')
     } catch (error) {
-      setCameraMessage(error?.message || 'Could not read a QR from that image. Try a clearer photo or search by phone/email below.')
+      setCameraMessage(friendlyQrError(error?.message))
     } finally {
       event.target.value = ''
     }
@@ -904,39 +917,43 @@ function InternalPortal({ mode }) {
       {isAdmin ? (
         <AdminDashboard profile={profile} />
       ) : (
-        <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Gate scanner</p>
-            <h1 className="font-display mt-2 text-4xl font-bold text-[var(--primary)]">Scan ticket or membership QR</h1>
-            <div className="mt-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-[var(--line)] bg-[var(--surface-3)] text-center">
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="rounded-3xl border border-[var(--line)] bg-white p-4 shadow-sm md:p-5">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Gate check-in</p>
+                <h1 className="font-display text-2xl font-bold text-[var(--primary)] md:text-3xl">Scan or find booking</h1>
+              </div>
+              <p className="text-sm font-bold text-[var(--muted)]">{filteredStaffRequests.length} requests</p>
+            </div>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] text-center">
               {cameraActive ? (
-                <div id={scannerElementId} className="min-h-80 w-full overflow-hidden bg-black [&_video]:h-80 [&_video]:w-full [&_video]:object-cover" />
+                <div id={scannerElementId} className="min-h-72 w-full overflow-hidden bg-black [&_video]:h-72 [&_video]:w-full [&_video]:object-cover" />
               ) : (
-                <div className="p-8">
-                  <Ticket className="mx-auto text-[var(--primary)]" size={48} />
-                  <p className="mt-4 font-bold text-[var(--primary)]">Use staff phone camera to scan guest QR</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Works best on the secure staff domain. Manual lookup stays available for backup.</p>
+                <div className="p-5">
+                  <Ticket className="mx-auto text-[var(--primary)]" size={36} />
+                  <p className="mt-3 font-bold text-[var(--primary)]">Use camera, photo, or search</p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">Photo scan is the most reliable mobile fallback.</p>
                 </div>
               )}
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button className="sunset rounded-full px-5 py-3 font-extrabold" type="button" onClick={startCameraScan} disabled={cameraActive}>Start camera scanner</button>
-              <button className="rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" type="button" onClick={() => fileInputRef.current?.click()}>Scan from photo</button>
+              <button className="sunset rounded-full px-5 py-3 font-extrabold" type="button" onClick={() => fileInputRef.current?.click()}>Scan photo</button>
+              <button className="rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" type="button" onClick={startCameraScan} disabled={cameraActive}>Live camera</button>
               {cameraActive && <button className="rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" type="button" onClick={stopCameraScan}>Stop scanner</button>}
             </div>
             <input ref={fileInputRef} className="hidden" type="file" accept="image/*" capture="environment" onChange={scanQrImageFile} />
             <div id={fileScannerElementId} className="hidden" />
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">If the live camera does not open on a phone, tap <span className="font-extrabold text-[var(--primary)]">Scan from photo</span>, take a photo of the guest QR, and the staff portal will read it.</p>
-            {cameraMessage && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-4 text-sm font-bold leading-6 text-[var(--secondary)]">{cameraMessage}</p>}
-            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+            {cameraMessage && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-3 text-sm font-bold leading-6 text-[var(--secondary)]">{cameraMessage}</p>}
+            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
               <input className="soft-field" value={manualCode} onChange={(event) => setManualCode(event.target.value)} placeholder="Paste or type QR code value" />
               <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={runManualCheck}>Validate</button>
             </div>
-            <div className="mt-8 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-4">
+            <div className="mt-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Booking lookup</p>
-                  <h2 className="font-display mt-1 text-2xl font-bold text-[var(--primary)]">Recent ticket and membership requests</h2>
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Lookup</p>
+                  <h2 className="font-display mt-1 text-xl font-bold text-[var(--primary)]">Find guest manually</h2>
                 </div>
                 <button
                   className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)]"
@@ -965,14 +982,14 @@ function InternalPortal({ mode }) {
                   <span className="mt-1 block text-[var(--muted)]">If this says permission-denied, confirm this login has a matching active staff document in Firestore.</span>
                 </p>
               ))}
-              <div className="mt-4 grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
+              <div className="mt-4 grid max-h-[32rem] gap-2 overflow-y-auto pr-1">
                 {filteredStaffRequests.slice(0, 60).map((item) => {
                   const title = item.ticketName || item.planName || (item.type === 'membership' ? 'Membership request' : 'Ticket request')
                   const displayDate = item.visitDate || item.startDate || '-'
                   const total = item.total || Number(String(item.price || '').replace(/[^\d]/g, '')) || 0
                   return (
                     <button
-                      className="rounded-2xl border border-[var(--line)] bg-white p-4 text-left shadow-sm transition hover:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--line)] bg-white p-3 text-left shadow-sm transition hover:border-[var(--accent)]"
                       type="button"
                       key={`${item.collectionName}-${item.id}`}
                       onClick={() => openStaffRequest(item)}
@@ -984,13 +1001,13 @@ function InternalPortal({ mode }) {
                         </div>
                         <span className="rounded-full bg-[var(--surface-3)] px-3 py-1 text-xs font-extrabold text-[var(--primary)]">{item.status || 'new'}</span>
                       </div>
-                      <div className="mt-3 grid gap-1 text-sm leading-6 text-[var(--muted)] sm:grid-cols-2">
+                      <div className="mt-2 grid gap-1 text-sm leading-6 text-[var(--muted)] sm:grid-cols-2">
                         <p>{item.phone || '-'}</p>
                         <p className="break-all">{item.email || '-'}</p>
                         <p>Date: {displayDate}</p>
                         <p>{item.guests ? `${item.guests} guest${Number(item.guests) === 1 ? '' : 's'}` : item.visits || ''}</p>
                       </div>
-                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-3 text-sm">
+                      <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-2 text-sm">
                         <span className="break-all text-[var(--muted)]">{item.id}</span>
                         <span className="font-extrabold text-[var(--primary)]">{total ? `Rs. ${Number(total).toLocaleString('en-IN')}` : 'Pay at park'}</span>
                       </div>
@@ -1003,15 +1020,15 @@ function InternalPortal({ mode }) {
               </div>
             </div>
           </div>
-          <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-            <h2 className="font-display text-2xl font-bold text-[var(--primary)]">Validation result</h2>
+          <aside className="rounded-3xl border border-[var(--line)] bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-24 lg:self-start">
+            <h2 className="font-display text-xl font-bold text-[var(--primary)]">Result</h2>
             {scanResult ? (
-              <div className="mt-5 rounded-2xl bg-[var(--surface-3)] p-4">
+              <div className="mt-4 rounded-2xl bg-[var(--surface-3)] p-4">
                 <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">{scanResult.status}</p>
                 <p className="mt-2 break-words font-bold text-[var(--primary)]">{scanResult.code}</p>
-                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{scanResult.message}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{scanResult.message}</p>
                 {scanResult.details && (
-                  <dl className="mt-4 grid gap-2 text-sm">
+                  <dl className="mt-3 grid gap-2 text-sm">
                     {[
                       ['Name', scanResult.details.name],
                       ['Item', scanResult.details.item],
@@ -1031,9 +1048,9 @@ function InternalPortal({ mode }) {
                 <button disabled className="mt-4 w-full rounded-full bg-[var(--primary)] px-5 py-3 font-extrabold text-white opacity-50">Check in</button>
               </div>
             ) : (
-              <p className="mt-4 leading-7 text-[var(--muted)]">Scan a QR or enter a code to see ticket details here.</p>
+              <p className="mt-3 leading-7 text-[var(--muted)]">Scan, upload a QR photo, or select a booking.</p>
             )}
-            <div className="mt-6 rounded-2xl border border-[var(--line)] p-4 text-sm leading-6 text-[var(--muted)]">
+            <div className="mt-4 rounded-2xl border border-[var(--line)] p-4 text-sm leading-6 text-[var(--muted)]">
               <p className="font-extrabold text-[var(--primary)]">Signed in as</p>
               <p>{profile?.name || user.email || user.phoneNumber}</p>
               <p className="mt-2">Role: {profile?.role}</p>
