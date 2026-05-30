@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import {
   confirmPhoneOtp,
+  checkInStaffRequest,
   createEmailAccount,
   createPaymentReceipt,
   createPublicRequest,
@@ -610,6 +611,7 @@ function InternalPortal({ mode }) {
   const [staffRequests, setStaffRequests] = useState([])
   const [requestSearch, setRequestSearch] = useState('')
   const [requestQueueMessage, setRequestQueueMessage] = useState('')
+  const [checkInStatus, setCheckInStatus] = useState({ type: '', message: '' })
   const streamRef = useRef(null)
   const scanLoopRef = useRef(null)
   const html5ScannerRef = useRef(null)
@@ -689,6 +691,20 @@ function InternalPortal({ mode }) {
     setCameraActive(false)
   }
 
+  const findStaffRequestByReference = (reference = '') => {
+    const cleanedReference = String(reference || '').trim()
+    if (!cleanedReference) return null
+    return staffRequests.find((item) => item.type !== 'error' && [
+      item.id,
+      item.firestoreId,
+      item.bookingId,
+      item.requestId,
+      item.gatewayReference,
+      item.pidx,
+      item.transactionUuid,
+    ].some((candidate) => String(candidate || '').trim() === cleanedReference)) || null
+  }
+
   const readQrValue = (value, source = 'QR scanned') => {
     const cleaned = String(value || '').trim()
     if (!cleaned) return
@@ -700,14 +716,25 @@ function InternalPortal({ mode }) {
     }
     const isMagicLandQr = details?.type === 'magic_land_ticket'
     const reference = details?.reference || cleaned
+    const matchedRequest = isMagicLandQr ? findStaffRequestByReference(reference) : null
+    const requestDetails = matchedRequest ? staffRequestDetails(matchedRequest) : details
     setManualCode(cleaned)
+    setCheckInStatus({ type: '', message: '' })
     setScanResult({
       code: reference,
-      status: isMagicLandQr ? source : 'Unknown QR',
-      message: isMagicLandQr
-        ? 'QR read successfully. Confirm guest details before check-in at the gate.'
+      status: matchedRequest ? 'Valid ticket' : isMagicLandQr ? 'QR read' : 'Unknown QR',
+      message: matchedRequest
+        ? 'Guest details found. Confirm identity, then check in.'
+        : isMagicLandQr
+          ? 'QR read successfully, but the matching request was not found in the current staff list. Search by phone/email if needed.'
         : 'This QR was readable, but it does not look like a Magic Land ticket QR.',
-      details,
+      details: requestDetails,
+      request: matchedRequest ? {
+        id: matchedRequest.id,
+        collectionName: matchedRequest.collectionName,
+        type: matchedRequest.type,
+        status: matchedRequest.status || 'new',
+      } : null,
     })
     trackEvent('staff_qr_read', { portal: mode, source, valid_magicland_qr: isMagicLandQr })
   }
@@ -729,10 +756,12 @@ function InternalPortal({ mode }) {
       await scanner.start(
         backCamera?.id ? { deviceId: { exact: backCamera.id } } : { facingMode: 'environment' },
         {
-          fps: 10,
+          fps: 20,
+          aspectRatio: 1,
+          disableFlip: true,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight)
-            const size = Math.max(180, Math.floor(minEdge * 0.72))
+            const size = Math.max(220, Math.floor(minEdge * 0.78))
             return { width: size, height: size }
           },
         },
@@ -804,6 +833,8 @@ function InternalPortal({ mode }) {
   const staffRequestDetails = (item) => ({
     type: 'magic_land_ticket',
     reference: item.id,
+    collectionName: item.collectionName,
+    requestType: item.type,
     name: item.name,
     phone: item.phone,
     email: item.email,
@@ -813,18 +844,63 @@ function InternalPortal({ mode }) {
     amount: item.total || Number(String(item.price || '').replace(/[^\d]/g, '')) || '',
     paymentMethod: item.paymentMethod || 'pay_at_park',
     status: item.status || 'new',
+    checkedInAt: item.checkedInAt,
   })
 
   const openStaffRequest = (item) => {
     const details = staffRequestDetails(item)
     setManualCode(item.id)
+    setCheckInStatus({ type: '', message: '' })
     setScanResult({
       code: item.id,
-      status: 'Booking selected',
-      message: 'Request loaded from staff list. Confirm guest identity before entry.',
+      status: item.status === 'checked_in' ? 'Already checked in' : 'Valid ticket',
+      message: item.status === 'checked_in' ? 'This request has already been checked in.' : 'Request loaded. Confirm guest identity, then check in.',
       details,
+      request: {
+        id: item.id,
+        collectionName: item.collectionName,
+        type: item.type,
+        status: item.status || 'new',
+      },
     })
     trackEvent('staff_request_selected', { portal: mode, request_type: item.type, payment_method: details.paymentMethod })
+  }
+
+  const handleCheckIn = async () => {
+    if (!scanResult?.request?.id || !scanResult?.request?.collectionName) {
+      setCheckInStatus({ type: 'error', message: 'Select a valid booking or scan a Magic Land QR before check-in.' })
+      return
+    }
+    if (scanResult.request.status === 'checked_in' || scanResult.details?.status === 'checked_in') {
+      setCheckInStatus({ type: 'error', message: 'This guest is already checked in.' })
+      return
+    }
+    setCheckInStatus({ type: 'loading', message: 'Checking in guest...' })
+    try {
+      await checkInStaffRequest({
+        collectionName: scanResult.request.collectionName,
+        requestId: scanResult.request.id,
+        staffProfile: profile,
+        staffUser: user,
+      })
+      setStaffRequests((items) => items.map((item) => (
+        item.collectionName === scanResult.request.collectionName && item.id === scanResult.request.id
+          ? { ...item, status: 'checked_in', checkedInAt: new Date().toISOString(), checkedInByName: profile?.name || user?.email || '' }
+          : item
+      )))
+      setScanResult((current) => ({
+        ...current,
+        status: 'Checked in',
+        message: 'Entry confirmed. The guest can proceed.',
+        request: { ...current.request, status: 'checked_in' },
+        details: { ...current.details, status: 'checked_in', checkedInAt: new Date().toISOString() },
+      }))
+      setCheckInStatus({ type: 'success', message: 'Check-in saved successfully.' })
+      trackEvent('staff_check_in_success', { portal: mode, request_type: scanResult.request.type, request_id: scanResult.request.id })
+    } catch (error) {
+      setCheckInStatus({ type: 'error', message: error?.message || 'Could not save check-in. Try again or use manual entry.' })
+      trackEvent('staff_check_in_error', { portal: mode, request_type: scanResult.request.type })
+    }
   }
 
   const handleStaffLogin = async (event) => {
@@ -838,6 +914,63 @@ function InternalPortal({ mode }) {
       setScanResult({ status: 'Login failed', message: error?.message || 'Could not sign in with these staff credentials.' })
     }
   }
+
+  const canCheckIn = Boolean(scanResult?.request?.id)
+    && scanResult?.request?.status !== 'checked_in'
+    && scanResult?.details?.status !== 'checked_in'
+    && scanResult?.status !== 'Unknown QR'
+
+  const resultCard = scanResult ? (
+    <div className="rounded-3xl border border-[var(--line)] bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">{scanResult.status}</p>
+          <h2 className="font-display mt-1 text-xl font-bold text-[var(--primary)]">
+            {scanResult.details?.name || 'Guest details'}
+          </h2>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${canCheckIn ? 'bg-emerald-50 text-emerald-700' : 'bg-[var(--surface-3)] text-[var(--primary)]'}`}>
+          {canCheckIn ? 'Ready' : scanResult?.details?.status === 'checked_in' ? 'Used' : 'Review'}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{scanResult.message}</p>
+      {scanResult.details && (
+        <dl className="mt-4 grid gap-2 text-sm">
+          {[
+            ['Reference', scanResult.code],
+            ['Item', scanResult.details.item],
+            ['Date', scanResult.details.visitDate],
+            ['Entries', scanResult.details.quantity],
+            ['Phone', scanResult.details.phone],
+            ['Email', scanResult.details.email],
+            ['Amount', scanResult.details.amount ? `Rs. ${Number(scanResult.details.amount).toLocaleString('en-IN')}` : 'Pay at park'],
+          ].filter(([, value]) => value !== undefined && value !== '').map(([label, value]) => (
+            <div className="flex justify-between gap-3 border-b border-[var(--line)] pb-2" key={label}>
+              <dt className="text-[var(--muted)]">{label}</dt>
+              <dd className="max-w-[60%] break-words text-right font-bold text-[var(--primary)]">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {checkInStatus.message && (
+        <p className={`mt-3 rounded-2xl p-3 text-sm font-bold leading-6 ${checkInStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : checkInStatus.type === 'error' ? 'bg-[var(--surface-3)] text-[var(--secondary)]' : 'bg-[var(--surface-3)] text-[var(--primary)]'}`}>
+          {checkInStatus.message}
+        </p>
+      )}
+      <button
+        type="button"
+        disabled={!canCheckIn || checkInStatus.type === 'loading'}
+        className={`mt-4 w-full rounded-full px-5 py-3 font-extrabold text-white ${canCheckIn ? 'sunset' : 'bg-[var(--primary)] opacity-45'}`}
+        onClick={handleCheckIn}
+      >
+        {checkInStatus.type === 'loading' ? 'Checking in...' : scanResult?.details?.status === 'checked_in' ? 'Already checked in' : 'Check in'}
+      </button>
+    </div>
+  ) : (
+    <div className="rounded-3xl border border-[var(--line)] bg-white p-4 text-sm leading-6 text-[var(--muted)] shadow-sm">
+      Scan a QR, upload a QR photo, or select a booking from the list.
+    </div>
+  )
 
   if (loading) {
     return <InternalShell mode={mode}><div className="storybook-card rounded-[2rem] p-6">Checking staff access...</div></InternalShell>
@@ -945,6 +1078,7 @@ function InternalPortal({ mode }) {
             <input ref={fileInputRef} className="hidden" type="file" accept="image/*" capture="environment" onChange={scanQrImageFile} />
             <div id={fileScannerElementId} className="hidden" />
             {cameraMessage && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] p-3 text-sm font-bold leading-6 text-[var(--secondary)]">{cameraMessage}</p>}
+            <div className="mt-4 lg:hidden">{resultCard}</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
               <input className="soft-field" value={manualCode} onChange={(event) => setManualCode(event.target.value)} placeholder="Paste or type QR code value" />
               <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={runManualCheck}>Validate</button>
@@ -1020,36 +1154,8 @@ function InternalPortal({ mode }) {
               </div>
             </div>
           </div>
-          <aside className="rounded-3xl border border-[var(--line)] bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-24 lg:self-start">
-            <h2 className="font-display text-xl font-bold text-[var(--primary)]">Result</h2>
-            {scanResult ? (
-              <div className="mt-4 rounded-2xl bg-[var(--surface-3)] p-4">
-                <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">{scanResult.status}</p>
-                <p className="mt-2 break-words font-bold text-[var(--primary)]">{scanResult.code}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{scanResult.message}</p>
-                {scanResult.details && (
-                  <dl className="mt-3 grid gap-2 text-sm">
-                    {[
-                      ['Name', scanResult.details.name],
-                      ['Item', scanResult.details.item],
-                      ['Date', scanResult.details.visitDate],
-                      ['Entries', scanResult.details.quantity],
-                      ['Amount', scanResult.details.amount ? `Rs. ${Number(scanResult.details.amount).toLocaleString('en-IN')}` : 'Pay at park'],
-                      ['Phone', scanResult.details.phone],
-                      ['Email', scanResult.details.email],
-                    ].filter(([, value]) => value !== undefined && value !== '').map(([label, value]) => (
-                      <div className="flex justify-between gap-3 border-b border-[var(--line)] pb-2" key={label}>
-                        <dt className="text-[var(--muted)]">{label}</dt>
-                        <dd className="text-right font-bold text-[var(--primary)]">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-                <button disabled className="mt-4 w-full rounded-full bg-[var(--primary)] px-5 py-3 font-extrabold text-white opacity-50">Check in</button>
-              </div>
-            ) : (
-              <p className="mt-3 leading-7 text-[var(--muted)]">Scan, upload a QR photo, or select a booking.</p>
-            )}
+          <aside className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
+            {resultCard}
             <div className="mt-4 rounded-2xl border border-[var(--line)] p-4 text-sm leading-6 text-[var(--muted)]">
               <p className="font-extrabold text-[var(--primary)]">Signed in as</p>
               <p>{profile?.name || user.email || user.phoneNumber}</p>

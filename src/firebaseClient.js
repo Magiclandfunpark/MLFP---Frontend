@@ -13,7 +13,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getDatabase, onValue, ref, set, update } from 'firebase/database'
-import { addDoc, collection, doc, getDoc, getDocs, getFirestore, limit, orderBy, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, getFirestore, limit, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
 
 const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -349,6 +349,25 @@ export async function getStaffRequestQueue(maxItems = 80) {
   })
 
   return { items: results.slice(0, maxItems), error: '' }
+}
+
+export async function checkInStaffRequest({ collectionName, requestId, staffProfile = {}, staffUser = {} }) {
+  if (!collectionName || !requestId) throw new Error('A booking reference is required for check-in.')
+  if (!['bookingRequests', 'membershipRequests'].includes(collectionName)) throw new Error('This request type cannot be checked in.')
+
+  const db = await getDb()
+  if (!db) throw new Error('Firestore is not configured in this build.')
+
+  await updateDoc(doc(db, collectionName, requestId), {
+    status: 'checked_in',
+    checkedInAt: serverTimestamp(),
+    checkedInByUid: staffUser.uid || '',
+    checkedInByEmail: staffUser.email || '',
+    checkedInByName: staffProfile.name || staffUser.email || '',
+    checkedInSource: 'staff_portal',
+  })
+
+  return { ok: true }
 }
 
 function saveLocalFallback(collectionName, payload) {
