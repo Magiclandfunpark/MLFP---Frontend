@@ -2,6 +2,7 @@
 
 import crypto from 'node:crypto'
 import { sanitizeOrderId, validatePaymentAmount } from '../_pricing.js'
+import { sendMetaConversionEvent } from '../_metaConversions.js'
 
 const json = (response, status, body) => {
   response.status(status).setHeader('Content-Type', 'application/json')
@@ -79,6 +80,8 @@ export default async function handler(request, response) {
   try {
     const body = request.body || {}
     const purchaseOrderId = String(body.purchaseOrderId || '').trim()
+    const purchaseOrderName = String(body.purchaseOrderName || 'Magic Land Booking').trim()
+    const customer = body.customerInfo || {}
     const priceCheck = validatePaymentAmount(body)
 
     if (!purchaseOrderId || !priceCheck.ok) {
@@ -102,6 +105,26 @@ export default async function handler(request, response) {
     }
     const signatureMessage = `total_amount=${fields.total_amount},transaction_uuid=${fields.transaction_uuid},product_code=${fields.product_code}`
     const mode = esewaMode(productCode)
+
+    sendMetaConversionEvent(request, {
+      eventName: 'InitiateCheckout',
+      eventId: `checkout:esewa:${purchaseOrderId}`,
+      eventSourceUrl: buildTrackingReturnUrl(baseUrl, '/tickets', 'esewa', purchaseOrderId),
+      user: {
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        purchaseOrderId,
+      },
+      customData: {
+        value: priceCheck.amount,
+        content_name: purchaseOrderName,
+        content_type: body.productType || 'booking',
+        order_id: purchaseOrderId,
+        payment_gateway: 'esewa',
+        num_items: Number(body.guests || body.totalMembers || 1),
+      },
+    }).catch(() => {})
 
     return json(response, 200, {
       action: safePaymentUrl(mode),

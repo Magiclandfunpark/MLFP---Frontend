@@ -1,6 +1,7 @@
 /* global process, Buffer */
 
 import { sanitizeOrderId } from '../_pricing.js'
+import { sendMetaConversionEvent } from '../_metaConversions.js'
 
 const json = (response, status, body) => {
   response.status(status).setHeader('Content-Type', 'application/json')
@@ -57,6 +58,7 @@ export default async function handler(request, response) {
     const body = request.body || {}
     const dataParam = String(body.data || '').trim()
     const expectedPurchaseOrderId = sanitizeOrderId(body.purchaseOrderId)
+    const customer = body.customerInfo || {}
     if (!dataParam) return json(response, 400, { error: 'Missing eSewa return data.' })
 
     const decoded = decodeEsewaData(dataParam)
@@ -83,9 +85,29 @@ export default async function handler(request, response) {
     const completed = verifyData.status === 'COMPLETE' || decoded.status === 'COMPLETE'
     const sameTransaction = !verifyData.transaction_uuid || verifyData.transaction_uuid === transactionUuid
     const orderMatches = expectedPurchaseOrderId ? transactionUuid.startsWith(`${expectedPurchaseOrderId}-`) : true
+    const verified = completed && sameTransaction && orderMatches
 
-    return json(response, completed && sameTransaction && orderMatches ? 200 : 400, {
-      status: completed && sameTransaction && orderMatches ? 'verified' : 'not_verified',
+    if (verified) {
+      sendMetaConversionEvent(request, {
+        eventName: 'Purchase',
+        eventId: `purchase:esewa:${expectedPurchaseOrderId || transactionUuid}`,
+        eventSourceUrl: String(request.headers.referer || 'https://magiclandfunpark.com/payment/esewa/return'),
+        user: {
+          ...customer,
+          purchaseOrderId: expectedPurchaseOrderId || transactionUuid,
+        },
+        customData: {
+          value: totalAmount,
+          content_name: customer.purchaseOrderName || 'Magic Land Booking',
+          content_type: customer.productType || 'booking',
+          order_id: expectedPurchaseOrderId || transactionUuid,
+          payment_gateway: 'esewa',
+        },
+      }).catch(() => {})
+    }
+
+    return json(response, verified ? 200 : 400, {
+      status: verified ? 'verified' : 'not_verified',
       orderMatches,
       decoded,
       data: verifyData,

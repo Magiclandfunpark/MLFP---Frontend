@@ -65,12 +65,12 @@ export function submitEsewaForm({ action, fields }) {
   document.body.removeChild(form)
 }
 
-export async function verifyKhaltiPayment({ pidx, amount, purchaseOrderId }) {
+export async function verifyKhaltiPayment({ pidx, amount, purchaseOrderId, customerInfo }) {
   const response = await withTimeout(
     fetch('/api/khalti/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pidx, amount, purchaseOrderId }),
+      body: JSON.stringify({ pidx, amount, purchaseOrderId, customerInfo }),
     }),
     15000,
     'Khalti verification',
@@ -82,12 +82,12 @@ export async function verifyKhaltiPayment({ pidx, amount, purchaseOrderId }) {
   return data
 }
 
-export async function verifyEsewaPayment({ data, purchaseOrderId }) {
+export async function verifyEsewaPayment({ data, purchaseOrderId, customerInfo }) {
   const response = await withTimeout(
     fetch('/api/esewa/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data, purchaseOrderId }),
+      body: JSON.stringify({ data, purchaseOrderId, customerInfo }),
     }),
     15000,
     'eSewa verification',

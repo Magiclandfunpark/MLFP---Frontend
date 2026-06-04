@@ -2589,10 +2589,20 @@ function KhaltiReturnPage() {
         return
       }
       try {
-        const result = await verifyKhaltiPayment({ pidx, amount, purchaseOrderId: bookingId })
+        const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
+        const result = await verifyKhaltiPayment({
+          pidx,
+          amount,
+          purchaseOrderId: bookingId,
+          customerInfo: {
+            name: pending.name,
+            phone: pending.phone,
+            email: pending.email,
+            productType: pending.requestType || 'ticket',
+          },
+        })
         trackEvent('khalti_payment_verified', { pidx, booking_id: bookingId, status: result.status, paid_amount: result.paidAmount })
         try {
-          const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
           await createPaymentReceipt('khalti', {
             ...pending,
             bookingId: bookingId || pending.bookingId || '',
@@ -2643,10 +2653,20 @@ function EsewaReturnPage() {
         return
       }
       try {
-        const result = await verifyEsewaPayment({ data, purchaseOrderId: bookingId })
+        const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
+        const result = await verifyEsewaPayment({
+          data,
+          purchaseOrderId: bookingId,
+          customerInfo: {
+            name: pending.name,
+            phone: pending.phone,
+            email: pending.email,
+            productType: pending.requestType || 'ticket',
+            purchaseOrderName: pending.ticketName,
+          },
+        })
         trackEvent('esewa_payment_verified', { status: result.status, booking_id: bookingId })
         try {
-          const pending = JSON.parse(sessionStorage.getItem('magicland:pendingPayment') || '{}')
           await createPaymentReceipt('esewa', {
             ...pending,
             bookingId: bookingId || pending.bookingId || '',

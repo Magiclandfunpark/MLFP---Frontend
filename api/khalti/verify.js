@@ -1,5 +1,7 @@
 /* global process */
 
+import { sendMetaConversionEvent } from '../_metaConversions.js'
+
 const json = (response, status, body) => {
   response.status(status).setHeader('Content-Type', 'application/json')
   response.end(JSON.stringify(body))
@@ -57,6 +59,7 @@ export default async function handler(request, response) {
     const pidx = String(body.pidx || '').trim()
     const expectedAmount = Number(body.amount || 0)
     const expectedPurchaseOrderId = String(body.purchaseOrderId || '').trim()
+    const customer = body.customerInfo || {}
 
     if (!pidx) return json(response, 400, { error: 'Missing Khalti pidx.' })
 
@@ -86,8 +89,29 @@ export default async function handler(request, response) {
       : true
     const completed = data.status === 'Completed' || data.state?.name === 'Completed'
 
-    return json(response, completed && amountMatches && orderMatches ? 200 : 400, {
-      status: completed && amountMatches && orderMatches ? 'verified' : 'not_verified',
+    const verified = completed && amountMatches && orderMatches
+
+    if (verified) {
+      sendMetaConversionEvent(request, {
+        eventName: 'Purchase',
+        eventId: `purchase:khalti:${expectedPurchaseOrderId || data.purchase_order_id || pidx}`,
+        eventSourceUrl: String(request.headers.referer || 'https://magiclandfunpark.com/payment/khalti/return'),
+        user: {
+          ...customer,
+          purchaseOrderId: expectedPurchaseOrderId || data.purchase_order_id || pidx,
+        },
+        customData: {
+          value: paidAmount,
+          content_name: data.purchase_order_name || 'Magic Land Booking',
+          content_type: customer.productType || 'booking',
+          order_id: expectedPurchaseOrderId || data.purchase_order_id || '',
+          payment_gateway: 'khalti',
+        },
+      }).catch(() => {})
+    }
+
+    return json(response, verified ? 200 : 400, {
+      status: verified ? 'verified' : 'not_verified',
       amountMatches,
       orderMatches,
       paidAmount,

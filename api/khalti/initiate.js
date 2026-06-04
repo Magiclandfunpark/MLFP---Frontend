@@ -1,6 +1,7 @@
 /* global process */
 
 import { validatePaymentAmount } from '../_pricing.js'
+import { sendMetaConversionEvent } from '../_metaConversions.js'
 
 const json = (response, status, body) => {
   response.status(status).setHeader('Content-Type', 'application/json')
@@ -114,6 +115,24 @@ export default async function handler(request, response) {
     if (!khaltiResponse.ok) {
       return json(response, khaltiResponse.status, { error: 'Khalti initiation failed.', details: data })
     }
+
+    sendMetaConversionEvent(request, {
+      eventName: 'InitiateCheckout',
+      eventId: `checkout:khalti:${purchaseOrderId}`,
+      eventSourceUrl: buildTrackingReturnUrl(baseUrl, '/tickets', 'khalti', purchaseOrderId),
+      user: {
+        ...payload.customer_info,
+        purchaseOrderId,
+      },
+      customData: {
+        value: priceCheck.amount,
+        content_name: purchaseOrderName,
+        content_type: body.productType || 'booking',
+        order_id: purchaseOrderId,
+        payment_gateway: 'khalti',
+        num_items: Number(body.guests || body.totalMembers || 1),
+      },
+    }).catch(() => {})
 
     return json(response, 200, {
       pidx: data.pidx,
