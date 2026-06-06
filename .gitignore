@@ -13,6 +13,12 @@ dist-ssr
 *.local
 .firebase
 
+# Original Magic Land media masters stay local. Only generated web derivatives
+# under public/media are deployed.
+public/Magic Land Intro video.mp4
+public/Magic Land Photos/
+media-masters/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

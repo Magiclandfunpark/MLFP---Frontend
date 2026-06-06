@@ -110,6 +110,10 @@ a {
   color: transparent;
 }
 
+.hero-copy-shadow {
+  text-shadow: 0 2px 12px rgba(3, 13, 70, 0.72);
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

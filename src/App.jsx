@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
-  ArrowRight,
   Bell,
   CalendarDays,
   Clock3,
@@ -17,8 +16,10 @@ import {
   Palette,
   PartyPopper,
   Phone,
+  Play,
   ShieldCheck,
   Sparkles,
+  Star,
   Ticket,
   Utensils,
   UserRound,
@@ -83,6 +84,7 @@ const weatherLabels = {
   95: 'Thunderstorm',
 }
 const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${park.lat},${park.lng}&destination_place_id=Magic+Land+Family+Fun+Park`
+const googleBusinessUrl = 'https://www.google.com/maps/place/Magic+Land+Family+Fun+Park/@27.7354359,85.2715865,12.47z/data=!4m17!1m10!4m9!1m4!2m2!1d85.3311488!2d27.6955136!4e1!1m3!2m2!1d85.3239042!2d27.7836311!3m5!1s0x39eb1ff50274c9b9:0x2acfcb4719ba6c9d!8m2!3d27.7836311!4d85.3239042!16s%2Fg%2F11z72w3c4v'
 const osmTileGrid = {
   z: 15,
   xs: [24149, 24150, 24151],
@@ -119,31 +121,40 @@ const routeToPark = [
 ]
 
 const img = {
-  hero: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDitvdo9wpvDjiLye1BqgtOFcyRa8mT5uGfRwXEC3KADDNUxfJvWubZxs9blTBbdivJCn5I0z-Lbwszfk25rMelo8S4i37nUsz2Db2W6wQEEHoMcT9vRJbBvS0YjANsG_sM4R48XAynoDm8nduXp_ZJLtBCPdSC1nCFcAq5QGzcC7vkZ2YqB_LsJ5zeBmDxWWxPT_oHb8BNACQ_PoGi2yR0fU7m2t8eUVf8W_rfaDDZpGtZv0KGSru7zfoFv6E_D1aIgUEj7nJKANGV',
-  mobileHero: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5EHqf-rU5hIIFIJit9P1kGuqshsu7W6BgmjFTX77lD20gjCaa7durA2Lqm2mQ85CYlJSIYj11Cuhik245iUiphXo1-8TA8qPZW7pnod-DLxEtVGjlHLr_ycAbADaVHDgrSFoes5mg97IJ7IoWPT7bk8T0snsN3NvEOADIb9hY1-Zr5AeIQ2kRb_AkoVVaDGNXk0frNVwdXeZ0eFaHMYa4NjyRCqTgUXA3_D-a3NAHWIAQWTCr71Fv71kCuZ87Do0y_ijzMtg1aYYA',
-  mobileMoment: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBpJHUHCBI9sqDaVv2biC-ZsqSVNJp1gm8yV3wbSo2osZqir9xUuHz5jXQ3KDj2L76g0Nc1y8uitlSCLdwf29KWnP9yEyixN4-YWSO83pjxoHauQLbDg4UhS14myIb8h30UQpQod0IGno3tpUC-G4jDtlgx-wkpQO2qc16nhBYkRBAOv1CGJeLRoNyVBemqhml3qcXEIqw0y2pe0vGE2ZXYJaeZXY2VrMFzffjiM28zEdCSJYaYssKQ09TRHWGAjb9qiq_Ul5p7kPxf',
-  castle: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=1200&q=80',
-  coaster: 'https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?auto=format&fit=crop&w=900&q=80',
-  carousel: 'https://images.unsplash.com/photo-1505731110654-99d7f7f8e39c?auto=format&fit=crop&w=900&q=80',
-  splash: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=900&q=80',
-  arcade: 'https://images.unsplash.com/photo-1577741314755-048d8525d31e?auto=format&fit=crop&w=900&q=80',
-  dining: 'https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?auto=format&fit=crop&w=900&q=80',
-  birthday: 'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?auto=format&fit=crop&w=1100&q=80',
-  parade: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1100&q=80',
-  vrBike: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?auto=format&fit=crop&w=900&q=80',
-  vrCar: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80',
-  vrShooting: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=80',
+  hero: '/media/video/home-intro-poster.webp',
+  mobileHero: '/media/images/home-family-1200.webp',
+  homeFamily: '/media/images/home-family-1200.webp',
+  mobileMoment: '/media/images/events-stage-1200.webp',
+  castle: '/media/images/park-sunset-1200.webp',
+  coaster: '/media/images/family-rides-1200.webp',
+  carousel: '/media/images/carousel-horse-1200.webp',
+  splash: '/media/images/bubble-play-1200.webp',
+  arcade: '/media/images/arcade-machines-1200.webp',
+  dining: '/media/images/guest-moment-1200.webp',
+  birthday: '/media/images/home-bubbles-1200.webp',
+  parade: '/media/images/events-stage-1200.webp',
+  vrBike: '/media/images/vr-bike-1200.webp',
+  vrCar: '/media/images/vr-car-1200.webp',
+  vrShooting: '/media/images/shooting-game-1200.webp',
   pool: 'https://commons.wikimedia.org/wiki/Special:FilePath/Break-off%20shot%20(Unsplash).jpg?width=900',
-  familyGames: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=80',
-  kidsPlay: 'https://images.unsplash.com/photo-1564429238817-393bd4286b2d?auto=format&fit=crop&w=900&q=80',
-  creativeVillage: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=900&q=80',
+  familyGames: '/media/images/car-ride-1200.webp',
+  selfControlRide: '/media/images/self-control-ride-1200.webp',
+  kidsPlay: '/media/images/kids-play-1200.webp',
+  creativeVillage: '/media/images/creative-village-1200.webp',
   basketball: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80',
   boxing: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&w=900&q=80',
-  bicycle: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=900&q=80',
-  zipline: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=900&q=80',
-  pottery: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=900&q=80',
-  painting: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=900&q=80',
-  villageHeritage: '/creative-village-heritage.svg',
+  bicycle: '/media/images/rickshaw-1200.webp',
+  zipline: '/media/images/zipline-1200.webp',
+  pottery: '/media/images/pottery-1200.webp',
+  painting: '/media/images/pottery-workshop-1200.webp',
+  villageHeritage: '/media/images/doko-heritage-1200.webp',
+  bungee: '/media/images/bungee-1200.webp',
+  trampoline: '/media/images/trampoline-1200.webp',
+  creativeDress: '/media/images/creative-dress-1200.webp',
+  creativeFamily: '/media/images/creative-family-1200.webp',
+  eventSinger: '/media/images/events-singer-1200.webp',
+  eventDj: '/media/images/events-dj-1200.webp',
+  parkLocation: '/media/images/park-location-1200.webp',
   sevenStonesPond: '/seven-stones-pond.svg',
 }
 
@@ -171,8 +182,8 @@ const moreNav = [
 const socialLinks = [
   { label: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61578532986157', icon: 'facebook' },
   { label: 'Instagram', href: 'https://www.instagram.com/magiclandnepal/', icon: 'instagram' },
-  { label: 'TikTok', href: 'https://www.tiktok.com/@magiclandfunpark.com', icon: 'tiktok' },
-  { label: 'YouTube', href: '', icon: 'youtube' },
+  { label: 'TikTok', href: 'https://www.tiktok.com/@magiclandfamilyfunpark', icon: 'tiktok' },
+  { label: 'YouTube', href: 'https://www.youtube.com/@MagicLandFunPark/', icon: 'youtube' },
 ]
 
 const pagePaths = {
@@ -239,17 +250,17 @@ const attractionList = [
   { name: 'VR Bike Racing', zone: 'VR & Simulators', category: 'VR thrill', wait: '12 min', height: '8+ years', image: img.vrBike, bestFor: 'Speed lovers', copy: 'High-energy bike racing with motion seats, speed effects, and friendly competition.' },
   { name: 'VR Car Simulator', zone: 'VR & Simulators', category: 'Racing', wait: '15 min', height: '8+ years', image: img.vrCar, bestFor: 'Racing fans and groups', copy: 'Steer, drift, and race through immersive tracks made for kids, teens, and parents.' },
   { name: 'Immersive Gun Shooting', zone: 'VR & Simulators', category: 'Skill game', wait: '10 min', height: '10+ years', image: img.vrShooting, bestFor: 'Score challenges', copy: 'Safe, interactive target games with scoreboards, missions, and replay-friendly challenges.' },
-  { name: 'Horse Riding Archery', zone: 'VR & Simulators', category: 'Action', wait: 'Session', height: '10+ years', image: img.familyGames, bestFor: 'Adventure play', copy: 'A themed skill experience combining movement, aim, and playful competition.' },
+  { name: 'Horse Riding Archery', zone: 'VR & Simulators', category: 'Action', wait: 'Session', height: '10+ years', image: img.carousel, bestFor: 'Adventure play', copy: 'A themed skill experience combining movement, aim, and playful competition.' },
   { name: 'Boxing Challenge', zone: 'VR & Simulators', category: 'Challenge', wait: 'Quick play', height: '10+ years', image: img.boxing, bestFor: 'Energy release', copy: 'A punch-score challenge for teens, parents, and groups who enjoy friendly contests.' },
   { name: '16 Seats Carousel', zone: 'Family Rides', category: 'Family', wait: '5 min', height: 'All ages', image: img.carousel, bestFor: 'Young children', copy: 'A classic carousel ride for gentle family fun and photo-friendly moments.' },
   { name: 'Flying Spaceship', zone: 'Family Rides', category: 'Ride', wait: '8 min', height: 'All ages', image: img.coaster, bestFor: 'Little adventurers', copy: 'A cheerful spaceship ride that gives children a playful flying feeling.' },
-  { name: 'Self-Control Plane', zone: 'Family Rides', category: 'Ride', wait: '8 min', height: 'All ages', image: img.castle, bestFor: 'Kids who like controls', copy: 'Children can guide their own plane-style ride with gentle up-and-down movement.' },
+  { name: 'Self-Control Plane', zone: 'Family Rides', category: 'Ride', wait: '8 min', height: 'All ages', image: img.selfControlRide, bestFor: 'Kids who like controls', copy: 'Children control the gentle movement while enjoying this colorful family ride.' },
   { name: 'Bumper Cars', zone: 'Family Rides', category: 'Family', wait: '33 cars', height: '6+ years', image: img.familyGames, bestFor: 'Family laughs', copy: 'Classic bumper car fun for children, parents, and groups who enjoy light competition.' },
-  { name: 'Jumping Zone', zone: 'Kids Play', category: 'Active', wait: 'Open', height: 'Kids', image: img.kidsPlay, bestFor: 'Active kids', copy: 'A safe active-play area for jumping, movement, and burn-off-energy fun.' },
-  { name: 'Bouncy Castle', zone: 'Kids Play', category: 'Soft play', wait: '3 sets', height: 'Kids', image: img.kidsPlay, bestFor: 'Younger children', copy: 'Colorful inflatable play for birthdays, weekend visits, and safe energetic play.' },
+  { name: 'Jumping Zone', zone: 'Kids Play', category: 'Active', wait: 'Open', height: 'Kids', image: img.bungee, bestFor: 'Active kids', copy: 'A safe active-play area for jumping, movement, and burn-off-energy fun.' },
+  { name: 'Bouncy Castle', zone: 'Kids Play', category: 'Soft play', wait: '3 sets', height: 'Kids', image: img.splash, bestFor: 'Younger children', copy: 'Colorful inflatable play for birthdays, weekend visits, and safe energetic play.' },
   { name: 'Spray Ball Play', zone: 'Kids Play', category: 'Soft play', wait: 'Open', height: 'Kids', image: img.splash, bestFor: 'Group play', copy: 'A playful ball-spray activity for children who love movement and interactive play.' },
   { name: 'Soft Play Structures', zone: 'Kids Play', category: 'Play', wait: '7 sets', height: 'Kids', image: img.kidsPlay, bestFor: 'Small children', copy: 'Non-powered play equipment for climbing, exploring, and supervised soft adventure.' },
-  { name: 'Trampoline Bridge', zone: 'Kids Play', category: 'Active', wait: 'Open', height: 'Kids', image: img.kidsPlay, bestFor: 'Balance play', copy: 'A trampoline-style bridge for active kids who enjoy bouncing and crossing challenges.' },
+  { name: 'Trampoline Bridge', zone: 'Kids Play', category: 'Active', wait: 'Open', height: 'Kids', image: img.trampoline, bestFor: 'Balance play', copy: 'A trampoline-style bridge for active kids who enjoy bouncing and crossing challenges.' },
   { name: 'Zipline', zone: 'Kids Play', category: 'Adventure', wait: 'Session', height: 'Kids', image: img.zipline, bestFor: 'Brave kids', copy: 'A short adventure-style zipline moment that adds movement and excitement to the play zone.' },
   { name: 'Teeterboard & Rocking Horse', zone: 'Kids Play', category: 'Toddler', wait: 'Open', height: 'Kids', image: img.carousel, bestFor: 'Toddlers', copy: 'Gentle balancing and rocking play for younger children and calmer visits.' },
   { name: 'Bicycle Play', zone: 'Kids Play', category: 'Outdoor', wait: '12 bikes', height: 'Kids', image: img.bicycle, bestFor: 'Active riders', copy: 'Bicycle play for children who enjoy simple movement, coordination, and outdoor fun.' },
@@ -259,7 +270,7 @@ const attractionList = [
   { name: 'Prize & Skill Corner', zone: 'Arcade & Skill', category: 'Skill', wait: 'Open', height: 'All ages', image: img.arcade, bestFor: 'Membership value', copy: 'Prize-style moments, quick challenges, and arcade corners that make repeat visits worthwhile.' },
   { name: 'Pottery Workshop', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.pottery, bestFor: 'Parent-child bonding', copy: 'A calm hands-on pottery space inside aesthetic village-style homes for creative family time.' },
   { name: 'Painting Studio', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.painting, bestFor: 'Birthdays and schools', copy: 'Painting sessions where children can explore colors, brushes, and take-home memories.' },
-  { name: 'Color Sand Play', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'Kids', image: img.creativeVillage, bestFor: 'Sensory play', copy: 'Color sand activities for calm sensory play, art corners, and photo-friendly moments.' },
+  { name: 'Color Sand Play', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'Kids', image: img.creativeDress, bestFor: 'Sensory play', copy: 'Color sand activities for calm sensory play, art corners, and photo-friendly moments.' },
   { name: 'Dhiki & Jato Heritage Corner', zone: 'Creative Village', category: 'Heritage', wait: 'Guided', height: 'All ages', image: img.villageHeritage, bestFor: 'School visits', copy: 'A child-friendly cultural corner inspired by traditional Nepali dhiki and jato grain tools, presented as touch-and-learn heritage play.' },
   { name: 'Madani & Doko Craft Play', zone: 'Creative Village', category: 'Heritage craft', wait: 'Workshop', height: 'All ages', image: img.villageHeritage, bestFor: 'Creative learning', copy: 'Village-style craft storytelling with madani, doko, baskets, colors, and hands-on activity prompts for families.' },
   { name: 'Arts & Crafts Village Homes', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'All ages', image: img.creativeVillage, bestFor: 'Slow family time', copy: 'Aesthetic village homes for arts, crafts, workshops, and quiet moments between high-energy games.' },
@@ -1263,6 +1274,7 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
 function HomePage({ setPage }) {
   const weather = useParkWeather()
   const liveStatus = useLiveParkStatus()
+  const [trailerOpen, setTrailerOpen] = useState(false)
   const quickActions = [
     [CalendarDays, 'Today at Magic Land', 'Hours, shows, and events', 'events'],
     [Crown, 'Membership Credits', '5 visits from Rs. 2,999', 'memberships'],
@@ -1273,7 +1285,7 @@ function HomePage({ setPage }) {
   return (
     <>
       <section className="relative hidden h-[760px] w-full overflow-hidden md:block">
-        <img src={img.hero} alt="Magic Land Family Fun Park castle" className="absolute inset-0 h-full w-full object-cover" />
+        <HeroVideo mode="desktop" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.78)] via-[rgba(3,13,70,0.18)] to-transparent" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl px-4 pb-8 md:px-8 md:pb-16">
           <div className="max-w-xl text-white">
@@ -1281,8 +1293,11 @@ function HomePage({ setPage }) {
             <h1 className="font-display text-6xl font-bold leading-tight">A Place Where Kids Laugh, Families Bond, and Memories Become Magic</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-white/88">Magic Land Family Fun Park is a place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <button className="sunset rounded-full px-8 py-4 text-lg font-extrabold shadow-xl" onClick={() => setPage('tickets')}>Book Quest</button>
-              <button className="rounded-full border-2 border-white/40 bg-white/10 px-8 py-4 text-lg font-extrabold text-white backdrop-blur-sm" onClick={() => setPage('events')}>View Events</button>
+              <button className="sunset rounded-full px-8 py-4 text-lg font-extrabold shadow-xl" onClick={() => setPage('tickets')}>Buy Tickets</button>
+              <button className="inline-flex items-center gap-2 rounded-full border-2 border-white/40 bg-white/10 px-8 py-4 text-lg font-extrabold text-white backdrop-blur-sm" onClick={() => setTrailerOpen(true)}>
+                <Play size={20} fill="currentColor" />
+                Watch Trailer
+              </button>
             </div>
           </div>
         </div>
@@ -1290,18 +1305,19 @@ function HomePage({ setPage }) {
 
       <section className="md:hidden">
         <div className="relative h-[480px] w-full overflow-hidden">
-          <img src={img.mobileHero} alt="Magic Land castle" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.82)] via-[rgba(3,13,70,0.2)] to-transparent" />
-          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 space-y-4 p-4 text-left text-white">
-            <h1 className="font-display max-w-[330px] text-2xl font-bold leading-tight">Kids Laugh. Families Bond. Memories Become Magic.</h1>
-            <p className="max-w-[330px] text-sm font-semibold leading-6 text-white/88">A joyful family park with VR games, rides, creative play, exceptional hospitality, and a welcoming experience for everyone.</p>
+          <HeroVideo mode="mobile" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.88)] via-[rgba(3,13,70,0.22)] to-[rgba(3,13,70,0.08)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,13,70,0.72)_0%,rgba(3,13,70,0.52)_64%,rgba(3,13,70,0.12)_100%)]" />
+          <div className="hero-copy-shadow absolute inset-x-0 top-1/2 -translate-y-1/2 space-y-4 p-4 text-left text-white">
+            <h1 className="font-display max-w-[305px] text-2xl font-bold leading-[1.2]">Kids Laugh. Families Bond. Memories Become Magic.</h1>
+            <p className="max-w-[305px] text-sm font-bold leading-6 text-white">A joyful family park with VR games, rides, creative play, exceptional hospitality, and a welcoming experience for everyone.</p>
             <div className="flex flex-wrap gap-3">
               <button className="sunset inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold shadow-lg" onClick={() => setPage('tickets')}>
                 Buy Tickets
               </button>
-              <button className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/18 px-5 py-3 text-sm font-extrabold text-white backdrop-blur-sm" onClick={() => setPage('attractions')}>
-                Explore Park
-                <ArrowRight size={16} />
+              <button className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/18 px-5 py-3 text-sm font-extrabold text-white backdrop-blur-sm" onClick={() => setTrailerOpen(true)}>
+                <Play size={16} fill="currentColor" />
+                Watch Trailer
               </button>
             </div>
           </div>
@@ -1371,6 +1387,7 @@ function HomePage({ setPage }) {
       <div className="hidden md:block">
         <MapTeaser setPage={setPage} />
       </div>
+      {trailerOpen && <TrailerModal onClose={() => setTrailerOpen(false)} />}
     </>
   )
 }
@@ -1523,7 +1540,15 @@ function AttractionsPage({ setPage }) {
     trackEvent('attraction_filter_select', { zone })
   }
   return (
-    <PageShell eyebrow="Attractions" title="VR games, skill games, rides, and family fun">
+    <PageShell eyebrow="Attractions" title="VR games, rides, and family fun">
+      <div className="relative mb-7 h-52 overflow-hidden rounded-2xl sm:h-64 md:h-72 md:rounded-[2rem] lg:h-80">
+        <SmartImage src={img.vrBike} alt="Magic Land VR bike racing experience" className="h-full w-full object-cover" loading="eager" sizes="(min-width: 768px) 1200px, 100vw" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[rgba(3,13,70,0.82)] via-[rgba(3,13,70,0.48)] to-[rgba(3,13,70,0.08)]" />
+        <div className="hero-copy-shadow absolute inset-x-0 bottom-0 max-w-[34rem] p-4 text-white sm:p-6 md:p-8">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-white sm:text-sm">Real Magic Land experiences</p>
+          <p className="font-display mt-2 max-w-[19rem] text-xl font-bold leading-tight sm:max-w-md sm:text-2xl md:max-w-xl md:text-3xl lg:text-4xl">Choose a zone and find the experience that fits your day.</p>
+        </div>
+      </div>
       <div className="mb-7 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
         {zoneFilters.map((zone) => (
           <button
@@ -1970,11 +1995,13 @@ function MembershipPage({ setPage }) {
               ))}
             </div>
           </div>
-          <div className="grid content-center gap-3 bg-[var(--surface-3)] p-6">
-            <div className="rounded-[1.5rem] bg-white p-5 shadow-sm">
-              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">How it works</p>
-              <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">Credits are counted per person.</h3>
-              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--muted)]">A family of 4 visiting together uses 4 credits. Bigger families can add members and the checkout updates automatically.</p>
+          <div className="relative min-h-72 overflow-hidden bg-[var(--surface-3)]">
+            <SmartImage src={img.homeFamily ?? img.mobileHero} alt="A family enjoying Magic Land together" className="absolute inset-0 h-full w-full object-cover" sizes="(min-width: 1024px) 380px, 100vw" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.78)] via-transparent to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-white/80">How it works</p>
+              <h3 className="font-display mt-2 text-2xl font-bold">Credits are counted per person.</h3>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/88">A family of 4 visiting together uses 4 credits. Add members and the checkout updates automatically.</p>
             </div>
           </div>
         </div>
@@ -2182,6 +2209,19 @@ function MapPage() {
             <a href={directionsUrl} target="_blank" rel="noreferrer" onClick={() => trackEvent('map_directions_click', { destination: 'magic_land_tarakeshwar' })} className="sunset inline-flex justify-center rounded-full px-6 py-4 text-center font-extrabold shadow-sm">Directions from my location</a>
           </div>
           <div className="mt-6 border-t border-[var(--line)] pt-5">
+            <p className="text-sm font-bold text-[var(--muted)]">Visited Magic Land?</p>
+            <a
+              href={googleBusinessUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => trackEvent('google_reviews_click', { location: 'map_page' })}
+              className="mt-3 inline-flex items-center gap-2 text-sm font-extrabold text-[var(--primary)] transition hover:text-[var(--secondary)]"
+            >
+              <Star size={18} fill="currentColor" />
+              Read or leave a Google review
+            </a>
+          </div>
+          <div className="mt-6 border-t border-[var(--line)] pt-5">
             <p className="text-sm font-bold text-[var(--muted)]">Park capacity</p>
             <p className="font-display mt-2 text-xl font-bold text-[var(--primary)]">Around 700 guests at once</p>
           </div>
@@ -2364,6 +2404,14 @@ function EventsPage() {
 
   return (
     <PageShell eyebrow="Calendar" title="Park hours, shows, parades, and seasonal events">
+      <div className="relative mb-6 h-64 overflow-hidden rounded-[2rem] md:h-96">
+        <SmartImage src={img.eventSinger} alt="Live performer on the Magic Land events stage" className="h-full w-full object-cover" sizes="(min-width: 768px) 1200px, 100vw" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.72)] via-transparent to-transparent" />
+        <div className="absolute bottom-0 left-0 max-w-2xl p-6 text-white md:p-8">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-white/80">Live at Magic Land</p>
+          <h2 className="font-display mt-2 text-3xl font-bold md:text-4xl">Music, family activities, and evening moments.</h2>
+        </div>
+      </div>
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         <div className="glass rounded-[2rem] p-6">
           <h3 className="font-display text-2xl font-bold text-[var(--primary)]">May 2026</h3>
@@ -2391,7 +2439,14 @@ function AboutPage() {
           <p className="mt-4 leading-8 text-[var(--muted)]">Magic Land brings together VR games, family rides, arcade challenges, Creative Village activities, birthdays, dining, and guest care in one welcoming park experience.</p>
           <p className="mt-4 leading-8 text-[var(--muted)]">The park story is shaped around Ankit Dhakal and Binaya Neupane, two USA-returned family entrepreneurs who wanted to create a cleaner, warmer, and more organized entertainment destination for families in Kathmandu.</p>
         </article>
-        <QuickCard icon={Crown} title="Our Promise" copy="A safe, friendly, well-managed park where children laugh, families bond, and every visit feels easy to plan." />
+        <div className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
+          <SmartImage src={img.creativeFamily ?? img.creativeVillage} alt="A family moment at Magic Land Creative Village" className="h-72 w-full object-cover" />
+          <div className="p-5">
+            <Crown className="text-[var(--secondary)]" />
+            <h3 className="font-display mt-3 text-2xl font-bold text-[var(--primary)]">Our Promise</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">A safe, friendly, well-managed park where children laugh, families bond, and every visit feels easy to plan.</p>
+          </div>
+        </div>
       </div>
     </PageShell>
   )
@@ -2805,7 +2860,7 @@ function SectionIntro({ eyebrow, title }) {
 }
 
 function PageShell({ eyebrow, title, children }) {
-  return <section className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16"><div className="mb-8 max-w-4xl"><p className="text-sm font-extrabold uppercase tracking-wider text-[var(--secondary)]">{eyebrow}</p><h1 className="font-display mt-2 text-3xl font-bold leading-tight text-[var(--primary)] md:text-6xl">{title}</h1></div>{children}</section>
+  return <section className="mx-auto max-w-7xl px-4 py-8 sm:py-10 md:px-8 md:py-14"><div className="mb-6 max-w-4xl md:mb-8"><p className="text-xs font-extrabold uppercase tracking-wider text-[var(--secondary)] sm:text-sm">{eyebrow}</p><h1 className="font-display mt-2 max-w-3xl text-[1.75rem] font-bold leading-[1.15] text-[var(--primary)] sm:text-4xl md:text-5xl lg:text-[3.5rem]">{title}</h1></div>{children}</section>
 }
 
 function QuickCard({ icon: Icon, title, copy, onClick }) {
@@ -2843,9 +2898,98 @@ function SocialIcon({ name, size = 18 }) {
   return <svg {...common}><path d="M4 8.5A3 3 0 0 1 7 5.5h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3Z" /><path d="m10 9 5 3-5 3Z" /></svg>
 }
 
-function SmartImage({ src, alt, className }) {
+function HeroVideo({ mode, className }) {
+  const [showVideo, setShowVideo] = useState(() => {
+    const mediaQuery = window.matchMedia(mode === 'desktop' ? '(min-width: 768px)' : '(max-width: 767px)')
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const saveData = navigator.connection?.saveData
+    return mediaQuery.matches && !reducedMotion && !saveData
+  })
+
+  if (!showVideo) {
+    return (
+      <SmartImage
+        src={mode === 'desktop' ? img.hero : img.mobileHero}
+        alt="Families enjoying Magic Land Family Fun Park"
+        className={className}
+        loading="eager"
+        fetchPriority="high"
+        sizes="100vw"
+      />
+    )
+  }
+
+  return (
+    <video
+      className={className}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      poster={mode === 'desktop' ? '/media/video/home-intro-poster.webp' : '/media/video/home-intro-poster-mobile.webp'}
+      aria-label="Magic Land Family Fun Park video highlights"
+      onError={() => setShowVideo(false)}
+    >
+      <source src={mode === 'desktop' ? '/media/video/home-intro-loop-1080.mp4' : '/media/video/home-intro-loop-mobile.mp4'} type="video/mp4" />
+    </video>
+  )
+}
+
+function TrailerModal({ onClose }) {
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-[rgba(3,13,70,0.92)] p-3 backdrop-blur-md md:p-8" role="dialog" aria-modal="true" aria-label="Magic Land full trailer">
+      <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl bg-black shadow-2xl">
+        <button className="absolute right-3 top-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-black/65 text-white backdrop-blur" onClick={onClose} aria-label="Close trailer">
+          <X size={22} />
+        </button>
+        <video className="aspect-video w-full bg-black object-contain" controls autoPlay playsInline poster="/media/video/home-intro-poster.webp">
+          <source src="/media/video/magic-land-full-trailer.mp4" type="video/mp4" />
+          Your browser does not support HTML video.
+        </video>
+      </div>
+    </div>
+  )
+}
+
+function SmartImage({ src, alt, className, loading = 'lazy', sizes = '(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw', fetchPriority = 'auto' }) {
   const [imageSrc, setImageSrc] = useState(src)
-  return <img src={imageSrc} alt={alt} className={className} loading="lazy" onError={() => setImageSrc((current) => (current === img.arcade ? img.mobileHero : img.arcade))} />
+  const localMatch = imageSrc?.match(/^\/media\/images\/(.+)-(480|768|1200|1800)\.(webp|jpg)$/)
+  const fallback = imageSrc === img.arcade ? img.mobileHero : img.arcade
+
+  if (localMatch) {
+    const base = localMatch[1]
+    const srcSet = (extension) => [480, 768, 1200, 1800].map((width) => `/media/images/${base}-${width}.${extension} ${width}w`).join(', ')
+    return (
+      <picture>
+        <source type="image/webp" srcSet={srcSet('webp')} sizes={sizes} />
+        <source type="image/jpeg" srcSet={srcSet('jpg')} sizes={sizes} />
+        <img
+          src={`/media/images/${base}-768.jpg`}
+          alt={alt}
+          className={className}
+          loading={loading}
+          decoding="async"
+          fetchPriority={fetchPriority}
+          onError={() => setImageSrc(fallback)}
+        />
+      </picture>
+    )
+  }
+
+  return <img src={imageSrc} alt={alt} className={className} loading={loading} decoding="async" fetchPriority={fetchPriority} onError={() => setImageSrc(fallback)} />
 }
 
 function EventRow({ time, title, place }) {
