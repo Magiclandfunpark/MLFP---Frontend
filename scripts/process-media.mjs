@@ -77,6 +77,14 @@ async function buildVideo() {
   const sharedVideoArgs = [
     '-c:v', 'libx264',
     '-preset', 'medium',
+    '-profile:v', 'baseline',
+    '-level', '3.1',
+    '-pix_fmt', 'yuv420p',
+    '-movflags', '+faststart',
+  ]
+  const cinematicVideoArgs = [
+    '-c:v', 'libx264',
+    '-preset', 'medium',
     '-profile:v', 'high',
     '-level', '4.1',
     '-pix_fmt', 'yuv420p',
@@ -84,21 +92,21 @@ async function buildVideo() {
   ]
 
   await runFfmpeg([
-    '-y', '-ss', '0', '-t', '18', '-i', sourceVideo,
+    '-y', '-ss', '0', '-t', '10', '-i', sourceVideo,
     '-an',
     '-vf', `${cleanCinematicFrame},scale=1280:-2:flags=lanczos`,
     ...sharedVideoArgs,
-    '-crf', '24',
-    '-maxrate', '2600k',
-    '-bufsize', '5200k',
+    '-crf', '26',
+    '-maxrate', '1800k',
+    '-bufsize', '3600k',
     path.join(videoOutput, 'home-intro-loop-720.mp4'),
   ])
 
   await runFfmpeg([
-    '-y', '-ss', '0', '-t', '18', '-i', sourceVideo,
+    '-y', '-ss', '0', '-t', '10', '-i', sourceVideo,
     '-an',
     '-vf', `${cleanCinematicFrame},scale=1920:-2:flags=lanczos`,
-    ...sharedVideoArgs,
+    ...cinematicVideoArgs,
     '-crf', '23',
     '-maxrate', '4800k',
     '-bufsize', '9600k',
@@ -110,7 +118,7 @@ async function buildVideo() {
   await runFfmpeg([
     '-y', '-i', sourceVideo,
     '-vf', `${cleanCinematicFrame},scale=1920:-2:flags=lanczos`,
-    ...sharedVideoArgs,
+    ...cinematicVideoArgs,
     '-crf', '23',
     '-maxrate', '5200k',
     '-bufsize', '10400k',
@@ -137,13 +145,13 @@ async function buildMobileVideo(sharedVideoArgs) {
   const mobileFrame = 'crop=918:1632:1040:264'
 
   await runFfmpeg([
-    '-y', '-ss', '0', '-t', '18', '-i', sourceVideo,
+    '-y', '-ss', '0', '-t', '8', '-i', sourceVideo,
     '-an',
-    '-vf', `${mobileFrame},scale=720:1280:flags=lanczos`,
+    '-vf', `${mobileFrame},scale=540:960:flags=lanczos`,
     ...sharedVideoArgs,
-    '-crf', '24',
-    '-maxrate', '2400k',
-    '-bufsize', '4800k',
+    '-crf', '27',
+    '-maxrate', '1100k',
+    '-bufsize', '2200k',
     path.join(videoOutput, 'home-intro-loop-mobile.mp4'),
   ])
 
@@ -184,8 +192,8 @@ if (!imagesOnly) {
     const sharedVideoArgs = [
       '-c:v', 'libx264',
       '-preset', 'medium',
-      '-profile:v', 'high',
-      '-level', '4.1',
+      '-profile:v', 'baseline',
+      '-level', '3.1',
       '-pix_fmt', 'yuv420p',
       '-movflags', '+faststart',
     ]

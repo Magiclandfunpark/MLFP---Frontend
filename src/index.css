@@ -35,6 +35,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: var(--surface);
+  font-size: 15px;
+  line-height: 1.55;
 }
 
 #root {
@@ -46,6 +48,24 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+p,
+li {
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+button,
+a {
+  line-height: 1.25;
 }
 
 a {
@@ -126,5 +146,6 @@ a {
 @media (max-width: 767px) {
   body {
     padding-bottom: 5rem;
+    font-size: 14px;
   }
 }

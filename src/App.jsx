@@ -1284,17 +1284,17 @@ function HomePage({ setPage }) {
 
   return (
     <>
-      <section className="relative hidden h-[760px] w-full overflow-hidden md:block">
+      <section className="relative hidden h-[min(720px,calc(100vh-5rem))] min-h-[600px] w-full overflow-hidden md:block">
         <HeroVideo mode="desktop" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.78)] via-[rgba(3,13,70,0.18)] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(12,16,24,0.78)] via-[rgba(12,16,24,0.16)] to-transparent" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl px-4 pb-8 md:px-8 md:pb-16">
           <div className="max-w-xl text-white">
             <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--gold-soft)]">Now open</p>
-            <h1 className="font-display text-6xl font-bold leading-tight">A Place Where Kids Laugh, Families Bond, and Memories Become Magic</h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/88">Magic Land Family Fun Park is a place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <button className="sunset rounded-full px-8 py-4 text-lg font-extrabold shadow-xl" onClick={() => setPage('tickets')}>Buy Tickets</button>
-              <button className="inline-flex items-center gap-2 rounded-full border-2 border-white/40 bg-white/10 px-8 py-4 text-lg font-extrabold text-white backdrop-blur-sm" onClick={() => setTrailerOpen(true)}>
+            <h1 className="font-display text-4xl font-bold leading-[1.12] lg:text-[2.65rem]">A Place Where Kids Laugh, Families Bond, and Memories Become Magic</h1>
+            <p className="mt-4 max-w-2xl text-[0.95rem] leading-7 text-white/90">Magic Land Family Fun Park is a place where kids laugh, families bond, and memories become magic through exceptional hospitality and a welcoming experience for everyone.</p>
+            <div className="mt-7 flex flex-wrap items-stretch gap-3">
+              <button className="sunset inline-flex min-h-12 w-44 items-center justify-center rounded-full px-6 py-3 text-base font-extrabold shadow-xl" onClick={() => setPage('tickets')}>Buy Tickets</button>
+              <button className="inline-flex min-h-12 w-44 items-center justify-center gap-2 rounded-full border-2 border-white/40 bg-black/15 px-6 py-3 text-base font-extrabold text-white backdrop-blur-sm" onClick={() => setTrailerOpen(true)}>
                 <Play size={20} fill="currentColor" />
                 Watch Trailer
               </button>
@@ -1304,18 +1304,18 @@ function HomePage({ setPage }) {
       </section>
 
       <section className="md:hidden">
-        <div className="relative h-[480px] w-full overflow-hidden">
+        <div className="relative h-[460px] w-full overflow-hidden">
           <HeroVideo mode="mobile" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.88)] via-[rgba(3,13,70,0.22)] to-[rgba(3,13,70,0.08)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,13,70,0.72)_0%,rgba(3,13,70,0.52)_64%,rgba(3,13,70,0.12)_100%)]" />
-          <div className="hero-copy-shadow absolute inset-x-0 top-1/2 -translate-y-1/2 space-y-4 p-4 text-left text-white">
-            <h1 className="font-display max-w-[305px] text-2xl font-bold leading-[1.2]">Kids Laugh. Families Bond. Memories Become Magic.</h1>
-            <p className="max-w-[305px] text-sm font-bold leading-6 text-white">A joyful family park with VR games, rides, creative play, exceptional hospitality, and a welcoming experience for everyone.</p>
-            <div className="flex flex-wrap gap-3">
-              <button className="sunset inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold shadow-lg" onClick={() => setPage('tickets')}>
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(10,12,18,0.82)] via-[rgba(10,12,18,0.13)] to-[rgba(10,12,18,0.04)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,12,18,0.58)_0%,rgba(10,12,18,0.34)_62%,rgba(10,12,18,0.04)_100%)]" />
+          <div className="hero-copy-shadow absolute inset-x-0 top-1/2 -translate-y-1/2 space-y-3.5 p-4 text-left text-white">
+            <h1 className="font-display max-w-[280px] text-[1.35rem] font-bold leading-[1.18]">Kids Laugh. Families Bond. Memories Become Magic.</h1>
+            <p className="max-w-[290px] text-[0.82rem] font-semibold leading-[1.45rem] text-white/95">A joyful family park with VR games, rides, creative play, exceptional hospitality, and a welcoming experience for everyone.</p>
+            <div className="grid max-w-[310px] grid-cols-2 gap-2.5">
+              <button className="sunset inline-flex min-h-12 w-full items-center justify-center rounded-full px-3 py-2.5 text-[0.82rem] font-extrabold shadow-lg" onClick={() => setPage('tickets')}>
                 Buy Tickets
               </button>
-              <button className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/18 px-5 py-3 text-sm font-extrabold text-white backdrop-blur-sm" onClick={() => setTrailerOpen(true)}>
+              <button className="inline-flex min-h-12 w-full items-center justify-center gap-1.5 rounded-full border border-white/55 bg-black/15 px-3 py-2.5 text-[0.82rem] font-extrabold text-white backdrop-blur-sm" onClick={() => setTrailerOpen(true)}>
                 <Play size={16} fill="currentColor" />
                 Watch Trailer
               </button>
@@ -2856,11 +2856,11 @@ function MapTeaser({ setPage }) {
 }
 
 function SectionIntro({ eyebrow, title }) {
-  return <div className="mx-auto mb-8 mt-10 max-w-7xl px-4 md:mt-14 md:px-8"><p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{eyebrow}</p><h2 className="font-display mt-4 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">{title}</h2></div>
+  return <div className="mx-auto mb-7 mt-9 max-w-7xl px-4 md:mb-8 md:mt-12 md:px-8"><p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)] sm:text-sm">{eyebrow}</p><h2 className="font-display mt-3 max-w-3xl text-[1.65rem] font-bold leading-[1.18] text-[var(--primary)] md:text-[2.15rem]">{title}</h2></div>
 }
 
 function PageShell({ eyebrow, title, children }) {
-  return <section className="mx-auto max-w-7xl px-4 py-8 sm:py-10 md:px-8 md:py-14"><div className="mb-6 max-w-4xl md:mb-8"><p className="text-xs font-extrabold uppercase tracking-wider text-[var(--secondary)] sm:text-sm">{eyebrow}</p><h1 className="font-display mt-2 max-w-3xl text-[1.75rem] font-bold leading-[1.15] text-[var(--primary)] sm:text-4xl md:text-5xl lg:text-[3.5rem]">{title}</h1></div>{children}</section>
+  return <section className="mx-auto max-w-7xl px-4 py-7 sm:py-9 md:px-8 md:py-12"><div className="mb-6 max-w-4xl md:mb-8"><p className="text-xs font-extrabold uppercase tracking-wider text-[var(--secondary)] sm:text-sm">{eyebrow}</p><h1 className="font-display mt-2 max-w-3xl text-[1.6rem] font-bold leading-[1.16] text-[var(--primary)] sm:text-[2.1rem] md:text-[2.65rem] lg:text-5xl">{title}</h1></div>{children}</section>
 }
 
 function QuickCard({ icon: Icon, title, copy, onClick }) {
@@ -2899,6 +2899,8 @@ function SocialIcon({ name, size = 18 }) {
 }
 
 function HeroVideo({ mode, className }) {
+  const videoRef = useRef(null)
+  const [videoReady, setVideoReady] = useState(false)
   const [showVideo, setShowVideo] = useState(() => {
     const mediaQuery = window.matchMedia(mode === 'desktop' ? '(min-width: 768px)' : '(max-width: 767px)')
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -2906,33 +2908,44 @@ function HeroVideo({ mode, className }) {
     return mediaQuery.matches && !reducedMotion && !saveData
   })
 
-  if (!showVideo) {
-    return (
-      <SmartImage
-        src={mode === 'desktop' ? img.hero : img.mobileHero}
-        alt="Families enjoying Magic Land Family Fun Park"
-        className={className}
-        loading="eager"
-        fetchPriority="high"
-        sizes="100vw"
-      />
-    )
-  }
+  const poster = mode === 'desktop' ? '/media/video/home-intro-poster.webp' : '/media/video/home-intro-poster-mobile.webp'
+
+  useEffect(() => {
+    if (!showVideo || !videoRef.current) return
+    const playback = videoRef.current.play()
+    if (playback?.catch) playback.catch(() => setShowVideo(false))
+  }, [showVideo])
 
   return (
-    <video
-      className={className}
-      autoPlay
-      muted
-      loop
-      playsInline
-      preload="metadata"
-      poster={mode === 'desktop' ? '/media/video/home-intro-poster.webp' : '/media/video/home-intro-poster-mobile.webp'}
-      aria-label="Magic Land Family Fun Park video highlights"
-      onError={() => setShowVideo(false)}
-    >
-      <source src={mode === 'desktop' ? '/media/video/home-intro-loop-1080.mp4' : '/media/video/home-intro-loop-mobile.mp4'} type="video/mp4" />
-    </video>
+    <div className={className}>
+      <img
+        src={poster}
+        alt="Families enjoying Magic Land Family Fun Park"
+        className="absolute inset-0 h-full w-full object-cover"
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+      />
+      {showVideo && (
+        <video
+          ref={videoRef}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster={poster}
+          disablePictureInPicture
+          aria-label="Magic Land Family Fun Park video highlights"
+          onCanPlay={() => setVideoReady(true)}
+          onPlaying={() => setVideoReady(true)}
+          onError={() => setShowVideo(false)}
+        >
+          <source src={mode === 'desktop' ? '/media/video/home-intro-loop-720.mp4' : '/media/video/home-intro-loop-mobile.mp4'} type="video/mp4" />
+        </video>
+      )}
+    </div>
   )
 }
 
