@@ -2228,7 +2228,86 @@ function MapPage() {
           <div className="mt-6 rounded-2xl bg-white p-4 text-sm leading-6 text-[var(--muted)]">Use the map to check the park area, nearby roads, and the easiest arrival route before your visit.</div>
         </aside>
       </div>
+      <GoogleReviews />
     </PageShell>
+  )
+}
+
+function GoogleReviews() {
+  const [reviewData, setReviewData] = useState(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/google/reviews', { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('Reviews unavailable')
+        return response.json()
+      })
+      .then(setReviewData)
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
+
+  const reviews = reviewData?.reviews || []
+
+  return (
+    <section className="mt-7 border-y border-[var(--line)] bg-white py-7 md:py-10">
+      <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">Google reviews</p>
+            <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">What families are saying</h2>
+            {reviewData?.rating && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
+                <strong className="text-lg text-[var(--primary)]">{Number(reviewData.rating).toFixed(1)}</strong>
+                <span className="flex text-[#f5a623]" aria-label={`${reviewData.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((star) => <Star key={star} size={17} fill={star <= Math.round(reviewData.rating) ? 'currentColor' : 'none'} />)}
+                </span>
+                <span>{reviewData.userRatingCount?.toLocaleString()} Google reviews</span>
+              </div>
+            )}
+          </div>
+          <a
+            href={reviewData?.googleMapsUri || googleBusinessUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackEvent('google_reviews_click', { location: 'reviews_section' })}
+            className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--line)] bg-white px-5 py-3 text-sm font-extrabold text-[var(--primary)] shadow-sm transition hover:border-[var(--secondary)]"
+          >
+            <Star size={17} />
+            View all reviews
+          </a>
+        </div>
+
+        {reviews.length > 0 ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {reviews.slice(0, 3).map((review, index) => (
+              <article key={`${review.authorName}-${index}`} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-5">
+                <div className="flex items-center gap-3">
+                  {review.authorPhotoUri ? (
+                    <img src={review.authorPhotoUri} alt="" className="h-10 w-10 rounded-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="grid h-10 w-10 place-items-center rounded-full bg-white font-bold text-[var(--primary)]">{review.authorName?.charAt(0) || 'G'}</div>
+                  )}
+                  <div className="min-w-0">
+                    <a href={review.authorUri || googleBusinessUrl} target="_blank" rel="noreferrer" className="block truncate font-bold text-[var(--primary)]">{review.authorName || 'Google reviewer'}</a>
+                    <p className="text-xs text-[var(--muted)]">{review.relativePublishTimeDescription}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex text-[#f5a623]" aria-label={`${review.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((star) => <Star key={star} size={15} fill={star <= review.rating ? 'currentColor' : 'none'} />)}
+                </div>
+                <p className="mt-3 line-clamp-5 text-sm leading-6 text-[var(--muted)]">{review.text}</p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-5 text-sm leading-6 text-[var(--muted)]">
+            Read recent family experiences and share your own visit on Google.
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -2901,20 +2980,48 @@ function SocialIcon({ name, size = 18 }) {
 function HeroVideo({ mode, className }) {
   const videoRef = useRef(null)
   const [videoReady, setVideoReady] = useState(false)
-  const [showVideo, setShowVideo] = useState(() => {
-    const mediaQuery = window.matchMedia(mode === 'desktop' ? '(min-width: 768px)' : '(max-width: 767px)')
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const saveData = navigator.connection?.saveData
-    return mediaQuery.matches && !reducedMotion && !saveData
-  })
+  const [playbackBlocked, setPlaybackBlocked] = useState(false)
+  const [videoFailed, setVideoFailed] = useState(false)
+  const [animationReady, setAnimationReady] = useState(false)
+  const matchesViewport = window.matchMedia(mode === 'desktop' ? '(min-width: 768px)' : '(max-width: 767px)').matches
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const saveData = Boolean(navigator.connection?.saveData)
 
   const poster = mode === 'desktop' ? '/media/video/home-intro-poster.webp' : '/media/video/home-intro-poster-mobile.webp'
+  const videoSource = mode === 'desktop' ? '/media/video/home-intro-loop-720.mp4' : '/media/video/home-intro-loop-mobile.mp4'
+
+  const tryPlayback = async ({ manual = false } = {}) => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = true
+    video.defaultMuted = true
+    video.setAttribute('muted', '')
+    video.setAttribute('playsinline', '')
+    video.setAttribute('webkit-playsinline', '')
+    if (manual && video.readyState === 0) video.load()
+    try {
+      await video.play()
+      setPlaybackBlocked(false)
+      setVideoReady(true)
+    } catch {
+      setPlaybackBlocked(true)
+    }
+  }
 
   useEffect(() => {
-    if (!showVideo || !videoRef.current) return
-    const playback = videoRef.current.play()
-    if (playback?.catch) playback.catch(() => setShowVideo(false))
-  }, [showVideo])
+    if (mode !== 'desktop' || !matchesViewport || !videoRef.current) return undefined
+    const startTimer = window.setTimeout(() => {
+      if (!reducedMotion && !saveData) tryPlayback()
+      else setPlaybackBlocked(true)
+    }, 0)
+    const fallbackTimer = window.setTimeout(() => {
+      if (videoRef.current?.paused) setPlaybackBlocked(true)
+    }, 3000)
+    return () => {
+      window.clearTimeout(startTimer)
+      window.clearTimeout(fallbackTimer)
+    }
+  }, [matchesViewport, mode, reducedMotion, saveData])
 
   return (
     <div className={className}>
@@ -2926,7 +3033,19 @@ function HeroVideo({ mode, className }) {
         decoding="async"
         fetchPriority="high"
       />
-      {showVideo && (
+      {mode === 'mobile' && matchesViewport && !reducedMotion && !videoFailed && (
+        <img
+          src="/media/video/home-intro-loop-mobile.webp"
+          alt=""
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${animationReady ? 'opacity-100' : 'opacity-0'}`}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+          onLoad={() => setAnimationReady(true)}
+          onError={() => setVideoFailed(true)}
+        />
+      )}
+      {mode === 'desktop' && matchesViewport && !videoFailed && (
         <video
           ref={videoRef}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
@@ -2934,16 +3053,35 @@ function HeroVideo({ mode, className }) {
           muted
           loop
           playsInline
-          preload="auto"
+          preload={saveData ? 'metadata' : 'auto'}
           poster={poster}
           disablePictureInPicture
           aria-label="Magic Land Family Fun Park video highlights"
-          onCanPlay={() => setVideoReady(true)}
+          onLoadedData={() => {
+            if (!reducedMotion && !saveData) tryPlayback()
+          }}
+          onCanPlay={() => {
+            if (!reducedMotion && !saveData) tryPlayback()
+          }}
           onPlaying={() => setVideoReady(true)}
-          onError={() => setShowVideo(false)}
+          onError={() => {
+            setVideoFailed(true)
+            setPlaybackBlocked(false)
+          }}
         >
-          <source src={mode === 'desktop' ? '/media/video/home-intro-loop-720.mp4' : '/media/video/home-intro-loop-mobile.mp4'} type="video/mp4" />
+          <source src={videoSource} type="video/mp4" />
         </video>
+      )}
+      {mode === 'desktop' && matchesViewport && playbackBlocked && !videoFailed && (
+        <button
+          type="button"
+          onClick={() => tryPlayback({ manual: true })}
+          className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-full border border-white/60 bg-black/55 px-4 py-2 text-sm font-bold text-white shadow-lg backdrop-blur"
+          aria-label="Play Magic Land park video"
+        >
+          <Play size={16} fill="currentColor" />
+          Play video
+        </button>
       )}
     </div>
   )
