@@ -156,19 +156,6 @@ async function buildMobileVideo(sharedVideoArgs) {
   ])
 
   await runFfmpeg([
-    '-y', '-stream_loop', '1', '-i', path.join(videoOutput, 'home-intro-loop-mobile.mp4'),
-    '-t', '16',
-    '-an',
-    '-vf', 'fps=6,scale=320:-2:flags=lanczos',
-    '-loop', '0',
-    '-c:v', 'libwebp',
-    '-quality', '42',
-    '-compression_level', '6',
-    '-preset', 'picture',
-    path.join(videoOutput, 'home-intro-loop-mobile.webp'),
-  ])
-
-  await runFfmpeg([
     '-y', '-ss', '3', '-i', sourceVideo,
     '-frames:v', '1',
     '-vf', `${mobileFrame},scale=720:1280:flags=lanczos`,

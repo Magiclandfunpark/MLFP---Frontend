@@ -124,7 +124,6 @@ const img = {
   hero: '/media/video/home-intro-poster.webp',
   mobileHero: '/media/images/home-family-1200.webp',
   homeFamily: '/media/images/home-family-1200.webp',
-  mobileMoment: '/media/images/events-stage-1200.webp',
   castle: '/media/images/park-sunset-1200.webp',
   coaster: '/media/images/family-rides-1200.webp',
   carousel: '/media/images/carousel-horse-1200.webp',
@@ -1358,23 +1357,6 @@ function HomePage({ setPage }) {
           </div>
         </section>
 
-        <section className="px-4 py-5">
-          <h2 className="font-display mb-4 text-2xl font-bold text-[var(--primary)]">Magic Moment</h2>
-          <button onClick={() => setPage('events')} className="relative h-48 w-full overflow-hidden rounded-xl text-left shadow-lg">
-            <img src={img.mobileMoment} alt="Night parade at Magic Land" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-[rgba(0,0,0,0.42)]" />
-            <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-widest text-[#ffdad6]">Main Boulevard</p>
-                  <h3 className="font-display text-2xl font-bold">Night Parade</h3>
-                </div>
-                <span className="font-display text-2xl font-bold">8:30 PM</span>
-              </div>
-            </div>
-            <span className="absolute right-4 top-4 rounded-full bg-[rgba(239,43,90,0.92)] px-3 py-1 text-xs font-extrabold text-white">Featured</span>
-          </button>
-        </section>
       </section>
 
       <div className="hidden md:block">
@@ -2982,7 +2964,6 @@ function HeroVideo({ mode, className }) {
   const [videoReady, setVideoReady] = useState(false)
   const [playbackBlocked, setPlaybackBlocked] = useState(false)
   const [videoFailed, setVideoFailed] = useState(false)
-  const [animationReady, setAnimationReady] = useState(false)
   const matchesViewport = window.matchMedia(mode === 'desktop' ? '(min-width: 768px)' : '(max-width: 767px)').matches
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const saveData = Boolean(navigator.connection?.saveData)
@@ -3009,7 +2990,7 @@ function HeroVideo({ mode, className }) {
   }
 
   useEffect(() => {
-    if (mode !== 'desktop' || !matchesViewport || !videoRef.current) return undefined
+    if (!matchesViewport || !videoRef.current) return undefined
     const startTimer = window.setTimeout(() => {
       if (!reducedMotion && !saveData) tryPlayback()
       else setPlaybackBlocked(true)
@@ -3033,19 +3014,7 @@ function HeroVideo({ mode, className }) {
         decoding="async"
         fetchPriority="high"
       />
-      {mode === 'mobile' && matchesViewport && !reducedMotion && !videoFailed && (
-        <img
-          src="/media/video/home-intro-loop-mobile.webp"
-          alt=""
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${animationReady ? 'opacity-100' : 'opacity-0'}`}
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-          onLoad={() => setAnimationReady(true)}
-          onError={() => setVideoFailed(true)}
-        />
-      )}
-      {mode === 'desktop' && matchesViewport && !videoFailed && (
+      {matchesViewport && !videoFailed && (
         <video
           ref={videoRef}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
@@ -3072,15 +3041,19 @@ function HeroVideo({ mode, className }) {
           <source src={videoSource} type="video/mp4" />
         </video>
       )}
-      {mode === 'desktop' && matchesViewport && playbackBlocked && !videoFailed && (
+      {matchesViewport && playbackBlocked && !videoFailed && (
         <button
           type="button"
           onClick={() => tryPlayback({ manual: true })}
-          className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-full border border-white/60 bg-black/55 px-4 py-2 text-sm font-bold text-white shadow-lg backdrop-blur"
+          className="group absolute left-1/2 top-[24%] z-20 -translate-x-1/2 text-white md:top-1/3"
           aria-label="Play Magic Land park video"
         >
-          <Play size={16} fill="currentColor" />
-          Play video
+          <span className="inline-flex items-center gap-3 rounded-full border border-white/70 bg-black/65 px-5 py-3 text-sm font-extrabold shadow-xl backdrop-blur-md transition group-active:scale-95">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-[var(--primary)]">
+              <Play size={18} fill="currentColor" />
+            </span>
+            Play park video
+          </span>
         </button>
       )}
     </div>
