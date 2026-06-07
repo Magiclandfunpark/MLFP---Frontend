@@ -2962,7 +2962,6 @@ function SocialIcon({ name, size = 18 }) {
 function HeroVideo({ mode, className }) {
   const videoRef = useRef(null)
   const [videoReady, setVideoReady] = useState(false)
-  const [playbackBlocked, setPlaybackBlocked] = useState(false)
   const [videoFailed, setVideoFailed] = useState(false)
   const matchesViewport = window.matchMedia(mode === 'desktop' ? '(min-width: 768px)' : '(max-width: 767px)').matches
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -2971,7 +2970,7 @@ function HeroVideo({ mode, className }) {
   const poster = mode === 'desktop' ? '/media/video/home-intro-poster.webp' : '/media/video/home-intro-poster-mobile.webp'
   const videoSource = mode === 'desktop' ? '/media/video/home-intro-loop-720.mp4' : '/media/video/home-intro-loop-mobile.mp4'
 
-  const tryPlayback = async ({ manual = false } = {}) => {
+  const tryPlayback = async () => {
     const video = videoRef.current
     if (!video) return
     video.muted = true
@@ -2979,13 +2978,11 @@ function HeroVideo({ mode, className }) {
     video.setAttribute('muted', '')
     video.setAttribute('playsinline', '')
     video.setAttribute('webkit-playsinline', '')
-    if (manual && video.readyState === 0) video.load()
     try {
       await video.play()
-      setPlaybackBlocked(false)
       setVideoReady(true)
     } catch {
-      setPlaybackBlocked(true)
+      // The poster remains visible when a browser blocks autoplay.
     }
   }
 
@@ -2993,15 +2990,8 @@ function HeroVideo({ mode, className }) {
     if (!matchesViewport || !videoRef.current) return undefined
     const startTimer = window.setTimeout(() => {
       if (!reducedMotion && !saveData) tryPlayback()
-      else setPlaybackBlocked(true)
     }, 0)
-    const fallbackTimer = window.setTimeout(() => {
-      if (videoRef.current?.paused) setPlaybackBlocked(true)
-    }, 3000)
-    return () => {
-      window.clearTimeout(startTimer)
-      window.clearTimeout(fallbackTimer)
-    }
+    return () => window.clearTimeout(startTimer)
   }, [matchesViewport, mode, reducedMotion, saveData])
 
   return (
@@ -3033,28 +3023,10 @@ function HeroVideo({ mode, className }) {
             if (!reducedMotion && !saveData) tryPlayback()
           }}
           onPlaying={() => setVideoReady(true)}
-          onError={() => {
-            setVideoFailed(true)
-            setPlaybackBlocked(false)
-          }}
+          onError={() => setVideoFailed(true)}
         >
           <source src={videoSource} type="video/mp4" />
         </video>
-      )}
-      {matchesViewport && playbackBlocked && !videoFailed && (
-        <button
-          type="button"
-          onClick={() => tryPlayback({ manual: true })}
-          className="group absolute left-1/2 top-[24%] z-20 -translate-x-1/2 text-white md:top-1/3"
-          aria-label="Play Magic Land park video"
-        >
-          <span className="inline-flex items-center gap-3 rounded-full border border-white/70 bg-black/65 px-5 py-3 text-sm font-extrabold shadow-xl backdrop-blur-md transition group-active:scale-95">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-[var(--primary)]">
-              <Play size={18} fill="currentColor" />
-            </span>
-            Play park video
-          </span>
-        </button>
       )}
     </div>
   )
