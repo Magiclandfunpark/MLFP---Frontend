@@ -14,7 +14,6 @@
     { "source": "/home", "destination": "/index.html" },
     { "source": "/attractions", "destination": "/index.html" },
     { "source": "/tickets", "destination": "/index.html" },
-    { "source": "/membership", "destination": "/index.html" },
     { "source": "/birthdays", "destination": "/index.html" },
     { "source": "/map", "destination": "/index.html" },
     { "source": "/dining", "destination": "/index.html" },

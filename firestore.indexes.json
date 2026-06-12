@@ -17,22 +17,6 @@
       ]
     },
     {
-      "collectionGroup": "membershipRequests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "membershipRequests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "planName", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "eventRequests",
       "queryScope": "COLLECTION",
       "fields": [

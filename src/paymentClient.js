@@ -15,12 +15,12 @@ async function readJsonResponse(response) {
   return response.json()
 }
 
-export async function initiateKhaltiPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }) {
+export async function initiateKhaltiPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests }) {
   const response = await withTimeout(
     fetch('/api/khalti/initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }),
+      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests }),
     }),
     15000,
     'Khalti initiation',
@@ -32,12 +32,12 @@ export async function initiateKhaltiPayment({ amount, purchaseOrderId, purchaseO
   return data
 }
 
-export async function initiateEsewaPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }) {
+export async function initiateEsewaPayment({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests }) {
   const response = await withTimeout(
     fetch('/api/esewa/initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests, totalMembers }),
+      body: JSON.stringify({ amount, purchaseOrderId, purchaseOrderName, customerInfo, productType, guests }),
     }),
     15000,
     'eSewa initiation',

@@ -310,7 +310,6 @@ export async function getStaffRequestQueue(maxItems = 80) {
   if (!db) return { items: [], error: 'Firestore is not configured in this build.' }
   const collections = [
     { collectionName: 'bookingRequests', type: 'ticket' },
-    { collectionName: 'membershipRequests', type: 'membership' },
   ]
   const results = []
 
@@ -353,7 +352,7 @@ export async function getStaffRequestQueue(maxItems = 80) {
 
 export async function checkInStaffRequest({ collectionName, requestId, staffProfile = {}, staffUser = {} }) {
   if (!collectionName || !requestId) throw new Error('A booking reference is required for check-in.')
-  if (!['bookingRequests', 'membershipRequests'].includes(collectionName)) throw new Error('This request type cannot be checked in.')
+  if (collectionName !== 'bookingRequests') throw new Error('This request type cannot be checked in.')
 
   const db = await getDb()
   if (!db) throw new Error('Firestore is not configured in this build.')

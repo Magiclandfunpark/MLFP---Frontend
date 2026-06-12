@@ -17,20 +17,12 @@ Use Firebase Analytics / GA4 as the primary website analytics layer. All events 
 | `ticket_select` | A ticket card is selected | `ticket_name`, `price` |
 | `booking_request_submitted` | Ticket reservation is saved | `ticket_name`, `guests`, `total`, `store` |
 
-## Memberships
-
-| Event | When | Parameters |
-| --- | --- | --- |
-| `membership_plan_select` | A membership plan CTA is clicked | `plan_name` |
-| `membership_request_submitted` | Membership request is saved | `plan_name`, `price`, `visits`, `store` |
-
 ## Attractions and Map
 
 | Event | When | Parameters |
 | --- | --- | --- |
 | `attraction_filter_select` | Attraction zone tab is selected | `zone` |
 | `attraction_book_click` | Attraction card Book Game CTA is clicked | `attraction_name`, `zone` |
-| `attraction_membership_click` | Attraction card Use Membership CTA is clicked | `attraction_name`, `zone` |
 | `map_directions_click` | Directions button is clicked | `destination` |
 
 ## Guest Account
@@ -43,4 +35,3 @@ Use Firebase Analytics / GA4 as the primary website analytics layer. All events 
 | `auth_phone_otp_request_start` / `auth_phone_otp_request_success` / `auth_phone_otp_request_error` | Phone OTP request | `code` on error |
 | `auth_phone_otp_verify_start` / `auth_phone_otp_verify_success` / `auth_phone_otp_verify_error` | Phone OTP verification | `code` on error |
 | `auth_logout_start` / `auth_logout_success` / `auth_logout_error` | Guest sign out | `code` on error |
-

@@ -4,7 +4,7 @@
 
 Use a one-step reservation flow before building full online payment.
 
-1. Guest chooses a ticket or membership.
+1. Guest chooses a ticket.
 2. Guest enters name, phone, visit date, and guest count.
 3. Website creates a Firebase request.
 4. Magic Land confirms by phone or WhatsApp.
@@ -16,7 +16,7 @@ This keeps the conversion path short and avoids forcing account creation before 
 
 - Nepal family visitors often want quick confirmation, not a long ecommerce checkout.
 - Phone number is enough for the first sales follow-up.
-- Staff can handle edge cases like birthday groups, school visits, memberships, and date changes.
+- Staff can handle edge cases like birthday groups, school visits, and date changes.
 - Firebase request data gives the park a clean lead pipeline before investing in a full POS/payment integration.
 
 ## Future Online Payment Flow

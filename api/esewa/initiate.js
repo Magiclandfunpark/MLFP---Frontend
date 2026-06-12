@@ -122,7 +122,7 @@ export default async function handler(request, response) {
         content_type: body.productType || 'booking',
         order_id: purchaseOrderId,
         payment_gateway: 'esewa',
-        num_items: Number(body.guests || body.totalMembers || 1),
+        num_items: Number(body.guests || 1),
       },
     }).catch(() => {})
 

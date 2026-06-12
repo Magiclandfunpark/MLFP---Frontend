@@ -1,6 +1,6 @@
 # Email Notifications
 
-Booking, membership, event, contact, and newsletter requests are saved to Realtime Database under:
+Booking, event, contact, and newsletter requests are saved to Realtime Database under:
 
 `publicRequests/{requestType}/{requestId}`
 

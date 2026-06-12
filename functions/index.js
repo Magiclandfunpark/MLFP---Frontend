@@ -36,7 +36,6 @@ function escapeHtml(value = '') {
 }
 
 function requestLabel(type) {
-  if (type === 'membershipRequests') return 'Membership request'
   if (type === 'eventRequests') return 'Event request'
   if (type === 'contactRequests') return 'Guest care message'
   if (type === 'newsletterSubscribers') return 'Newsletter signup'
@@ -44,7 +43,6 @@ function requestLabel(type) {
 }
 
 function requestSubject(type, data) {
-  if (type === 'membershipRequests') return `New Magic Land membership request - ${data.planName || 'Membership'}`
   if (type === 'eventRequests') return `New Magic Land event request - ${data.eventType || 'Event'}`
   if (type === 'contactRequests') return `New Magic Land contact request - ${data.topic || 'Guest care'}`
   if (type === 'newsletterSubscribers') return `New Magic Land newsletter signup - ${data.email || 'Guest'}`
@@ -52,7 +50,6 @@ function requestSubject(type, data) {
 }
 
 function guestRequestSubject(type, data) {
-  if (type === 'membershipRequests') return `We received your Magic Land membership request`
   if (type === 'eventRequests') return `We received your Magic Land event request`
   if (type === 'contactRequests') return `We received your Magic Land message`
   if (type === 'newsletterSubscribers') return `Welcome to Magic Land updates`
@@ -113,8 +110,8 @@ function requestRows(type, data) {
     ['Name', data.name || '-'],
     ['Phone', data.phone || '-'],
     ['Email', data.email || '-'],
-    ['Ticket / plan / topic', data.ticketName || data.planName || data.eventType || data.topic || '-'],
-    ['Date', data.visitDate || data.startDate || data.eventDate || '-'],
+    ['Ticket / topic', data.ticketName || data.eventType || data.topic || '-'],
+    ['Date', data.visitDate || data.eventDate || '-'],
     ['Guests', data.guests || data.guestCount || '-'],
     ['Total / price', data.total ? money(data.total) : data.price || '-'],
     ['Payment choice', data.paymentMethod || '-'],
@@ -126,7 +123,7 @@ function requestRows(type, data) {
 }
 
 function isQrRequest(type) {
-  return type === 'bookingRequests' || type === 'membershipRequests'
+  return type === 'bookingRequests'
 }
 
 function staffRequestHtml(type, data) {
@@ -187,7 +184,7 @@ function ticketQrPayload(data) {
     name: data.name || '',
     email: data.email || '',
     phone: data.phone || '',
-    item: data.ticketName || data.planName || 'Magic Land Entry',
+    item: data.ticketName || 'Magic Land Entry',
     visitDate: data.visitDate || data.startDate || '',
     quantity: visitCount(data),
     amount: Number(data.amount || data.paidAmount || data.total || 0),
@@ -307,7 +304,7 @@ function requestText(type, data) {
     `Name: ${data.name || '-'}`,
     `Phone: ${data.phone || '-'}`,
     `Email: ${data.email || '-'}`,
-    `Ticket/Plan/Event: ${data.ticketName || data.planName || data.eventType || data.topic || '-'}`,
+    `Ticket/Event: ${data.ticketName || data.eventType || data.topic || '-'}`,
     `Visit/Start/Event date: ${data.visitDate || data.startDate || data.eventDate || '-'}`,
     `Guests: ${data.guests || data.guestCount || '-'}`,
     `Total/Price: ${data.total ? money(data.total) : data.price || '-'}`,
@@ -344,7 +341,7 @@ function userWelcomeHtml(data) {
   return emailShell({
     eyebrow: 'Magic Land Account',
     title: 'Welcome to Magic Land Family Fun Park',
-    intro: 'Your Magic Land account is ready. You can now use it for secure online payments, booking references, and future membership experiences.',
+    intro: 'Your Magic Land account is ready. You can now use it for secure online payments and booking references.',
     children: `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         ${rows([

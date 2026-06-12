@@ -6,7 +6,6 @@ import {
   CalendarDays,
   Clock3,
   CreditCard,
-  Crown,
   FerrisWheel,
   Home,
   Mail,
@@ -161,7 +160,6 @@ const nav = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'attractions', label: 'Attractions', icon: FerrisWheel },
   { id: 'tickets', label: 'Tickets', icon: Ticket },
-  { id: 'memberships', label: 'Membership', icon: Crown },
   { id: 'birthdays', label: 'Birthdays', icon: PartyPopper },
   { id: 'map', label: 'Map', icon: MapIcon },
   { id: 'more', label: 'More', icon: Menu },
@@ -189,7 +187,6 @@ const pagePaths = {
   home: '/home',
   attractions: '/attractions',
   tickets: '/tickets',
-  memberships: '/membership',
   birthdays: '/birthdays',
   map: '/map',
   dining: '/dining',
@@ -213,8 +210,6 @@ const pathAliases = {
   '/attractions': 'attractions',
   '/rides': 'attractions',
   '/tickets': 'tickets',
-  '/membership': 'memberships',
-  '/memberships': 'memberships',
   '/birthdays': 'birthdays',
   '/map': 'map',
   '/dining': 'dining',
@@ -266,7 +261,7 @@ const attractionList = [
   { name: 'Coin Game Machines', zone: 'Arcade & Skill', category: 'Arcade', wait: '26 games', height: 'All ages', image: img.arcade, bestFor: 'Quick replays', copy: 'A large set of coin game machines for quick challenges and repeatable family fun.' },
   { name: 'Basketball Machines', zone: 'Arcade & Skill', category: 'Skill', wait: '3 machines', height: 'All ages', image: img.basketball, bestFor: 'Score battles', copy: 'Basketball shooting machines for timed rounds, friend challenges, and high-score play.' },
   { name: 'Indoor Pool Tables', zone: 'Arcade & Skill', category: 'Indoor', wait: 'Open', height: 'All ages', image: img.pool, bestFor: 'Parents and teens', copy: 'Pool tables and indoor skill games for relaxed competition between rides.' },
-  { name: 'Prize & Skill Corner', zone: 'Arcade & Skill', category: 'Skill', wait: 'Open', height: 'All ages', image: img.arcade, bestFor: 'Membership value', copy: 'Prize-style moments, quick challenges, and arcade corners that make repeat visits worthwhile.' },
+  { name: 'Prize & Skill Corner', zone: 'Arcade & Skill', category: 'Skill', wait: 'Open', height: 'All ages', image: img.arcade, bestFor: 'Quick challenges', copy: 'Prize-style moments, quick challenges, and arcade corners that add more play to every visit.' },
   { name: 'Pottery Workshop', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.pottery, bestFor: 'Parent-child bonding', copy: 'A calm hands-on pottery space inside aesthetic village-style homes for creative family time.' },
   { name: 'Painting Studio', zone: 'Creative Village', category: 'Creative', wait: 'Workshop', height: 'All ages', image: img.painting, bestFor: 'Birthdays and schools', copy: 'Painting sessions where children can explore colors, brushes, and take-home memories.' },
   { name: 'Color Sand Play', zone: 'Creative Village', category: 'Creative', wait: 'Open', height: 'Kids', image: img.creativeDress, bestFor: 'Sensory play', copy: 'Color sand activities for calm sensory play, art corners, and photo-friendly moments.' },
@@ -282,56 +277,6 @@ const ticketOptions = [
   { name: 'Group Day Visit', price: 1500, kind: 'entry', defaultGuests: 10, detail: 'For schools, teams, offices, and larger family groups. Magic Land can confirm final timing by phone.' },
 ]
 
-const membershipPlans = [
-  {
-    name: 'Individual Fun Pass',
-    price: 'Rs. 2,999',
-    basePrice: 2999,
-    baseMembers: 1,
-    subtitle: 'Individual membership',
-    entries: '5 visits',
-    perVisit: 'Valid for 3 months',
-    regular: 'Individual access',
-    savings: 'Flexible usage within validity',
-    comparison: 'Normal 5 entries cost Rs. 7,500. Membership is Rs. 2,999.',
-    outingText: 'Enough for weekend visits, school holidays, and surprise play days across 3 months.',
-    includes: ['5 visits', 'Valid for 3 months', 'Individual access', 'Flexible usage within validity'],
-    bestFor: ['Weekend visits', 'Holiday outings', 'Kids who love repeat experiences', 'Families exploring Magic Land regularly'],
-  },
-  {
-    name: 'Family Duo Pass',
-    price: 'Rs. 5,499',
-    basePrice: 5499,
-    baseMembers: 2,
-    subtitle: 'Family of 2 membership',
-    entries: '10 shared visits',
-    perVisit: 'Valid for 3 months',
-    regular: 'Shared usage for 2 family members',
-    savings: 'Flexible parent-child visits',
-    comparison: 'Normal 10 entries cost Rs. 15,000. Membership is Rs. 5,499.',
-    outingText: 'Made for parent-child days, quick weekend plans, and shared family routines.',
-    includes: ['10 shared visits', 'Valid for 3 months', 'Shared usage for 2 family members'],
-    bestFor: ['Parent-child visits', 'Weekend family time', 'Flexible family usage', 'Repeat outings without repeated ticket purchases'],
-  },
-  {
-    name: 'Family Magic Pass',
-    price: 'Rs. 9,499',
-    basePrice: 9499,
-    baseMembers: 4,
-    subtitle: 'Family of 4 membership',
-    entries: '20 shared visits',
-    perVisit: 'Valid for 3 months',
-    regular: 'Designed for families of 4',
-    savings: 'The complete family experience package',
-    comparison: 'Normal 20 entries cost Rs. 30,000. Membership is Rs. 9,499.',
-    outingText: 'About 5 full family outings for a family of 4 when everyone visits together.',
-    includes: ['20 shared visits', 'Valid for 3 months', 'Designed for families of 4'],
-    bestFor: ['Family weekends', 'Holiday experiences', 'Sibling outings', 'Frequent visitors', 'Building memorable family routines'],
-  },
-]
-
-const membershipAddOnPrice = 2000
-
 function ticketPriceBreakdown(ticket, guests) {
   const subtotal = ticket.price * guests
   const discountRate = guests >= 10 ? 0.1 : guests > 5 ? 0.05 : 0
@@ -344,44 +289,6 @@ function ticketPriceBreakdown(ticket, guests) {
     isGroupPrice,
     total: subtotal - discount,
   }
-}
-
-function membershipPriceBreakdown(startingPlan, additionalMembers) {
-  const startingMembers = Number(startingPlan.baseMembers || 1)
-  const requestedAdditionalMembers = Math.max(Number(additionalMembers) || 0, 0)
-  const totalMembers = startingMembers + requestedAdditionalMembers
-  const individualPlan = membershipPlans[0]
-  const duoPlan = membershipPlans[1]
-  const familyPlan = membershipPlans[2]
-  const standardPlan = totalMembers >= 4 ? familyPlan : totalMembers >= 2 ? duoPlan : individualPlan
-  const standardMembers = Number(standardPlan.baseMembers || 1)
-  const addOnMembers = Math.max(totalMembers - standardMembers, 0)
-  const addOnTotal = addOnMembers * membershipAddOnPrice
-  const basePrice = Number(standardPlan.basePrice || String(standardPlan.price).replace(/\D/g, '') || 0)
-  return {
-    startingMembers,
-    requestedAdditionalMembers,
-    totalMembers,
-    standardPlan,
-    basePrice,
-    baseMembers: standardMembers,
-    addOnMembers,
-    addOnTotal,
-    total: basePrice + addOnTotal,
-  }
-}
-
-function ComparisonNote({ text }) {
-  const sentences = text.includes('. Membership')
-    ? [text.slice(0, text.indexOf('. Membership') + 1), text.slice(text.indexOf('Membership'))]
-    : [text]
-  return (
-    <div className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-bold leading-6 text-[var(--primary)]">
-      {sentences.map((sentence) => sentence.trim()).filter(Boolean).map((sentence) => (
-        <p key={sentence}>{sentence}</p>
-      ))}
-    </div>
-  )
 }
 
 
@@ -449,7 +356,6 @@ function PublicApp() {
         {page === 'home' && <HomePage setPage={navigate} />}
         {page === 'attractions' && <AttractionsPage setPage={navigate} />}
         {page === 'tickets' && <TicketsPage setPage={navigate} />}
-        {page === 'memberships' && <MembershipPage setPage={navigate} />}
         {page === 'birthdays' && <BirthdaysPage />}
         {page === 'map' && <MapPage />}
         {page === 'dining' && <DiningPage />}
@@ -830,9 +736,7 @@ function InternalPortal({ mode }) {
       item.email,
       item.phone,
       item.ticketName,
-      item.planName,
       item.visitDate,
-      item.startDate,
       item.paymentMethod,
       item.status,
     ].some((value) => String(value || '').toLowerCase().includes(search)))
@@ -848,10 +752,10 @@ function InternalPortal({ mode }) {
     name: item.name,
     phone: item.phone,
     email: item.email,
-    item: item.ticketName || item.planName || (item.type === 'membership' ? 'Membership request' : 'Ticket request'),
-    visitDate: item.visitDate || item.startDate,
-    quantity: item.guests || item.visits || '',
-    amount: item.total || Number(String(item.price || '').replace(/[^\d]/g, '')) || '',
+    item: item.ticketName || 'Ticket request',
+    visitDate: item.visitDate,
+    quantity: item.guests || '',
+    amount: item.total || '',
     paymentMethod: item.paymentMethod || 'pay_at_park',
     status: item.status || 'new',
     checkedInAt: item.checkedInAt,
@@ -1128,9 +1032,9 @@ function InternalPortal({ mode }) {
               ))}
               <div className="mt-4 grid max-h-[32rem] gap-2 overflow-y-auto pr-1">
                 {filteredStaffRequests.slice(0, 60).map((item) => {
-                  const title = item.ticketName || item.planName || (item.type === 'membership' ? 'Membership request' : 'Ticket request')
-                  const displayDate = item.visitDate || item.startDate || '-'
-                  const total = item.total || Number(String(item.price || '').replace(/[^\d]/g, '')) || 0
+                  const title = item.ticketName || 'Ticket request'
+                  const displayDate = item.visitDate || '-'
+                  const total = item.total || 0
                   return (
                     <button
                       className="rounded-2xl border border-[var(--line)] bg-white p-3 text-left shadow-sm transition hover:border-[var(--accent)]"
@@ -1140,7 +1044,7 @@ function InternalPortal({ mode }) {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">{item.type === 'membership' ? 'Membership' : 'Ticket'} · {item.paymentMethod || 'pay_at_park'}</p>
+                          <p className="text-xs font-extrabold uppercase text-[var(--secondary)]">Ticket · {item.paymentMethod || 'pay_at_park'}</p>
                           <p className="mt-1 font-extrabold text-[var(--primary)]">{item.name || 'Guest'} · {title}</p>
                         </div>
                         <span className="rounded-full bg-[var(--surface-3)] px-3 py-1 text-xs font-extrabold text-[var(--primary)]">{item.status || 'new'}</span>
@@ -1149,7 +1053,7 @@ function InternalPortal({ mode }) {
                         <p>{item.phone || '-'}</p>
                         <p className="break-all">{item.email || '-'}</p>
                         <p>Date: {displayDate}</p>
-                        <p>{item.guests ? `${item.guests} guest${Number(item.guests) === 1 ? '' : 's'}` : item.visits || ''}</p>
+                        <p>{item.guests ? `${item.guests} guest${Number(item.guests) === 1 ? '' : 's'}` : ''}</p>
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-2 text-sm">
                         <span className="break-all text-[var(--muted)]">{item.id}</span>
@@ -1199,13 +1103,13 @@ function AdminDashboard({ profile }) {
   const cards = [
     ['Today check-ins', 'Coming next', 'Live count from checkIns collection.'],
     ['Ticket sync', 'Coming next', 'Firebase to local server sync status.'],
-    ['Memberships', 'Coming next', 'Active passes, remaining credits, and renewals.'],
+    ['Guest requests', 'Coming next', 'Bookings, events, and guest care follow-up.'],
   ]
   return (
     <section>
       <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Admin dashboard</p>
       <h1 className="font-display mt-2 text-4xl font-bold text-[var(--primary)]">Magic Land operations overview</h1>
-      <p className="mt-3 max-w-2xl leading-7 text-[var(--muted)]">Protected management space for reports, staff activity, memberships, and local-server sync.</p>
+      <p className="mt-3 max-w-2xl leading-7 text-[var(--muted)]">Protected management space for reports, staff activity, ticketing, and local-server sync.</p>
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {cards.map(([title, value, copy]) => (
           <article key={title} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm">
@@ -1276,7 +1180,7 @@ function HomePage({ setPage }) {
   const [trailerOpen, setTrailerOpen] = useState(false)
   const quickActions = [
     [CalendarDays, 'Today at Magic Land', 'Hours, shows, and events', 'events'],
-    [Crown, 'Membership Credits', '5 visits from Rs. 2,999', 'memberships'],
+    [Ticket, 'Book Tickets', 'Single, gift, and group visits', 'tickets'],
     [PartyPopper, 'Birthday Packages', 'Kids, teens, schools, families', 'birthdays'],
     [MapIcon, 'Directions', 'Open route from your location', 'map'],
   ]
@@ -1365,35 +1269,11 @@ function HomePage({ setPage }) {
       </div>
       <InsideMagicLand setPage={setPage} />
       <GardenPondFeature setPage={setPage} />
-      <MembershipTeaser setPage={setPage} />
       <div className="hidden md:block">
         <MapTeaser setPage={setPage} />
       </div>
       {trailerOpen && <TrailerModal onClose={() => setTrailerOpen(false)} />}
     </>
-  )
-}
-
-function MembershipTeaser({ setPage }) {
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-14">
-      <div className="grid gap-5 rounded-[2rem] border border-[rgba(198,197,209,0.55)] bg-white p-5 shadow-sm md:grid-cols-[1fr_360px] md:p-8">
-        <div>
-          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership Program</p>
-          <h2 className="font-display mt-2 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">5 visit credits for Rs. 2,999.</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-base">A safer, smarter membership model built to increase repeat visits, food spending, arcade play, activities, and long-term customer loyalty.</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            {['5 visit credits', '3 months validity', 'Use it before expiry'].map((item) => <span key={item} className="rounded-full bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]">{item}</span>)}
-          </div>
-        </div>
-        <div className="rounded-[1.5rem] bg-[var(--primary)] p-5 text-white">
-          <p className="text-sm font-extrabold uppercase text-[#ffdad6]">Family Magic Pass</p>
-          <p className="font-display mt-2 text-4xl font-bold">Rs. 9,499</p>
-          <p className="mt-2 text-sm font-semibold text-white/82">4 members, 20 shared visit credits, about Rs. 475 per visit.</p>
-          <button className="sunset mt-5 w-full rounded-full px-5 py-3 font-extrabold" onClick={() => setPage('memberships')}>Compare Savings</button>
-        </div>
-      </div>
-    </section>
   )
 }
 
@@ -1569,7 +1449,6 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
             {!compact && (
               <div className="mt-4 flex flex-wrap gap-2">
                 <button className="sunset rounded-full px-4 py-2 text-sm font-extrabold" onClick={() => { trackEvent('attraction_book_click', { attraction_name: ride.name, zone: ride.zone }); setPage?.('tickets') }}>Book Game</button>
-                <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]" onClick={() => { trackEvent('attraction_membership_click', { attraction_name: ride.name, zone: ride.zone }); setPage?.('memberships') }}>Use Membership</button>
               </div>
             )}
           </article>
@@ -1742,10 +1621,7 @@ function TicketsPage({ setPage }) {
           <div className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm">
             <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Quick visit</p>
             <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Buy entry for today, a planned date, or a group outing.</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Use this page for regular tickets. If your family plans to visit again and again, memberships are handled separately so the value and shared-visit rules stay clear.</p>
-            <button type="button" className="mt-4 rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 text-sm font-extrabold text-[var(--primary)]" onClick={() => setPage('memberships')}>
-              See membership plans
-            </button>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Choose a one-time, gift, or group ticket. Group discounts are calculated automatically from the number of guests.</p>
           </div>
           {ticketOptions.map((ticket) => (
             <button key={ticket.name} onClick={() => chooseTicket(ticket)} className={`storybook-card rounded-[2rem] p-5 text-left transition ${selected.name === ticket.name ? 'ring-4 ring-[#bbc3ff]' : ''}`}>
@@ -1811,318 +1687,6 @@ function TicketsPage({ setPage }) {
             <p className="text-xs leading-5 text-[var(--muted)]">No account needed for day tickets. Keep your phone and email reachable for payment and visit confirmation.</p>
           </div>
         </form>
-      </div>
-    </PageShell>
-  )
-}
-
-function MembershipPage({ setPage }) {
-  const { user, loading: authLoading } = useAuthUser()
-  const [selectedPlan, setSelectedPlan] = useState(membershipPlans[0].name)
-  const [form, setForm] = useState({ name: '', phone: '', email: '', startDate: '', familyMembers: '', additionalMembers: 0, note: '' })
-  const [paymentMethod, setPaymentMethod] = useState('khalti')
-  const [status, setStatus] = useState({ type: '', message: '' })
-  const activePlan = membershipPlans.find((plan) => plan.name === selectedPlan) ?? membershipPlans[0]
-  const membershipBreakdown = membershipPriceBreakdown(activePlan, form.additionalMembers)
-  const emailNeedsVerification = Boolean(user?.email && user?.providerData?.some((provider) => provider.providerId === 'password') && !user.emailVerified)
-  const choosePlan = (planName) => {
-    setSelectedPlan(planName)
-    setStatus({ type: '', message: '' })
-    trackEvent('membership_plan_select', { plan_name: planName })
-    window.requestAnimationFrame(() => document.getElementById('membership-booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-  }
-  const updateForm = (field, value) => {
-    const nextValue = field === 'phone'
-      ? value.replace(/\D/g, '').slice(0, 10)
-      : field === 'additionalMembers'
-        ? Math.max(Number(value) || 0, 0)
-        : value
-    setForm((current) => ({ ...current, [field]: nextValue }))
-  }
-
-  const submitMembership = async (event) => {
-    event.preventDefault()
-    const formData = new FormData(event.currentTarget)
-    const additionalMembers = Math.max(Number(formData.get('additionalMembers')) || 0, 0)
-    const checkoutBreakdown = membershipPriceBreakdown(activePlan, additionalMembers)
-    const checkoutTotal = checkoutBreakdown.total
-    const wantsOnlinePayment = paymentMethod === 'khalti' || paymentMethod === 'esewa'
-    if (wantsOnlinePayment && !user) {
-      setStatus({
-        type: 'error',
-        message: 'Please login or create a Magic Land account before online membership payment.',
-      })
-      trackEvent('membership_online_payment_auth_required', { payment_method: paymentMethod, plan_name: activePlan.name })
-      return
-    }
-    if (wantsOnlinePayment && emailNeedsVerification) {
-      setStatus({
-        type: 'error',
-        message: 'Please verify your email before online payment. Check your inbox, then return here to continue.',
-      })
-      trackEvent('membership_online_payment_email_verification_required', { payment_method: paymentMethod, plan_name: activePlan.name })
-      return
-    }
-
-    setStatus({ type: 'loading', message: wantsOnlinePayment ? `Saving membership and opening ${paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}...` : 'Sending your membership request...' })
-    try {
-      const result = await createPublicRequest('membershipRequests', {
-        name: String(formData.get('name') || form.name).trim(),
-        phone: String(formData.get('phone') || form.phone).trim(),
-        email: String(formData.get('email') || form.email).trim(),
-        planName: checkoutBreakdown.standardPlan.name,
-        price: `Rs. ${checkoutTotal.toLocaleString()}`,
-        visits: checkoutBreakdown.standardPlan.entries,
-        validity: checkoutBreakdown.standardPlan.perVisit,
-        startDate: String(formData.get('startDate') || form.startDate).trim(),
-        familyMembers: String(formData.get('familyMembers') || form.familyMembers).trim(),
-        note: [
-          checkoutBreakdown.standardPlan.name !== activePlan.name ? `Auto-adjusted to ${checkoutBreakdown.standardPlan.name} for ${checkoutBreakdown.totalMembers} members` : '',
-          checkoutBreakdown.addOnMembers ? `Additional members: ${checkoutBreakdown.addOnMembers} x Rs. ${membershipAddOnPrice.toLocaleString()} = Rs. ${checkoutBreakdown.addOnTotal.toLocaleString()}` : '',
-          String(formData.get('note') || form.note).trim(),
-        ].filter(Boolean).join(' | '),
-        paymentMethod,
-      })
-      trackEvent('membership_request_submitted', {
-        plan_name: checkoutBreakdown.standardPlan.name,
-        price: `Rs. ${checkoutTotal.toLocaleString()}`,
-        visits: checkoutBreakdown.standardPlan.entries,
-        total_members: checkoutBreakdown.totalMembers,
-        additional_members: checkoutBreakdown.addOnMembers,
-        store: result.store,
-        payment_method: paymentMethod,
-      })
-      if (wantsOnlinePayment) {
-        const paymentPayload = {
-          amount: checkoutTotal,
-          purchaseOrderId: result.id,
-          purchaseOrderName: checkoutBreakdown.addOnMembers ? `${checkoutBreakdown.standardPlan.name} + ${checkoutBreakdown.addOnMembers} member add-on` : checkoutBreakdown.standardPlan.name,
-          productType: 'membership',
-          totalMembers: checkoutBreakdown.totalMembers,
-          customerInfo: {
-            name: String(formData.get('name') || form.name).trim(),
-            phone: String(formData.get('phone') || form.phone).trim(),
-            email: String(formData.get('email') || form.email).trim(),
-          },
-        }
-        const pendingPayment = {
-          gateway: paymentMethod,
-          bookingId: result.id,
-          ticketName: checkoutBreakdown.standardPlan.name,
-          amount: checkoutTotal,
-          guests: checkoutBreakdown.totalMembers,
-          name: paymentPayload.customerInfo.name,
-          phone: paymentPayload.customerInfo.phone,
-          email: paymentPayload.customerInfo.email,
-          requestType: 'membership',
-        }
-        try {
-          sessionStorage.setItem('magicland:pendingPayment', JSON.stringify(pendingPayment))
-        } catch {
-          // Payment can continue even if browser storage is unavailable.
-        }
-        trackEvent('membership_payment_checkout_click', {
-          gateway: paymentMethod,
-          plan_name: checkoutBreakdown.standardPlan.name,
-          total: checkoutTotal,
-          total_members: checkoutBreakdown.totalMembers,
-          additional_members: checkoutBreakdown.addOnMembers,
-          request_id: result.id,
-        })
-        if (paymentMethod === 'khalti') {
-          const payment = await initiateKhaltiPayment(paymentPayload)
-          window.location.assign(payment.payment_url)
-          return
-        }
-        const payment = await initiateEsewaPayment(paymentPayload)
-        submitEsewaForm(payment)
-        return
-      }
-      setStatus({
-        type: 'success',
-        message: result.offline
-          ? 'Saved in local preview. Add Firebase app config to send this to the console.'
-          : 'Membership request received. Magic Land will confirm activation by phone.',
-      })
-      setForm({ name: '', phone: '', email: '', startDate: '', familyMembers: '', additionalMembers: 0, note: '' })
-    } catch (error) {
-      console.error('Membership request failed', error)
-      setStatus({
-        type: 'error',
-        message: wantsOnlinePayment
-          ? `${error?.message || 'Payment gateway could not be opened.'} You can choose "Reserve, pay at park" for local testing.`
-          : 'Could not submit right now. Please try again or contact Magic Land.',
-      })
-    }
-  }
-
-  return (
-    <PageShell eyebrow="Membership" title="Memberships that make repeat visits simple">
-      <section className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
-        <div className="grid gap-0 lg:grid-cols-[1fr_380px]">
-          <div className="p-6 md:p-8 lg:p-10">
-            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">3 month visit credits</p>
-            <h2 className="font-display mt-3 max-w-3xl text-3xl font-bold leading-tight text-[var(--primary)] md:text-5xl">More visits. Clear credits. Better family value.</h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)] md:text-lg">Pick a plan, add members if needed, and see the exact math before payment. One visit credit always equals one person entry.</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {[
-                ['From', 'Rs. 2,999'],
-                ['Validity', '3 months'],
-                ['Pay with', 'Khalti or eSewa'],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl bg-[var(--surface-3)] px-4 py-3">
-                  <span className="block text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted)]">{label}</span>
-                  <span className="font-display text-xl font-bold text-[var(--primary)]">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="relative min-h-72 overflow-hidden bg-[var(--surface-3)]">
-            <SmartImage src={img.homeFamily ?? img.mobileHero} alt="A family enjoying Magic Land together" className="absolute inset-0 h-full w-full object-cover" sizes="(min-width: 1024px) 380px, 100vw" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(3,13,70,0.78)] via-transparent to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-              <p className="text-xs font-extrabold uppercase tracking-wide text-white/80">How it works</p>
-              <h3 className="font-display mt-2 text-2xl font-bold">Credits are counted per person.</h3>
-              <p className="mt-2 text-sm font-semibold leading-6 text-white/88">A family of 4 visiting together uses 4 credits. Add members and the checkout updates automatically.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_420px]">
-        <div className="grid content-start gap-5">
-          <section className="grid gap-4 lg:grid-cols-3">
-            {membershipPlans.map((plan, index) => {
-              const isActive = activePlan.name === plan.name
-              return (
-                <button
-                  key={plan.name}
-                  type="button"
-                  onClick={() => choosePlan(plan.name)}
-                  className={`relative rounded-[1.75rem] border p-5 text-left shadow-sm transition hover:-translate-y-1 ${isActive ? 'border-[var(--secondary)] bg-[var(--surface-3)] ring-2 ring-[rgba(255,82,101,0.16)]' : 'border-[var(--line)] bg-white'}`}
-                >
-                  {index === 2 && <span className="absolute right-4 top-4 rounded-full bg-[var(--secondary)] px-3 py-1 text-[11px] font-extrabold uppercase text-white">Family</span>}
-                  <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">{plan.subtitle}</p>
-                  <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{plan.name}</h3>
-                  <p className="font-display mt-4 text-4xl font-bold text-[var(--primary)]">{plan.price}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {[plan.entries, plan.perVisit, `${plan.baseMembers} member${plan.baseMembers > 1 ? 's' : ''}`].map((item) => (
-                      <span key={item} className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--primary)]">{item}</span>
-                    ))}
-                  </div>
-                  <ComparisonNote text={plan.comparison} />
-                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{plan.outingText}</p>
-                </button>
-              )
-            })}
-          </section>
-
-          <section className="grid gap-4 md:grid-cols-3">
-            {[
-              ['Credits', 'One credit = one person entry. The balance is shared by registered members.'],
-              ['Add-ons', `After Family Magic, add +1 member for Rs. ${membershipAddOnPrice.toLocaleString()}. The checkout shows the full math.`],
-              ['Perks', 'Members revisit for VR racing, bumper cars, arcade games, Creative Village, and seasonal activities.'],
-            ].map(([title, copy]) => (
-              <article key={title} className="rounded-[1.5rem] border border-[var(--line)] bg-white p-5 shadow-sm">
-                <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">{title}</p>
-                <p className="mt-3 text-sm font-semibold leading-6 text-[var(--muted)]">{copy}</p>
-              </article>
-            ))}
-          </section>
-
-          <section className="rounded-[1.75rem] border border-[var(--line)] bg-white p-5 shadow-sm">
-            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership FAQ</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {[
-                ['Validity', 'All memberships are valid for 3 months from activation.'],
-                ['Shared visits', 'Family plans share one visit-credit balance among registered members.'],
-                ['Refunds', 'Membership purchases are non-refundable once activated.'],
-                ['Unused visits', 'Unused visits expire after the validity period ends.'],
-              ].map(([question, answer]) => (
-                <div key={question} className="rounded-2xl bg-[var(--surface-3)] p-4">
-                  <h3 className="font-display text-lg font-bold text-[var(--primary)]">{question}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{answer}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <div className="xl:sticky xl:top-28 xl:self-start">
-          <form id="membership-booking" onSubmit={submitMembership} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Membership booking</p>
-              <h3 className="font-display mt-1 text-2xl font-bold text-[var(--primary)]">{membershipBreakdown.standardPlan.name}</h3>
-              <p className="mt-1 text-xs font-bold text-[var(--muted)]">Auto-priced from your selected plan and member count.</p>
-            </div>
-            <div className="rounded-2xl bg-[var(--surface-3)] px-3 py-2 text-right">
-              <span className="block text-[11px] font-extrabold uppercase text-[var(--muted)]">Members</span>
-              <span className="font-display text-2xl font-bold text-[var(--primary)]">{membershipBreakdown.totalMembers}</span>
-            </div>
-          </div>
-          {membershipBreakdown.standardPlan.name !== activePlan.name && (
-            <p className="mt-3 rounded-2xl bg-[var(--surface-3)] px-4 py-3 text-xs font-extrabold leading-5 text-[var(--primary)]">
-              Updated to the best standard plan for {membershipBreakdown.totalMembers} members.
-            </p>
-          )}
-          <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm font-bold text-[var(--muted)]">
-              <Line label={`${membershipBreakdown.baseMembers} included member${membershipBreakdown.baseMembers > 1 ? 's' : ''}`} value={membershipBreakdown.standardPlan.price} />
-              {membershipBreakdown.addOnMembers > 0 && <Line label={`Add-on members (${membershipBreakdown.addOnMembers} x Rs. ${membershipAddOnPrice.toLocaleString()})`} value={`Rs. ${membershipBreakdown.addOnTotal.toLocaleString()}`} />}
-              <Line label="Validity" value="3 months" />
-              <Line label="Total" value={`Rs. ${membershipBreakdown.total.toLocaleString()}`} strong />
-          </div>
-          <div className="mt-5 grid gap-3">
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or member name" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Start date<input name="startDate" required type="date" value={form.startDate} onChange={(e) => updateForm('startDate', e.target.value)} className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">
-              Additional members
-              <input name="additionalMembers" type="number" min="0" max="20" value={form.additionalMembers} onChange={(e) => updateForm('additionalMembers', e.target.value)} className="soft-field" />
-              <span className="text-xs font-bold text-[var(--muted)]">We auto-pick the best plan. Extra member add-on: Rs. {membershipAddOnPrice.toLocaleString()}.</span>
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Member names, optional<input name="familyMembers" value={form.familyMembers} onChange={(e) => updateForm('familyMembers', e.target.value)} className="soft-field" placeholder="Useful for family passes" /></label>
-            <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
-              Payment option
-              <div className="grid gap-2 sm:grid-cols-3">
-                {[
-                  ['khalti', 'Pay now with Khalti'],
-                  ['esewa', 'Pay now with eSewa'],
-                  ['pay_at_park', 'Reserve, pay at park'],
-                ].map(([value, label]) => (
-                  <button
-                    type="button"
-                    key={value}
-                    onClick={() => { setPaymentMethod(value); trackEvent('membership_payment_method_select', { method: value, plan_name: activePlan.name }) }}
-                    className={`rounded-2xl border px-4 py-3 text-left text-sm font-extrabold ${paymentMethod === value ? 'border-[var(--secondary)] bg-[var(--surface-3)] text-[var(--primary)]' : 'border-[var(--line)] bg-white text-[var(--muted)]'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && !user && (
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
-                <p className="font-extrabold">Account required for online payment</p>
-                <p className="mt-1 text-[var(--muted)]">Login first, then return here to continue securely to {paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}.</p>
-                <button type="button" className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--primary)] shadow-sm" onClick={() => {
-                  sessionStorage.setItem('magicland:returnAfterLogin', 'memberships')
-                  setPage('account')
-                }}>Login or create account</button>
-              </div>
-            )}
-            {(paymentMethod === 'khalti' || paymentMethod === 'esewa') && emailNeedsVerification && (
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4 text-sm leading-6 text-[var(--primary)]">
-                <p className="font-extrabold">Email verification required</p>
-                <p className="mt-1 text-[var(--muted)]">Verify your email before continuing to online membership payment.</p>
-              </div>
-            )}
-            <button disabled={status.type === 'loading' || authLoading} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Submit Membership Request'}</button>
-            {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
-          </div>
-        </form>
-      </div>
       </div>
     </PageShell>
   )
@@ -2435,7 +1999,7 @@ function zone(name, coords, height, color) {
 }
 
 function DiningPage() {
-  return <SimpleImagePage eyebrow="Dining" title="Snacks, meals, and celebration-friendly food for full family days" image={img.dining} icon={Utensils} items={['Magic Cafe meals', 'Birthday catering add-ons', 'Membership-friendly offers', 'Creative Village break seating after pottery, painting, and arts sessions']} />
+  return <SimpleImagePage eyebrow="Dining" title="Snacks, meals, and celebration-friendly food for full family days" image={img.dining} icon={Utensils} items={['Magic Cafe meals', 'Birthday catering add-ons', 'Family and group meal options', 'Creative Village break seating after pottery, painting, and arts sessions']} />
 }
 
 function EventsPage() {
@@ -2503,7 +2067,7 @@ function AboutPage() {
         <div className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
           <SmartImage src={img.creativeFamily ?? img.creativeVillage} alt="A family moment at Magic Land Creative Village" className="h-72 w-full object-cover" />
           <div className="p-5">
-            <Crown className="text-[var(--secondary)]" />
+            <Sparkles className="text-[var(--secondary)]" />
             <h3 className="font-display mt-3 text-2xl font-bold text-[var(--primary)]">Our Promise</h3>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">A safe, friendly, well-managed park where children laugh, families bond, and every visit feels easy to plan.</p>
           </div>
@@ -2515,8 +2079,8 @@ function AboutPage() {
 
 function FAQPage() {
   const faqs = [
-    ['What does one entry include?', 'Entry gives guests access to the park experience, with selected games, rides, and activities depending on ticket or membership type.'],
-    ['How does membership work?', 'Memberships are simple visit plans. Individual Fun Pass includes 5 visits for Rs. 2,999, Family Duo Pass includes 10 shared visits for Rs. 5,499, and Family Magic Pass includes 20 shared visits for Rs. 9,499. All are valid for 3 months.'],
+    ['What does one entry include?', 'Entry gives guests access to the park experience, with selected games, rides, and activities depending on the ticket and attraction rules.'],
+    ['Do you offer group pricing?', 'Yes. Ticket checkout applies 5% off for 6 to 9 guests and 10% off for groups of 10 or more.'],
     ['Do you host birthdays and school visits?', 'Yes. Packages can include Kids Play, carousel, VR games, arcade, Creative Village painting, pottery, dhiki-jato heritage play, doko craft moments, dining, and hall seating.'],
     ['Where is Magic Land located?', 'Magic Land Family Fun Park is in Tarakeshwar 44600, near the Tokha route. Use the Map page for live directions.'],
   ]
@@ -2535,11 +2099,11 @@ function FAQPage() {
 }
 
 function PrivacyPage() {
-  return <InfoPage eyebrow="Privacy" title="Guest privacy and data care" items={['We collect only the details needed for ticketing, memberships, bookings, support, and guest communication.', 'Payment, booking, and membership details should be handled securely and used only for park operations.', 'Guests can contact Magic Land for corrections, booking questions, or support-related data requests.']} />
+  return <InfoPage eyebrow="Privacy" title="Guest privacy and data care" items={['We collect only the details needed for ticketing, bookings, support, and guest communication.', 'Payment and booking details are handled securely and used only for park operations.', 'Guests can contact Magic Land for corrections, booking questions, or support-related data requests.']} />
 }
 
 function TermsPage() {
-  return <InfoPage eyebrow="Terms & Conditions" title="Simple park terms for safer family visits" items={['Tickets and memberships are valid according to the selected plan, date, and park rules.', 'Guests should follow staff guidance, age suitability notes, safety signs, and queue instructions.', 'Birthday, group, school, refund, and cancellation requests are handled through guest care and may depend on booking status.']} />
+  return <InfoPage eyebrow="Terms & Conditions" title="Simple park terms for safer family visits" items={['Tickets are valid according to the selected type, date, guest count, and park rules.', 'Guests should follow staff guidance, age suitability notes, safety signs, and queue instructions.', 'Birthday, group, school, refund, and cancellation requests are handled through guest care and may depend on booking status.']} />
 }
 
 function InfoPage({ eyebrow, title, items }) {

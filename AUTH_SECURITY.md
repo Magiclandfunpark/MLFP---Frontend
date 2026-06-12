@@ -3,8 +3,8 @@
 ## Recommended Firebase products for the current website
 
 - **Firebase Authentication** for optional guest identity: Google, email/password, and phone OTP.
-- **Realtime Database** for booking and membership requests, public live park status, and signed-in guest profiles.
-- **Firebase Analytics / GA4** for page, booking, membership, attraction, map, social, and auth events.
+- **Realtime Database** for booking and guest requests, public live park status, and signed-in guest profiles.
+- **Firebase Analytics / GA4** for page, booking, attraction, map, social, and auth events.
 - **Cloud Functions** later for email notifications, payment confirmation, staff dashboards, and automated workflows. This usually requires Blaze billing and SMTP/API secrets.
 
 ## Current data model
@@ -20,7 +20,6 @@ publicLiveStatus/
 
 publicRequests/
   bookingRequests/{requestId}
-  membershipRequests/{requestId}
   contactRequests/{requestId}
   eventRequests/{requestId}
   newsletterSubscribers/{requestId}
@@ -56,4 +55,3 @@ staff/{uid}
 - Keep Google, Email/Password, and Phone providers enabled in Firebase Authentication.
 - Phone login requires a real HTTPS domain and reCAPTCHA. Localhost works for testing.
 - Create staff users manually first, then add their UID under `staff/{uid}` for admin access.
-
