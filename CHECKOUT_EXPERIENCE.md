@@ -10,7 +10,7 @@ Use a one-step reservation flow before building full online payment.
 4. Magic Land confirms by phone or WhatsApp.
 5. Payment can happen at the park, by wallet link, or through a hosted payment gateway later.
 
-This keeps the conversion path short and avoids forcing account creation before the guest has committed.
+This keeps the conversion path short and avoids unnecessary customer accounts.
 
 ## Why This Fits Magic Land
 
@@ -50,4 +50,4 @@ For public guests, ask only:
 - Guests or selected plan
 - Optional note
 
-Do not require account creation for simple ticket booking.
+Do not add customer account creation to ticket booking.

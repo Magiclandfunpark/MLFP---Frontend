@@ -21,21 +21,15 @@ import {
   Star,
   Ticket,
   Utensils,
-  UserRound,
   Wallet,
   X,
 } from 'lucide-react'
 import {
-  confirmPhoneOtp,
   checkInStaffRequest,
-  createEmailAccount,
-  createPaymentReceipt,
   createPublicRequest,
   getStaffProfile,
   getStaffRequestQueue,
-  sendPhoneOtp,
   signInWithEmail,
-  signInWithGoogle,
   signOutUser,
   subscribeAuthUser,
   subscribePublicLiveStatus,
@@ -173,7 +167,6 @@ const moreNav = [
   { id: 'privacy', label: 'Privacy', icon: Wallet },
   { id: 'terms', label: 'Terms', icon: CreditCard },
   { id: 'contact', label: 'Contact', icon: Mail },
-  { id: 'account', label: 'Account', icon: UserRound },
 ]
 
 const socialLinks = [
@@ -196,7 +189,6 @@ const pagePaths = {
   privacy: '/privacy',
   terms: '/terms',
   contact: '/contact',
-  account: '/account',
   thankYou: '/thank-you',
   more: '/more',
   khaltiReturn: '/payment/khalti/return',
@@ -219,8 +211,6 @@ const pathAliases = {
   '/privacy': 'privacy',
   '/terms': 'terms',
   '/contact': 'contact',
-  '/account': 'account',
-  '/login': 'account',
   '/thank-you': 'thankYou',
   '/more': 'more',
   '/payment/khalti/return': 'khaltiReturn',
@@ -365,7 +355,6 @@ function PublicApp() {
         {page === 'privacy' && <PrivacyPage />}
         {page === 'terms' && <TermsPage />}
         {page === 'contact' && <ContactPage />}
-        {page === 'account' && <AccountPage setPage={navigate} />}
         {page === 'thankYou' && <ThankYouPage setPage={navigate} />}
         {page === 'khaltiReturn' && <KhaltiReturnPage />}
         {page === 'esewaReturn' && <EsewaReturnPage />}
@@ -1127,7 +1116,6 @@ function AdminDashboard({ profile }) {
 }
 
 function Header({ page, setPage, menuOpen, setMenuOpen }) {
-  const { user } = useAuthUser()
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(198,197,209,0.55)] bg-[rgba(251,248,255,0.94)] backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-8">
@@ -1144,12 +1132,6 @@ function Header({ page, setPage, menuOpen, setMenuOpen }) {
         <div className="flex items-center gap-2">
           <button className="sunset hidden rounded-full px-5 py-3 text-sm font-extrabold shadow-sm md:inline-flex" onClick={() => setPage('tickets')}>
             Buy Tickets
-          </button>
-          <button
-            className="hidden rounded-full border border-[var(--line)] bg-white px-4 py-3 text-sm font-extrabold text-[var(--primary)] shadow-sm md:inline-flex"
-            onClick={() => setPage('account')}
-          >
-            {user ? 'Account' : 'Login'}
           </button>
           <button
             className="grid h-11 w-11 place-items-center rounded-full bg-white text-[var(--primary)] shadow-sm xl:hidden"
@@ -1684,7 +1666,7 @@ function TicketsPage({ setPage }) {
             </div>
             <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
-            <p className="text-xs leading-5 text-[var(--muted)]">No account needed for day tickets. Keep your phone and email reachable for payment and visit confirmation.</p>
+            <p className="text-xs leading-5 text-[var(--muted)]">Keep your phone and email reachable for payment and visit confirmation.</p>
           </div>
         </form>
       </div>
@@ -2147,112 +2129,6 @@ function ContactPage() {
   )
 }
 
-function AccountPage({ setPage }) {
-  const { user, loading } = useAuthUser()
-  const [emailForm, setEmailForm] = useState({ email: '', password: '' })
-  const [phoneForm, setPhoneForm] = useState({ phone: '', otp: '' })
-  const [confirmationResult, setConfirmationResult] = useState(null)
-  const [status, setStatus] = useState({ type: '', message: '' })
-
-  const updateEmail = (field, value) => setEmailForm((current) => ({ ...current, [field]: value }))
-  const updatePhone = (field, value) => setPhoneForm((current) => ({ ...current, [field]: value }))
-
-  const runAuthAction = async (eventName, action, successMessage) => {
-    setStatus({ type: 'loading', message: 'Checking your account...' })
-    trackEvent(`${eventName}_start`)
-    try {
-      await action()
-      setStatus({ type: 'success', message: successMessage })
-      trackEvent(`${eventName}_success`)
-      if (!['auth_phone_otp_request', 'auth_email_register'].includes(eventName)) {
-        try {
-          const returnPage = sessionStorage.getItem('magicland:returnAfterLogin')
-          if (returnPage) {
-            sessionStorage.removeItem('magicland:returnAfterLogin')
-            setPage(returnPage)
-          }
-        } catch {
-          // Login still succeeds if browser storage is unavailable.
-        }
-      }
-    } catch (error) {
-      console.error(`${eventName} failed`, error)
-      setStatus({ type: 'error', message: error?.message || 'Could not complete login right now.' })
-      trackEvent(`${eventName}_error`, { code: error?.code ?? 'unknown' })
-    }
-  }
-
-  const loginGoogle = () => runAuthAction('auth_google', signInWithGoogle, 'Signed in with Google.')
-  const loginEmail = () => runAuthAction('auth_email_login', () => signInWithEmail(emailForm.email, emailForm.password), 'Signed in with email.')
-  const registerEmail = () => runAuthAction('auth_email_register', () => createEmailAccount(emailForm.email, emailForm.password), 'Account created. Please verify your email before online payment.')
-  const requestOtp = () => runAuthAction('auth_phone_otp_request', async () => {
-    const result = await sendPhoneOtp(phoneForm.phone)
-    setConfirmationResult(result)
-  }, 'OTP sent. Please enter the code.')
-  const verifyOtp = () => runAuthAction('auth_phone_otp_verify', () => confirmPhoneOtp(confirmationResult, phoneForm.otp), 'Phone number verified. You are signed in.')
-  const logout = () => runAuthAction('auth_logout', signOutUser, 'Signed out.')
-
-  return (
-    <PageShell eyebrow="Magic Land Account" title="Login to continue checkout">
-      <div className="mx-auto max-w-xl">
-        <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-5 flex items-start gap-3 rounded-2xl bg-[var(--surface-3)] p-4">
-            <ShieldCheck className="mt-0.5 text-[var(--secondary)]" size={20} />
-            <div>
-              <p className="text-sm font-extrabold text-[var(--primary)]">Online payment needs a verified account.</p>
-              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">Login with Google, email, or phone. Magic Land stores payment references under your guest ID.</p>
-            </div>
-          </div>
-          {loading ? (
-            <p className="font-bold text-[var(--muted)]">Checking login status...</p>
-          ) : user ? (
-            <div>
-              <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Signed in</p>
-              <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">{user.displayName || user.email || user.phoneNumber || 'Magic Land Guest'}</h3>
-              <div className="mt-4 rounded-2xl bg-[var(--surface-3)] p-4 text-sm leading-7 text-[var(--muted)]">
-                {user.email && <p><strong>Email:</strong> {user.email}</p>}
-                {user.email && <p><strong>Email status:</strong> {user.emailVerified ? 'Verified' : 'Needs verification before online payment'}</p>}
-                {user.phoneNumber && <p><strong>Phone:</strong> {user.phoneNumber}</p>}
-                <p><strong>Guest ID:</strong> {user.uid.slice(0, 10)}...</p>
-              </div>
-              <button className="mt-5 rounded-full border border-[var(--line)] bg-white px-5 py-3 font-extrabold text-[var(--primary)]" onClick={logout}>Sign out</button>
-            </div>
-          ) : (
-            <div className="grid gap-5">
-              <button className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm" onClick={loginGoogle}>Continue with Google</button>
-
-              <div className="grid gap-3 border-t border-[var(--line)] pt-5">
-                <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Email login</p>
-                <input className="soft-field" type="email" autoComplete="email" placeholder="you@example.com" value={emailForm.email} onChange={(event) => updateEmail('email', event.target.value)} />
-                <input className="soft-field" type="password" autoComplete="current-password" placeholder="Password" value={emailForm.password} onChange={(event) => updateEmail('password', event.target.value)} />
-                <div className="flex flex-wrap gap-2">
-                  <button className="rounded-full bg-[var(--primary)] px-5 py-3 text-sm font-extrabold text-white" onClick={loginEmail}>Sign in</button>
-                  <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 text-sm font-extrabold text-[var(--primary)]" onClick={registerEmail}>Create account</button>
-                </div>
-                <p className="text-xs leading-5 text-[var(--muted)]">New email accounts receive a verification link. Online payments unlock after verification.</p>
-              </div>
-
-              <div className="grid gap-3 border-t border-[var(--line)] pt-5">
-                <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Phone login</p>
-                <input className="soft-field" type="tel" autoComplete="tel" placeholder="+97798XXXXXXXX" value={phoneForm.phone} onChange={(event) => updatePhone('phone', event.target.value)} />
-                <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 text-sm font-extrabold text-[var(--primary)]" onClick={requestOtp}>Send OTP</button>
-                {confirmationResult && (
-                  <>
-                    <input className="soft-field" inputMode="numeric" placeholder="Enter OTP" value={phoneForm.otp} onChange={(event) => updatePhone('otp', event.target.value)} />
-                    <button className="rounded-full bg-[var(--primary)] px-5 py-3 text-sm font-extrabold text-white" onClick={verifyOtp}>Verify OTP</button>
-                  </>
-                )}
-                <div id="magicland-phone-recaptcha" />
-              </div>
-            </div>
-          )}
-          {status.message && <p className={`mt-4 text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
-        </aside>
-      </div>
-    </PageShell>
-  )
-}
-
 function KhaltiReturnPage() {
   const [status, setStatus] = useState({ type: 'loading', message: 'Verifying Khalti payment...' })
 
@@ -2282,22 +2158,7 @@ function KhaltiReturnPage() {
           },
         })
         trackEvent('khalti_payment_verified', { pidx, booking_id: bookingId, status: result.status, paid_amount: result.paidAmount })
-        try {
-          await createPaymentReceipt('khalti', {
-            ...pending,
-            bookingId: bookingId || pending.bookingId || '',
-            gatewayReference: pidx,
-            pidx,
-            amount: result.paidAmount || amount || pending.amount,
-            paidAmount: result.paidAmount || amount || pending.amount,
-            rawStatus: result.rawStatus || result.status || '',
-            verifiedAt: new Date().toISOString(),
-          })
-          sessionStorage.removeItem('magicland:pendingPayment')
-        } catch (receiptError) {
-          console.error('Khalti receipt email event failed', receiptError)
-          trackEvent('payment_receipt_email_event_error', { gateway: 'khalti', booking_id: bookingId })
-        }
+        sessionStorage.removeItem('magicland:pendingPayment')
         setStatus({ type: 'success', message: 'Payment verified. Magic Land will confirm your booking by phone.' })
       } catch (error) {
         console.error('Khalti verification failed', error)
@@ -2346,22 +2207,7 @@ function EsewaReturnPage() {
           },
         })
         trackEvent('esewa_payment_verified', { status: result.status, booking_id: bookingId })
-        try {
-          await createPaymentReceipt('esewa', {
-            ...pending,
-            bookingId: bookingId || pending.bookingId || '',
-            gatewayReference: result.data?.ref_id || result.decoded?.transaction_code || '',
-            transactionUuid: result.decoded?.transaction_uuid || result.data?.transaction_uuid || '',
-            amount: Number(result.decoded?.total_amount || result.data?.total_amount || pending.amount || 0),
-            paidAmount: Number(result.decoded?.total_amount || result.data?.total_amount || pending.amount || 0),
-            rawStatus: result.data?.status || result.decoded?.status || result.status || '',
-            verifiedAt: new Date().toISOString(),
-          })
-          sessionStorage.removeItem('magicland:pendingPayment')
-        } catch (receiptError) {
-          console.error('eSewa receipt email event failed', receiptError)
-          trackEvent('payment_receipt_email_event_error', { gateway: 'esewa', booking_id: bookingId })
-        }
+        sessionStorage.removeItem('magicland:pendingPayment')
         setStatus({ type: 'success', message: 'eSewa payment verified. Magic Land will confirm your booking by phone.' })
       } catch (error) {
         console.error('eSewa verification failed', error)

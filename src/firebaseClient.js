@@ -1,19 +1,13 @@
 import { initializeApp } from 'firebase/app'
 import { getAnalytics, isSupported, logEvent } from 'firebase/analytics'
 import {
-  createUserWithEmailAndPassword,
   getAuth,
-  GoogleAuthProvider,
   onAuthStateChanged,
-  RecaptchaVerifier,
-  sendEmailVerification,
   signInWithEmailAndPassword,
-  signInWithPhoneNumber,
-  signInWithPopup,
   signOut,
 } from 'firebase/auth'
-import { getDatabase, onValue, ref, set, update } from 'firebase/database'
-import { addDoc, collection, doc, getDoc, getDocs, getFirestore, limit, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
+import { getDatabase, onValue, ref, set } from 'firebase/database'
+import { addDoc, collection, doc, getDoc, getDocs, getFirestore, limit, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 
 const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -34,7 +28,6 @@ let dbPromise
 let realtimeDbPromise
 let authPromise
 let analyticsPromise
-let phoneRecaptchaVerifier
 let sessionId
 
 function withTimeout(promise, timeoutMs, label) {
@@ -154,11 +147,6 @@ function getSessionId() {
   }
 }
 
-function verificationActionSettings() {
-  const origin = globalThis.location?.origin
-  return origin ? { url: `${origin}/account`, handleCodeInApp: false } : undefined
-}
-
 export async function trackEvent(name, params = {}) {
   try {
     const analytics = await getAnalyticsClient()
@@ -177,39 +165,6 @@ export function trackPageView(pageId) {
   })
 }
 
-function publicUserProfile(user) {
-  return {
-    uid: user.uid,
-    displayName: user.displayName ?? '',
-    email: user.email ?? '',
-    phoneNumber: user.phoneNumber ?? '',
-    photoURL: user.photoURL ?? '',
-    providerIds: user.providerData?.map((provider) => provider.providerId) ?? [],
-    lastSeenAt: new Date().toISOString(),
-  }
-}
-
-async function saveUserProfile(user) {
-  if (!user?.uid) return
-  const profile = {
-    ...publicUserProfile(user),
-    visitorId: getVisitorId(),
-  }
-
-  const db = await getDb()
-  if (db) {
-    await setDoc(doc(db, 'users', user.uid), {
-      ...profile,
-      updatedAt: serverTimestamp(),
-    }, { merge: true }).catch(() => {})
-  }
-
-  const realtimeDb = await getRealtimeDb()
-  if (realtimeDb) {
-    await update(ref(realtimeDb, `users/${user.uid}`), profile).catch(() => {})
-  }
-}
-
 export async function subscribeAuthUser(onChange) {
   const auth = await getAuthClient()
   if (!auth) {
@@ -217,51 +172,13 @@ export async function subscribeAuthUser(onChange) {
     return () => {}
   }
 
-  return onAuthStateChanged(auth, (user) => {
-    onChange(user)
-    if (user) saveUserProfile(user).catch(() => {})
-  })
-}
-
-export async function signInWithGoogle() {
-  const auth = await getAuthClient()
-  if (!auth) throw new Error('Firebase Auth is not configured.')
-  const result = await signInWithPopup(auth, new GoogleAuthProvider())
-  await saveUserProfile(result.user)
-  return result.user
+  return onAuthStateChanged(auth, onChange)
 }
 
 export async function signInWithEmail(email, password) {
   const auth = await getAuthClient()
   if (!auth) throw new Error('Firebase Auth is not configured.')
   const result = await signInWithEmailAndPassword(auth, email, password)
-  await saveUserProfile(result.user)
-  return result.user
-}
-
-export async function createEmailAccount(email, password) {
-  const auth = await getAuthClient()
-  if (!auth) throw new Error('Firebase Auth is not configured.')
-  const result = await createUserWithEmailAndPassword(auth, email, password)
-  await saveUserProfile(result.user)
-  if (result.user.email && !result.user.emailVerified) {
-    await sendEmailVerification(result.user, verificationActionSettings()).catch(() => {})
-  }
-  return result.user
-}
-
-export async function sendPhoneOtp(phoneNumber, containerId = 'magicland-phone-recaptcha') {
-  const auth = await getAuthClient()
-  if (!auth) throw new Error('Firebase Auth is not configured.')
-  if (!phoneRecaptchaVerifier) {
-    phoneRecaptchaVerifier = new RecaptchaVerifier(auth, containerId, { size: 'invisible' })
-  }
-  return signInWithPhoneNumber(auth, phoneNumber, phoneRecaptchaVerifier)
-}
-
-export async function confirmPhoneOtp(confirmationResult, code) {
-  const result = await confirmationResult.confirm(code)
-  await saveUserProfile(result.user)
   return result.user
 }
 
@@ -395,15 +312,11 @@ function saveLocalFallback(collectionName, payload) {
 }
 
 export async function createPublicRequest(collectionName, payload) {
-  const auth = await getAuthClient()
   const enrichedPayload = {
     ...payload,
     source: 'website',
     pagePath: globalThis.location?.pathname ?? '',
     userAgent: globalThis.navigator?.userAgent ?? '',
-    authUid: auth?.currentUser?.uid ?? '',
-    authEmail: auth?.currentUser?.email ?? '',
-    authPhone: auth?.currentUser?.phoneNumber ?? '',
     visitorId: getVisitorId(),
     sessionId: getSessionId(),
     ...getAttributionParams(),
@@ -464,37 +377,6 @@ export async function createPublicRequest(collectionName, payload) {
   }
 
   return { id: saveLocalFallback(collectionName, enrichedPayload).id, offline: true, store: 'local-preview' }
-}
-
-export async function createPaymentReceipt(gateway, payload) {
-  const auth = await getAuthClient()
-  if (!auth?.currentUser?.uid) throw new Error('Login is required before recording a payment receipt.')
-
-  const receipt = {
-    ...payload,
-    source: 'website',
-    status: 'verified',
-    authUid: auth.currentUser.uid,
-    authEmail: auth.currentUser.email ?? '',
-    authPhone: auth.currentUser.phoneNumber ?? '',
-    visitorId: getVisitorId(),
-    sessionId: getSessionId(),
-    pagePath: globalThis.location?.pathname ?? '',
-    userAgent: globalThis.navigator?.userAgent ?? '',
-    createdAt: new Date().toISOString(),
-    ...getAttributionParams(),
-  }
-
-  const realtimeDb = await getRealtimeDb()
-  if (!realtimeDb) return { id: saveLocalFallback(`paymentReceipts:${gateway}`, receipt).id, offline: true }
-
-  const id = `${gateway}_${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`}`
-  await withTimeout(
-    set(ref(realtimeDb, `paymentReceipts/${gateway}/${id}`), receipt),
-    7000,
-    'Payment receipt save',
-  )
-  return { id, offline: false }
 }
 
 export async function subscribePublicLiveStatus(onChange) {

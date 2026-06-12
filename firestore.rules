@@ -37,11 +37,8 @@ service cloud.firestore {
         && optionalText('userAgent', 500);
     }
 
-    function optionalAuthContext() {
-      return optionalText('authUid', 140)
-        && optionalText('authEmail', 180)
-        && optionalText('authPhone', 40)
-        && optionalText('visitorId', 140)
+    function optionalVisitorContext() {
+      return optionalText('visitorId', 140)
         && optionalText('sessionId', 140);
     }
 
@@ -78,21 +75,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    match /users/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow create, update: if signedIn() && request.auth.uid == uid;
-      allow delete: if false;
-    }
-
     match /bookingRequests/{requestId} {
       allow create: if request.resource.data.keys().hasOnly([
           'name', 'phone', 'email', 'ticketName', 'unitPrice', 'guests', 'visitDate',
           'note', 'total', 'source', 'pagePath', 'userAgent', 'status', 'createdAt',
-          'authUid', 'authEmail', 'authPhone', 'visitorId', 'sessionId', 'paymentMethod',
+          'visitorId', 'sessionId', 'paymentMethod',
           'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'
         ])
         && basePublicRequest()
-        && optionalAuthContext()
+        && optionalVisitorContext()
         && optionalAttributionContext()
         && isText('name', 80)
         && isText('phone', 30)
@@ -115,12 +106,11 @@ service cloud.firestore {
     match /contactRequests/{requestId} {
       allow create: if request.resource.data.keys().hasOnly([
           'name', 'phone', 'email', 'topic', 'message', 'source', 'pagePath',
-          'userAgent', 'status', 'createdAt', 'authUid', 'authEmail', 'authPhone',
-          'visitorId', 'sessionId',
+          'userAgent', 'status', 'createdAt', 'visitorId', 'sessionId',
           'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'
         ])
         && basePublicRequest()
-        && optionalAuthContext()
+        && optionalVisitorContext()
         && optionalAttributionContext()
         && isText('name', 80)
         && optionalText('phone', 30)
@@ -134,11 +124,11 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasOnly([
           'name', 'phone', 'email', 'eventType', 'eventDate', 'guestCount',
           'packageInterest', 'note', 'source', 'pagePath', 'userAgent', 'status',
-          'createdAt', 'authUid', 'authEmail', 'authPhone', 'visitorId', 'sessionId',
+          'createdAt', 'visitorId', 'sessionId',
           'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'
         ])
         && basePublicRequest()
-        && optionalAuthContext()
+        && optionalVisitorContext()
         && optionalAttributionContext()
         && isText('name', 80)
         && isText('phone', 30)
@@ -156,11 +146,11 @@ service cloud.firestore {
     match /newsletterSubscribers/{requestId} {
       allow create: if request.resource.data.keys().hasOnly([
           'email', 'source', 'pagePath', 'userAgent', 'status', 'createdAt',
-          'authUid', 'authEmail', 'authPhone', 'visitorId', 'sessionId',
+          'visitorId', 'sessionId',
           'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'
         ])
         && basePublicRequest()
-        && optionalAuthContext()
+        && optionalVisitorContext()
         && optionalAttributionContext()
         && isText('email', 120);
       allow read, update, delete: if isStaff();

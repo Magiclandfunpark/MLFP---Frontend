@@ -23,7 +23,6 @@
     { "source": "/privacy", "destination": "/index.html" },
     { "source": "/terms", "destination": "/index.html" },
     { "source": "/contact", "destination": "/index.html" },
-    { "source": "/account", "destination": "/index.html" },
     { "source": "/thank-you", "destination": "/index.html" },
     { "source": "/more", "destination": "/index.html" },
     { "source": "/payment/khalti/return", "destination": "/index.html" },

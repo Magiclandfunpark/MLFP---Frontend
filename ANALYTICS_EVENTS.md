@@ -25,13 +25,8 @@ Use Firebase Analytics / GA4 as the primary website analytics layer. All events 
 | `attraction_book_click` | Attraction card Book Game CTA is clicked | `attraction_name`, `zone` |
 | `map_directions_click` | Directions button is clicked | `destination` |
 
-## Guest Account
+## Staff Authentication
 
 | Event | When | Parameters |
 | --- | --- | --- |
-| `auth_google_start` / `auth_google_success` / `auth_google_error` | Google login flow | `code` on error |
-| `auth_email_login_start` / `auth_email_login_success` / `auth_email_login_error` | Email sign in | `code` on error |
-| `auth_email_register_start` / `auth_email_register_success` / `auth_email_register_error` | Email account creation | `code` on error |
-| `auth_phone_otp_request_start` / `auth_phone_otp_request_success` / `auth_phone_otp_request_error` | Phone OTP request | `code` on error |
-| `auth_phone_otp_verify_start` / `auth_phone_otp_verify_success` / `auth_phone_otp_verify_error` | Phone OTP verification | `code` on error |
-| `auth_logout_start` / `auth_logout_success` / `auth_logout_error` | Guest sign out | `code` on error |
+| `staff_email_login_success` | Approved staff signs in | `portal` |

@@ -4,20 +4,14 @@ Booking, event, contact, and newsletter requests are saved to Realtime Database 
 
 `publicRequests/{requestType}/{requestId}`
 
-Verified payment receipts are saved under:
-
-`paymentReceipts/{gateway}/{receiptId}`
-
-Firebase does not send email directly from the frontend. The safe setup is a Cloud Functions trigger that sends email after a request or verified payment receipt is created.
+Firebase does not send email directly from the frontend. The safe setup is a Cloud Functions trigger that sends email after a request is created.
 
 ## Email Templates
 
-The functions send branded emails for request and account events:
+The functions send branded emails for public request events:
 
 - Staff notification to `BOOKING_NOTIFICATION_EMAIL`
 - Guest confirmation email when the request contains an email address
-- Verified payment receipt emails after Khalti or eSewa returns successfully
-- Welcome email when a new guest profile is created
 
 Templates are branded HTML emails using Magic Land colors, a clear details table, and a fallback plain-text version for deliverability.
 
@@ -54,10 +48,10 @@ info@magiclandfunpark.com,prabinthapaliyaus@gmail.com
 6. Deploy the email functions:
 
 ```bash
-firebase deploy --only functions:emailPublicRequest,functions:emailPaymentReceipt,functions:emailUserWelcome --project magic-land-fun-park
+firebase deploy --only functions:emailPublicRequest --project magic-land-fun-park
 ```
 
-7. Deploy Realtime Database rules so payment receipt events can be recorded by signed-in guests:
+7. Deploy Realtime Database rules for booking notification events:
 
 ```bash
 firebase deploy --only database --project magic-land-fun-park

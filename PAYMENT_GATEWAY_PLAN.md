@@ -15,8 +15,8 @@ Secret keys must live only in a server environment such as Vercel Serverless Fun
 ## Recommended checkout flow
 
 1. Guest chooses a ticket.
-2. For Khalti/eSewa, guest logs in with Google, email, or phone before checkout.
-3. Website creates a Firestore `bookingRequests` record with `authUid`, `visitorId`, and `sessionId`.
+2. Guest enters their name, phone number, email, visit date, and guest count.
+3. Website creates a Firestore `bookingRequests` record with `visitorId` and `sessionId`.
 4. Server creates `paymentIntents/{id}` with `status: initiated`.
 5. Server calls Khalti/eSewa initiate API using secret key.
 6. Guest is redirected to payment gateway.

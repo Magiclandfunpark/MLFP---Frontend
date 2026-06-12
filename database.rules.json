@@ -38,52 +38,10 @@
         }
       }
     },
-    "paymentReceipts": {
-      "$gateway": {
-        "$receiptId": {
-          ".read": "auth != null && root.child('staff').child(auth.uid).exists()",
-          ".write": "!data.exists() && auth != null && ($gateway == 'khalti' || $gateway == 'esewa') && newData.child('status').val() == 'verified' && newData.child('authUid').val() == auth.uid && newData.child('createdAt').isString()",
-          ".validate": true
-        }
-      }
-    },
     "staff": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
         ".write": false
-      }
-    },
-    "users": {
-      "$uid": {
-        ".read": "auth != null && auth.uid == $uid",
-        ".write": "auth != null && auth.uid == $uid",
-        "uid": {
-          ".validate": "newData.val() == $uid"
-        },
-        "displayName": {
-          ".validate": "newData.isString() && newData.val().length <= 120"
-        },
-        "email": {
-          ".validate": "newData.isString() && newData.val().length <= 180"
-        },
-        "phoneNumber": {
-          ".validate": "newData.isString() && newData.val().length <= 40"
-        },
-        "photoURL": {
-          ".validate": "newData.isString() && newData.val().length <= 500"
-        },
-        "providerIds": {
-          ".validate": "newData.hasChildren() || newData.val() == null"
-        },
-        "lastSeenAt": {
-          ".validate": "newData.isString()"
-        },
-        "visitorId": {
-          ".validate": "newData.isString() && newData.val().length <= 140"
-        },
-        "$other": {
-          ".validate": false
-        }
       }
     },
     ".read": false,

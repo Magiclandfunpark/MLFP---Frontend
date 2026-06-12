@@ -337,41 +337,6 @@ function receiptText(data) {
   ].join('\n')
 }
 
-function userWelcomeHtml(data) {
-  return emailShell({
-    eyebrow: 'Magic Land Account',
-    title: 'Welcome to Magic Land Family Fun Park',
-    intro: 'Your Magic Land account is ready. You can now use it for secure online payments and booking references.',
-    children: `
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-        ${rows([
-          ['Name', data.displayName || 'Magic Land Guest'],
-          ['Email', data.email || '-'],
-          ['Phone', data.phoneNumber || '-'],
-          ['Guest ID', data.uid || '-'],
-        ])}
-      </table>
-      <div style="margin-top:22px;padding:16px;border-radius:18px;background:#f6f7ff;color:#4f5b76;line-height:1.7;font-size:14px;">
-        Keep this email for reference. Magic Land will never ask for your wallet password, OTP, or payment PIN.
-      </div>
-    `,
-    ctaLabel: 'Book your visit',
-    ctaUrl: 'https://magiclandfunpark.com/tickets',
-  })
-}
-
-function userWelcomeText(data) {
-  return [
-    'Welcome to Magic Land Family Fun Park',
-    '',
-    'Your Magic Land account is ready.',
-    `Name: ${data.displayName || 'Magic Land Guest'}`,
-    `Email: ${data.email || '-'}`,
-    `Phone: ${data.phoneNumber || '-'}`,
-    `Guest ID: ${data.uid || '-'}`,
-  ].join('\n')
-}
-
 function staffRecipients() {
   const configured = mailTo.value()
   const recipients = configured
@@ -554,26 +519,6 @@ exports.emailPaymentReceipt = onValueCreated(
       guestText: receiptText(data),
       replyTo: data.email,
       attachments,
-    })
-  }
-)
-
-exports.emailUserWelcome = onValueCreated(
-  {
-    ref: '/users/{uid}',
-    region: 'us-central1',
-    secrets: [gmailClientId, gmailClientSecret, gmailRefreshToken, gmailSenderEmail, mailTo],
-  },
-  async (event) => {
-    const data = event.data.val() || {}
-    if (!data.email) return
-
-    await sendGmail({
-      to: data.email,
-      replyTo: staffRecipients(),
-      subject: 'Welcome to Magic Land Family Fun Park',
-      text: userWelcomeText(data),
-      html: userWelcomeHtml(data),
     })
   }
 )
