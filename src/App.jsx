@@ -1605,6 +1605,11 @@ function TicketsPage({ setPage }) {
             <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Buy entry for today, a planned date, or a group outing.</h2>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Choose a one-time, gift, or group ticket. Group discounts are calculated automatically from the number of guests.</p>
           </div>
+          <div className="rounded-[2rem] border border-[#bbe6ff] bg-[#eef9ff] p-5 shadow-sm">
+            <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Foam Party reminder</p>
+            <h3 className="font-display mt-2 text-2xl font-bold leading-tight text-[var(--primary)]">Dear parents, if your child comes home dry, they probably missed the Foam Party.</h3>
+            <p className="mt-3 text-sm font-bold leading-6 text-[var(--muted)]">Please bring extra clothes and a towel. The foam does not play around.</p>
+          </div>
           {ticketOptions.map((ticket) => (
             <button key={ticket.name} onClick={() => chooseTicket(ticket)} className={`storybook-card rounded-[2rem] p-5 text-left transition ${selected.name === ticket.name ? 'ring-4 ring-[#bbc3ff]' : ''}`}>
               <Ticket className="text-[var(--secondary)]" />
