@@ -265,9 +265,19 @@ const ticketOptions = [
   { name: 'One-Time Entry', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'Best for families planning one Magic Land visit with rides, VR games, arcade fun, and Creative Village access.' },
   { name: 'Gift Ticket', price: 1500, kind: 'entry', defaultGuests: 1, detail: 'A simple entry gift for birthdays, friends, cousins, and family celebrations.' },
   { name: 'Group Day Visit', price: 1500, kind: 'entry', defaultGuests: 10, detail: 'For schools, teams, offices, and larger family groups. Magic Land can confirm final timing by phone.' },
+  { name: 'Yearly Unlimited Pass', price: 29999, kind: 'annual-pass', defaultGuests: 1, fixedGuests: true, detail: 'Unlimited park visits for one named guest for 12 months from activation. The pass is personal and non-transferable.' },
 ]
 
 function ticketPriceBreakdown(ticket, guests) {
+  if (ticket.kind === 'annual-pass') {
+    return {
+      subtotal: ticket.price,
+      discountRate: 0,
+      discount: 0,
+      isGroupPrice: false,
+      total: ticket.price,
+    }
+  }
   const subtotal = ticket.price * guests
   const discountRate = guests >= 10 ? 0.1 : guests > 5 ? 0.05 : 0
   const discount = Math.round(subtotal * discountRate)
@@ -278,6 +288,16 @@ function ticketPriceBreakdown(ticket, guests) {
     discount,
     isGroupPrice,
     total: subtotal - discount,
+  }
+}
+
+function consumeTicketIntent() {
+  try {
+    const intendedName = sessionStorage.getItem('magicland:ticketIntent')
+    sessionStorage.removeItem('magicland:ticketIntent')
+    return ticketOptions.find((ticket) => ticket.name === intendedName) || ticketOptions[0]
+  } catch {
+    return ticketOptions[0]
   }
 }
 
@@ -748,16 +768,18 @@ function InternalPortal({ mode }) {
     paymentMethod: item.paymentMethod || 'pay_at_park',
     status: item.status || 'new',
     checkedInAt: item.checkedInAt,
+    visitCount: item.visitCount || 0,
   })
 
   const openStaffRequest = (item) => {
     const details = staffRequestDetails(item)
+    const isAnnualPass = details.item === 'Yearly Unlimited Pass'
     setManualCode(item.id)
     setCheckInStatus({ type: '', message: '' })
     setScanResult({
       code: item.id,
-      status: item.status === 'checked_in' ? 'Already checked in' : 'Valid ticket',
-      message: item.status === 'checked_in' ? 'This request has already been checked in.' : 'Request loaded. Confirm guest identity, then check in.',
+      status: item.status === 'checked_in' && !isAnnualPass ? 'Already checked in' : isAnnualPass ? 'Valid annual pass' : 'Valid ticket',
+      message: item.status === 'checked_in' && !isAnnualPass ? 'This request has already been checked in.' : isAnnualPass ? 'Confirm the named pass holder, then record this visit.' : 'Request loaded. Confirm guest identity, then check in.',
       details,
       request: {
         id: item.id,
@@ -774,29 +796,31 @@ function InternalPortal({ mode }) {
       setCheckInStatus({ type: 'error', message: 'Select a valid booking or scan a Magic Land QR before check-in.' })
       return
     }
-    if (scanResult.request.status === 'checked_in' || scanResult.details?.status === 'checked_in') {
+    const isAnnualPass = scanResult.details?.item === 'Yearly Unlimited Pass'
+    if (!isAnnualPass && (scanResult.request.status === 'checked_in' || scanResult.details?.status === 'checked_in')) {
       setCheckInStatus({ type: 'error', message: 'This guest is already checked in.' })
       return
     }
     setCheckInStatus({ type: 'loading', message: 'Checking in guest...' })
     try {
-      await checkInStaffRequest({
+      const checkInResult = await checkInStaffRequest({
         collectionName: scanResult.request.collectionName,
         requestId: scanResult.request.id,
+        ticketName: scanResult.details?.item,
         staffProfile: profile,
         staffUser: user,
       })
       setStaffRequests((items) => items.map((item) => (
         item.collectionName === scanResult.request.collectionName && item.id === scanResult.request.id
-          ? { ...item, status: 'checked_in', checkedInAt: new Date().toISOString(), checkedInByName: profile?.name || user?.email || '' }
+          ? { ...item, status: checkInResult.status, visitCount: Number(item.visitCount || 0) + 1, checkedInAt: new Date().toISOString(), checkedInByName: profile?.name || user?.email || '' }
           : item
       )))
       setScanResult((current) => ({
         ...current,
-        status: 'Checked in',
-        message: 'Entry confirmed. The guest can proceed.',
-        request: { ...current.request, status: 'checked_in' },
-        details: { ...current.details, status: 'checked_in', checkedInAt: new Date().toISOString() },
+        status: checkInResult.isAnnualPass ? 'Annual pass visit recorded' : 'Checked in',
+        message: checkInResult.isAnnualPass ? 'Pass is still active. This visit was added to the pass history.' : 'Entry confirmed. The guest can proceed.',
+        request: { ...current.request, status: checkInResult.status },
+        details: { ...current.details, status: checkInResult.status, visitCount: Number(current.details?.visitCount || 0) + 1, checkedInAt: new Date().toISOString() },
       }))
       setCheckInStatus({ type: 'success', message: 'Check-in saved successfully.' })
       trackEvent('staff_check_in_success', { portal: mode, request_type: scanResult.request.type, request_id: scanResult.request.id })
@@ -818,9 +842,10 @@ function InternalPortal({ mode }) {
     }
   }
 
+  const isAnnualPassResult = scanResult?.details?.item === 'Yearly Unlimited Pass'
   const canCheckIn = Boolean(scanResult?.request?.id)
-    && scanResult?.request?.status !== 'checked_in'
-    && scanResult?.details?.status !== 'checked_in'
+    && (isAnnualPassResult || scanResult?.request?.status !== 'checked_in')
+    && (isAnnualPassResult || scanResult?.details?.status !== 'checked_in')
     && scanResult?.status !== 'Unknown QR'
 
   const resultCard = scanResult ? (
@@ -844,6 +869,7 @@ function InternalPortal({ mode }) {
             ['Item', scanResult.details.item],
             ['Date', scanResult.details.visitDate],
             ['Entries', scanResult.details.quantity],
+            ['Recorded visits', isAnnualPassResult ? scanResult.details.visitCount || 0 : ''],
             ['Phone', scanResult.details.phone],
             ['Email', scanResult.details.email],
             ['Amount', scanResult.details.amount ? `Rs. ${Number(scanResult.details.amount).toLocaleString('en-IN')}` : 'Pay at park'],
@@ -866,7 +892,7 @@ function InternalPortal({ mode }) {
         className={`mt-4 w-full rounded-full px-5 py-3 font-extrabold text-white ${canCheckIn ? 'sunset' : 'bg-[var(--primary)] opacity-45'}`}
         onClick={handleCheckIn}
       >
-        {checkInStatus.type === 'loading' ? 'Checking in...' : scanResult?.details?.status === 'checked_in' ? 'Already checked in' : 'Check in'}
+        {checkInStatus.type === 'loading' ? 'Checking in...' : isAnnualPassResult ? 'Record visit' : scanResult?.details?.status === 'checked_in' ? 'Already checked in' : 'Check in'}
       </button>
     </div>
   ) : (
@@ -1162,10 +1188,18 @@ function HomePage({ setPage }) {
   const [trailerOpen, setTrailerOpen] = useState(false)
   const quickActions = [
     [CalendarDays, 'Today at Magic Land', 'Hours, shows, and events', 'events'],
-    [Ticket, 'Book Tickets', 'Single, gift, and group visits', 'tickets'],
+    [Ticket, 'Book Tickets', 'Day, gift, group, and annual passes', 'tickets'],
     [PartyPopper, 'Birthday Packages', 'Kids, teens, schools, families', 'birthdays'],
     [MapIcon, 'Directions', 'Open route from your location', 'map'],
   ]
+  const openYearlyPass = () => {
+    try {
+      sessionStorage.setItem('magicland:ticketIntent', 'Yearly Unlimited Pass')
+    } catch {
+      // The tickets page remains available if browser storage is blocked.
+    }
+    setPage('tickets')
+  }
 
   return (
     <>
@@ -1245,6 +1279,8 @@ function HomePage({ setPage }) {
 
       </section>
 
+      <YearlyPassFeature onSelect={openYearlyPass} />
+
       <div className="hidden md:block">
         <DesktopAttractions setPage={setPage} />
         <StatusStrip />
@@ -1256,6 +1292,21 @@ function HomePage({ setPage }) {
       </div>
       {trailerOpen && <TrailerModal onClose={() => setTrailerOpen(false)} />}
     </>
+  )
+}
+
+function YearlyPassFeature({ onSelect }) {
+  return (
+    <section className="border-y border-[var(--line)] bg-[var(--surface-3)]">
+      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-8 md:grid-cols-[1fr_auto] md:items-center md:px-8 md:py-10">
+        <div>
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Yearly Unlimited Pass</p>
+          <h2 className="font-display mt-2 text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">A full year of unlimited Magic Land visits for Rs. 29,999.</h2>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[var(--muted)] md:text-base">One named guest. Twelve months from activation. More spontaneous family days, park adventures, and reasons to come back.</p>
+        </div>
+        <button className="sunset inline-flex min-h-12 items-center justify-center rounded-full px-7 py-3.5 font-extrabold shadow-lg" onClick={onSelect}>Choose Yearly Pass</button>
+      </div>
+    </section>
   )
 }
 
@@ -1441,8 +1492,8 @@ function AttractionGrid({ compact = false, activeZone = 'All', setPage }) {
 }
 
 function TicketsPage({ setPage }) {
-  const [selected, setSelected] = useState(ticketOptions[0])
-  const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: ticketOptions[0].defaultGuests })
+  const [selected, setSelected] = useState(consumeTicketIntent)
+  const [form, setForm] = useState({ name: '', phone: '', email: '', visitDate: '', guests: selected.defaultGuests })
   const [paymentMethod, setPaymentMethod] = useState('khalti')
   const [status, setStatus] = useState({ type: '', message: '' })
   const checkoutRef = useRef(null)
@@ -1464,7 +1515,7 @@ function TicketsPage({ setPage }) {
   const submitBooking = async (event) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
-    const payloadGuests = Math.max(Number(formData.get('guests')) || guests, selected.defaultGuests || 1)
+    const payloadGuests = selected.fixedGuests ? 1 : Math.max(Number(formData.get('guests')) || guests, selected.defaultGuests || 1)
     const payloadBreakdown = ticketPriceBreakdown(selected, payloadGuests)
     const payloadTotal = payloadBreakdown.total
 
@@ -1478,7 +1529,11 @@ function TicketsPage({ setPage }) {
         unitPrice: selected.price,
         guests: payloadGuests,
         visitDate: String(formData.get('visitDate') || form.visitDate).trim(),
-        note: payloadBreakdown.discount ? `Group discount applied: ${Math.round(payloadBreakdown.discountRate * 100)}% (Rs. ${payloadBreakdown.discount.toLocaleString()})` : '',
+        note: selected.kind === 'annual-pass'
+          ? 'Yearly Unlimited Pass: one named guest, valid for 12 months from activation, non-transferable.'
+          : payloadBreakdown.discount
+            ? `Group discount applied: ${Math.round(payloadBreakdown.discountRate * 100)}% (Rs. ${payloadBreakdown.discount.toLocaleString()})`
+            : '',
         total: payloadTotal,
         paymentMethod,
       })
@@ -1597,13 +1652,13 @@ function TicketsPage({ setPage }) {
   }
 
   return (
-    <PageShell eyebrow="Tickets" title="Day tickets for a simple Magic Land visit">
+    <PageShell eyebrow="Tickets & Passes" title="Choose a day ticket or a full year of Magic Land">
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="grid content-start gap-4">
           <div className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm">
             <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Quick visit</p>
             <h2 className="font-display mt-2 text-2xl font-bold text-[var(--primary)] md:text-3xl">Buy entry for today, a planned date, or a group outing.</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Choose a one-time, gift, or group ticket. Group discounts are calculated automatically from the number of guests.</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Choose a one-time, gift, group ticket, or Yearly Unlimited Pass. Group discounts are calculated automatically for eligible day tickets.</p>
           </div>
           <div className="rounded-[2rem] border border-[#bbe6ff] bg-[#eef9ff] p-5 shadow-sm">
             <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Foam Party reminder</p>
@@ -1618,6 +1673,7 @@ function TicketsPage({ setPage }) {
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{ticket.detail}</p>
               {ticket.name === 'Group Day Visit' && <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-extrabold text-[var(--primary)]">Starts at 10 guests. Final coordination can happen by phone.</p>}
               {ticket.name === 'Group Day Visit' && <p className="mt-2 rounded-2xl bg-[var(--surface-3)] px-3 py-2 text-xs font-extrabold text-[var(--secondary)]">5% off for 6-9 guests. 10% off for 10+ guests.</p>}
+              {ticket.kind === 'annual-pass' && <p className="mt-3 rounded-2xl bg-[var(--surface-3)] px-3 py-2 text-xs font-extrabold leading-5 text-[var(--primary)]">365 days | Unlimited visits | 1 named guest</p>}
             </button>
           ))}
         </div>
@@ -1636,8 +1692,8 @@ function TicketsPage({ setPage }) {
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input name="name" required value={form.name} onChange={(e) => updateForm('name', e.target.value)} className="soft-field" placeholder="Parent or guest name" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input name="phone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="soft-field" placeholder="98XXXXXXXX" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input name="email" required type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="soft-field" placeholder="guest@example.com" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Visit date<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Guests<input name="guests" type="number" min={selected.defaultGuests || 1} max="50" value={form.guests} onChange={(e) => updateForm('guests', e.target.value)} className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">{selected.kind === 'annual-pass' ? 'Activation date' : 'Visit date'}<input name="visitDate" required type="date" value={form.visitDate} onChange={(e) => updateForm('visitDate', e.target.value)} className="soft-field" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">{selected.kind === 'annual-pass' ? 'Pass holders' : 'Guests'}<input name="guests" type="number" min={selected.defaultGuests || 1} max={selected.fixedGuests ? 1 : 50} readOnly={selected.fixedGuests} value={selected.fixedGuests ? 1 : form.guests} onChange={(e) => updateForm('guests', e.target.value)} className={`soft-field ${selected.fixedGuests ? 'cursor-not-allowed bg-[var(--surface-2)]' : ''}`} /></label>
             <div className="grid gap-2 text-sm font-bold text-[var(--primary)]">
               Payment option
               <div className="grid gap-2 sm:grid-cols-3">
@@ -1664,9 +1720,10 @@ function TicketsPage({ setPage }) {
                   Group pricing applied because this booking has more than 5 guests.
                 </p>
               )}
-              <Line label={`${priceBreakdown.isGroupPrice ? 'Group Day Visit' : selected.name} (${guests} x Rs. ${selected.price.toLocaleString()})`} value={`Rs. ${priceBreakdown.subtotal.toLocaleString()}`} />
+              <Line label={selected.kind === 'annual-pass' ? selected.name : `${priceBreakdown.isGroupPrice ? 'Group Day Visit' : selected.name} (${guests} x Rs. ${selected.price.toLocaleString()})`} value={`Rs. ${priceBreakdown.subtotal.toLocaleString()}`} />
               {priceBreakdown.discount > 0 && <Line label={`Group discount (${Math.round(priceBreakdown.discountRate * 100)}%)`} value={`- Rs. ${priceBreakdown.discount.toLocaleString()}`} />}
-              <Line label="Guests" value={guests} />
+              <Line label={selected.kind === 'annual-pass' ? 'Pass holders' : 'Guests'} value={selected.kind === 'annual-pass' ? 1 : guests} />
+              {selected.kind === 'annual-pass' && <Line label="Validity" value="12 months" />}
               <Line label="Total" value={`Rs. ${total.toLocaleString()}`} strong />
             </div>
             <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Processing...' : paymentMethod === 'khalti' ? 'Continue to Khalti' : paymentMethod === 'esewa' ? 'Continue to eSewa' : 'Reserve Visit'}</button>

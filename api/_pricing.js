@@ -2,12 +2,16 @@ const ticketPrices = new Map([
   ['One-Time Entry', 1500],
   ['Gift Ticket', 1500],
   ['Group Day Visit', 1500],
+  ['Yearly Unlimited Pass', 29999],
 ])
 
 function ticketTotal(ticketName, guests) {
   if (!ticketPrices.has(ticketName)) return null
   const guestCount = Math.max(Number(guests) || 0, 0)
   if (!Number.isInteger(guestCount) || guestCount < 1 || guestCount > 50) return null
+  if (ticketName === 'Yearly Unlimited Pass') {
+    return guestCount === 1 ? ticketPrices.get(ticketName) : null
+  }
   const subtotal = ticketPrices.get(ticketName) * guestCount
   const discountRate = guestCount >= 10 ? 0.1 : guestCount > 5 ? 0.05 : 0
   return subtotal - Math.round(subtotal * discountRate)

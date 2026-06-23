@@ -7,7 +7,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getDatabase, onValue, ref, set } from 'firebase/database'
-import { addDoc, collection, doc, getDoc, getDocs, getFirestore, limit, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, getFirestore, increment, limit, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 
 const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -267,23 +267,26 @@ export async function getStaffRequestQueue(maxItems = 80) {
   return { items: results.slice(0, maxItems), error: '' }
 }
 
-export async function checkInStaffRequest({ collectionName, requestId, staffProfile = {}, staffUser = {} }) {
+export async function checkInStaffRequest({ collectionName, requestId, ticketName = '', staffProfile = {}, staffUser = {} }) {
   if (!collectionName || !requestId) throw new Error('A booking reference is required for check-in.')
   if (collectionName !== 'bookingRequests') throw new Error('This request type cannot be checked in.')
 
   const db = await getDb()
   if (!db) throw new Error('Firestore is not configured in this build.')
 
+  const isAnnualPass = ticketName === 'Yearly Unlimited Pass'
   await updateDoc(doc(db, collectionName, requestId), {
-    status: 'checked_in',
+    status: isAnnualPass ? 'active' : 'checked_in',
     checkedInAt: serverTimestamp(),
+    lastCheckedInAt: serverTimestamp(),
+    visitCount: increment(1),
     checkedInByUid: staffUser.uid || '',
     checkedInByEmail: staffUser.email || '',
     checkedInByName: staffProfile.name || staffUser.email || '',
     checkedInSource: 'staff_portal',
   })
 
-  return { ok: true }
+  return { ok: true, isAnnualPass, status: isAnnualPass ? 'active' : 'checked_in' }
 }
 
 function saveLocalFallback(collectionName, payload) {
