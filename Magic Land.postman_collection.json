@@ -1,0 +1,310 @@
+{
+  "info": {
+    "_postman_id": "b2ca66c4-5261-4c09-95d9-e28afb2515c1",
+    "name": "Magic Land",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33353580"
+  },
+  "item": [
+    {
+      "name": "Catalog",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{Authorization}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/products",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "products"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Customer",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{Authorization}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Ram Shrestha\",\n  \"phone\": \"+977-9841234567\",\n  \"email\": \"ram@email.com\",\n  \"source\": \"website\",\n  \"consent\": { \"transactionalEmail\": true, \"marketingEmail\": false },\n  \"websiteCreatedAt\": \"2026-06-20T10:30:00Z\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/customers/{{externalCustomerId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "customers",
+            "{{externalCustomerId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Order",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{Authorization}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"externalCustomerId\": \"firebase_uid_abc1234\",\n  \"productCode\": \"TICKET_ADULT\", \"productName\": \"Adult Day Ticket\",\n  \"quantity\": 2, \"unitPrice\": 1500,\n  \"subtotalAmount\": 3000, \"totalAmount\": 3000,\n  \"visitOrActivationDate\": \"2026-07-01\",\n  \"paymentMethod\": \"khalti\",\n  \"customer\": { \"fullName\": \"Ram Shrestha\", \"phone\": \"+977-9841234567\" }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/orders/{{externalOrderId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "orders",
+            "{{externalOrderId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Order",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{Authorization}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/orders/{{externalOrderId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "orders",
+            "{{externalOrderId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Order Status",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{Authorization}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"status\": \"pending\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/orders/{{externalOrderId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "orders",
+            "{{externalOrderId}}",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Payment",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{Authorization}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"externalOrderId\": \"ord_fb_20260624_003\",\n  \"gateway\": \"khalti\", \"gatewayTransactionId\": \"KHL_TXN_987654\",\n  \"amount\": 5000, \"status\": \"paid\",\n  \"verifiedAt\": \"2026-06-24T09:10:00Z\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/payments/{{externalPaymentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "{{externalPaymentId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Issue Ticket",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{Authorization}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"issueType\": \"ticket\", \"quantity\": 2,\n  \"activationDate\": \"2026-07-01\",\n  \"holder\": { \"externalCustomerId\": \"firebase_uid_abc123\" }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/orders/{{externalOrderId}}/issue",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "orders",
+            "{{externalOrderId}}",
+            "issue"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://magicland.nexusgurus.com",
+      "type": "string"
+    },
+    {
+      "key": "Authorization",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "externalCustomerId",
+      "value": "firebase_uid_abc1234",
+      "type": "string"
+    },
+    {
+      "key": "externalOrderId",
+      "value": "ord_fb_20260624_003",
+      "type": "string"
+    },
+    {
+      "key": "externalPaymentId",
+      "value": "pay_khalti_20260624_abc",
+      "type": "string"
+    }
+  ]
+}

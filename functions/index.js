@@ -1,4 +1,5 @@
 const { onValueCreated } = require('firebase-functions/v2/database')
+const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const { defineSecret } = require('firebase-functions/params')
 const MailComposer = require('nodemailer/lib/mail-composer')
 const QRCode = require('qrcode')
@@ -8,6 +9,8 @@ const gmailClientSecret = defineSecret('GMAIL_CLIENT_SECRET')
 const gmailRefreshToken = defineSecret('GMAIL_REFRESH_TOKEN')
 const gmailSenderEmail = defineSecret('GMAIL_SENDER_EMAIL')
 const mailTo = defineSecret('BOOKING_NOTIFICATION_EMAIL')
+const localApiBaseUrl = defineSecret('LOCAL_API_BASE_URL')
+const localApiBearerToken = defineSecret('LOCAL_API_BEARER_TOKEN')
 const defaultSenderEmail = 'info@magiclandfunpark.com'
 const defaultStaffRecipients = ['info@magiclandfunpark.com', 'prabinthapaliyaus@gmail.com']
 
@@ -190,6 +193,147 @@ function ticketQrPayload(data) {
     amount: Number(data.amount || data.paidAmount || data.total || 0),
     verifiedAt: data.verifiedAt || data.createdAt || '',
   }
+}
+
+function localApiBase() {
+  return (localApiBaseUrl.value() || '').replace(/\/+$/, '')
+}
+
+function localApiHeaders() {
+  const token = localApiBearerToken.value()
+  return {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  }
+}
+
+function localApiConfigured() {
+  return Boolean(localApiBase() && localApiBearerToken.value())
+}
+
+function productCodeForTicket(ticketName = '') {
+  const normalized = String(ticketName).toLowerCase()
+  if (normalized.includes('yearly') || normalized.includes('annual')) return 'PASS_YEARLY_UNLIMITED'
+  if (normalized.includes('group')) return 'GROUP_DAY_VISIT'
+  if (normalized.includes('gift')) return 'GIFT_TICKET'
+  return 'TICKET_DAY_ENTRY'
+}
+
+function syncExternalId(prefix, id = '') {
+  return `${prefix}_${String(id).replace(/[^a-zA-Z0-9_-]/g, '_')}`
+}
+
+async function localApiRequest(path, { method = 'GET', body } = {}) {
+  if (!localApiConfigured()) {
+    throw new Error('Local API secrets are not configured.')
+  }
+
+  const response = await fetch(`${localApiBase()}${path}`, {
+    method,
+    headers: localApiHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const text = await response.text()
+  let json = null
+  try {
+    json = text ? JSON.parse(text) : null
+  } catch (_) {
+    json = { raw: text }
+  }
+  if (!response.ok || json?.success === false) {
+    throw new Error(`Local API ${method} ${path} failed (${response.status}): ${text}`)
+  }
+  return json
+}
+
+function bookingSyncPayload(data, requestId) {
+  const guests = visitCount(data)
+  const unitPrice = Number(data.unitPrice || 0)
+  const total = Number(data.total || (unitPrice * guests) || 0)
+  const externalCustomerId = syncExternalId('web_customer', data.visitorId || data.email || data.phone || requestId)
+  const externalOrderId = syncExternalId('web_order', requestId)
+  const productName = data.ticketName || 'Magic Land Entry'
+
+  return {
+    externalCustomerId,
+    externalOrderId,
+    customer: {
+      fullName: data.name || 'Guest',
+      phone: data.phone || '',
+      email: data.email || '',
+      source: 'website',
+      consent: {
+        transactionalEmail: true,
+        marketingEmail: false,
+      },
+      websiteCreatedAt: data.createdAt || new Date().toISOString(),
+    },
+    order: {
+      externalCustomerId,
+      productCode: productCodeForTicket(productName),
+      productName,
+      quantity: guests,
+      unitPrice,
+      subtotalAmount: unitPrice * guests,
+      totalAmount: total,
+      visitOrActivationDate: data.visitDate || '',
+      paymentMethod: data.paymentMethod || 'pay_at_park',
+      customer: {
+        fullName: data.name || 'Guest',
+        phone: data.phone || '',
+        email: data.email || '',
+      },
+    },
+  }
+}
+
+function normalizeFirestoreData(data = {}) {
+  return Object.entries(data).reduce((normalized, [key, value]) => {
+    if (value && typeof value.toDate === 'function') {
+      normalized[key] = value.toDate().toISOString()
+    } else {
+      normalized[key] = value
+    }
+    return normalized
+  }, {})
+}
+
+async function safeWriteSyncStatus(path, status) {
+  console.log('Local sync status', { path, ...status })
+}
+
+async function syncBookingToLocal(requestId, data) {
+  const payload = bookingSyncPayload(data, requestId)
+  await localApiRequest(`/api/v1/customers/${encodeURIComponent(payload.externalCustomerId)}`, {
+    method: 'PUT',
+    body: payload.customer,
+  })
+  await localApiRequest(`/api/v1/orders/${encodeURIComponent(payload.externalOrderId)}`, {
+    method: 'PUT',
+    body: payload.order,
+  })
+  return payload
+}
+
+async function syncPaymentReceiptToLocal(receiptId, data) {
+  const orderId = syncExternalId('web_order', data.bookingId || data.requestId || receiptId)
+  const paymentId = syncExternalId(`${data.gateway || 'payment'}_payment`, data.gatewayReference || data.pidx || data.transactionUuid || receiptId)
+  await localApiRequest(`/api/v1/payments/${encodeURIComponent(paymentId)}`, {
+    method: 'PUT',
+    body: {
+      externalOrderId: orderId,
+      gateway: data.gateway || '',
+      gatewayTransactionId: data.gatewayReference || data.pidx || data.transactionUuid || '',
+      amount: Number(data.amount || data.paidAmount || data.total || 0),
+      status: 'paid',
+      verifiedAt: data.verifiedAt || new Date().toISOString(),
+    },
+  })
+  await localApiRequest(`/api/v1/orders/${encodeURIComponent(orderId)}/status`, {
+    method: 'PUT',
+    body: { status: 'confirmed' },
+  })
+  return { externalOrderId: orderId, externalPaymentId: paymentId }
 }
 
 async function ticketQrAttachment(data) {
@@ -494,6 +638,87 @@ exports.emailPublicRequest = onValueCreated(
   }
 )
 
+exports.syncBookingRequestToLocal = onValueCreated(
+  {
+    ref: '/publicRequests/bookingRequests/{requestId}',
+    region: 'us-central1',
+    secrets: [localApiBaseUrl, localApiBearerToken],
+  },
+  async (event) => {
+    const requestId = event.params.requestId
+    const data = {
+      ...(event.data.val() || {}),
+      requestId,
+    }
+    const statusPath = `/localSync/bookingRequests/${requestId}`
+    try {
+      console.log('Local booking sync started', { requestId, ticketName: data.ticketName })
+      const payload = await syncBookingToLocal(requestId, data)
+      await safeWriteSyncStatus(statusPath, {
+        status: 'synced',
+        externalCustomerId: payload.externalCustomerId,
+        externalOrderId: payload.externalOrderId,
+        endpoint: localApiBase(),
+      })
+      console.log('Local booking sync completed', {
+        requestId,
+        externalCustomerId: payload.externalCustomerId,
+        externalOrderId: payload.externalOrderId,
+      })
+    } catch (error) {
+      await safeWriteSyncStatus(statusPath, {
+        status: 'failed',
+        error: error?.message || String(error),
+        endpoint: localApiBase() || 'not configured',
+      })
+      console.error('Local booking sync failed', { requestId, error: error?.message || String(error) })
+      throw error
+    }
+  }
+)
+
+exports.syncFirestoreBookingRequestToLocal = onDocumentCreated(
+  {
+    document: 'bookingRequests/{requestId}',
+    database: 'default',
+    region: 'us-central1',
+    secrets: [localApiBaseUrl, localApiBearerToken],
+  },
+  async (event) => {
+    const requestId = event.params.requestId
+    const data = {
+      ...normalizeFirestoreData(event.data?.data() || {}),
+      requestId,
+    }
+    const statusPath = `/localSync/bookingRequests/${requestId}`
+    try {
+      console.log('Local Firestore booking sync started', { requestId, ticketName: data.ticketName })
+      const payload = await syncBookingToLocal(requestId, data)
+      await safeWriteSyncStatus(statusPath, {
+        status: 'synced',
+        source: 'firestore',
+        externalCustomerId: payload.externalCustomerId,
+        externalOrderId: payload.externalOrderId,
+        endpoint: localApiBase(),
+      })
+      console.log('Local Firestore booking sync completed', {
+        requestId,
+        externalCustomerId: payload.externalCustomerId,
+        externalOrderId: payload.externalOrderId,
+      })
+    } catch (error) {
+      await safeWriteSyncStatus(statusPath, {
+        status: 'failed',
+        source: 'firestore',
+        error: error?.message || String(error),
+        endpoint: localApiBase() || 'not configured',
+      })
+      console.error('Local Firestore booking sync failed', { requestId, error: error?.message || String(error) })
+      throw error
+    }
+  }
+)
+
 exports.emailPaymentReceipt = onValueCreated(
   {
     ref: '/paymentReceipts/{gateway}/{receiptId}',
@@ -520,5 +745,47 @@ exports.emailPaymentReceipt = onValueCreated(
       replyTo: data.email,
       attachments,
     })
+  }
+)
+
+exports.syncPaymentReceiptToLocal = onValueCreated(
+  {
+    ref: '/paymentReceipts/{gateway}/{receiptId}',
+    region: 'us-central1',
+    secrets: [localApiBaseUrl, localApiBearerToken],
+  },
+  async (event) => {
+    const receiptId = event.params.receiptId
+    const gateway = event.params.gateway
+    const data = {
+      ...(event.data.val() || {}),
+      gateway,
+      receiptId,
+    }
+    const statusPath = `/localSync/paymentReceipts/${gateway}/${receiptId}`
+    try {
+      console.log('Local payment sync started', { gateway, receiptId })
+      const payload = await syncPaymentReceiptToLocal(receiptId, data)
+      await safeWriteSyncStatus(statusPath, {
+        status: 'synced',
+        externalOrderId: payload.externalOrderId,
+        externalPaymentId: payload.externalPaymentId,
+        endpoint: localApiBase(),
+      })
+      console.log('Local payment sync completed', {
+        gateway,
+        receiptId,
+        externalOrderId: payload.externalOrderId,
+        externalPaymentId: payload.externalPaymentId,
+      })
+    } catch (error) {
+      await safeWriteSyncStatus(statusPath, {
+        status: 'failed',
+        error: error?.message || String(error),
+        endpoint: localApiBase() || 'not configured',
+      })
+      console.error('Local payment sync failed', { gateway, receiptId, error: error?.message || String(error) })
+      throw error
+    }
   }
 )
