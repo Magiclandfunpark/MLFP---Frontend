@@ -144,6 +144,7 @@ const img = {
   trampoline: '/media/images/trampoline-1200.webp',
   creativeDress: '/media/images/creative-dress-1200.webp',
   creativeFamily: '/media/images/creative-family-1200.webp',
+  summerCampPoster: '/media/images/kids-summer-camp-poster.png',
   eventSinger: '/media/images/events-singer-1200.webp',
   eventDj: '/media/images/events-dj-1200.webp',
   parkLocation: '/media/images/park-location-1200.webp',
@@ -2186,6 +2187,38 @@ function TermsPage() {
   return <InfoPage eyebrow="Terms & Conditions" title="Simple park terms for safer family visits" items={['Tickets are valid according to the selected type, date, guest count, and park rules.', 'Guests should follow staff guidance, age suitability notes, safety signs, and queue instructions.', 'Birthday, group, school, refund, and cancellation requests are handled through guest care and may depend on booking status.']} />
 }
 
+const summerCampBatches = [
+  {
+    id: 'batch1',
+    value: 'Batch 1 - Ashar 22-26',
+    label: 'Batch 1',
+    dates: 'Ashar 22-26',
+    note: 'Five days of creative play, confidence building, and park activities.',
+  },
+  {
+    id: 'batch2',
+    value: 'Batch 2 - Ashar 29-Shrawan 1',
+    label: 'Batch 2',
+    dates: 'Ashar 29 to Shrawan 1',
+    note: 'A second limited-seat batch for families who need the next available week.',
+  },
+]
+
+const summerCampActivities = [
+  ['Pottery Training', 'Get creative with clay in a hands-on Creative Village session.'],
+  ['Yoga & Meditation', 'Gentle movement, calm breathing, and a happy start to the day.'],
+  ['Adventure Games', 'Fun challenges, team building, and supervised outdoor games.'],
+  ['Zip Line', 'A safe thrill moment designed for courage and excitement.'],
+  ['Bungee', 'An exciting activity kids remember long after camp ends.'],
+  ['Dance & Zumba', 'Move, groove, and build confidence through music.'],
+  ['Arts & Craft', 'Painting, colors, craft work, and creative expression.'],
+  ['Learn Nepali Culture', 'Heritage, traditions, music, and local cultural discovery.'],
+  ['Treasure Hunt', 'Solve clues, work as a team, and find the treasure.'],
+  ['Indoor & Outdoor Games', 'Play, compete, laugh, and enjoy structured group games.'],
+  ['Storytelling & Public Speaking', 'Build confidence, voice, and expression.'],
+  ['Pickup & Drop-off Available', 'Transport support can be discussed during confirmation.'],
+]
+
 function SummerCampPage({ setPage }) {
   const [form, setForm] = useState({
     guardianName: '',
@@ -2227,6 +2260,7 @@ function SummerCampPage({ setPage }) {
         sessionStorage.setItem('magicland:thankYou', JSON.stringify({
           title: 'Summer camp interest received',
           message: 'Thank you. Magic Land will contact you with camp schedule, activities, and next steps.',
+          requestType: 'summerCamp',
           requestId: result.id,
           paymentMethod: 'lead_request',
           ticketName: 'Summer Camp Interest',
@@ -2244,22 +2278,49 @@ function SummerCampPage({ setPage }) {
   }
 
   return (
-    <PageShell eyebrow="Summer Camp" title="Creative play, rides, games, and supervised summer fun">
+    <PageShell eyebrow="Kids Summer Camp" title="Limited-seat summer camp with creativity, adventure, culture, and confidence">
       <div className="grid gap-6 lg:grid-cols-[1fr_430px]">
         <section className="grid content-start gap-5">
-          <article className="overflow-hidden rounded-[2rem] bg-white shadow-xl">
-            <SmartImage src={img.creativeFamily} alt="Children enjoying creative activities at Magic Land" className="h-72 w-full object-cover" />
-            <div className="p-6">
+          <article className="grid overflow-hidden rounded-[2rem] bg-white shadow-xl lg:grid-cols-[0.85fr_1.15fr]">
+            <SmartImage src={img.summerCampPoster} alt="Magic Land Kids Summer Camp poster" className="h-full min-h-[360px] w-full object-cover" />
+            <div className="grid content-center p-6 md:p-8">
               <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">For kids and parents</p>
-              <h2 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">A summer program built around play, creativity, and confidence.</h2>
-              <p className="mt-3 leading-8 text-[var(--muted)]">Collect camp interest now, then Magic Land can confirm dates, age groups, activity batches, food options, and payment details by phone.</p>
+              <h2 className="font-display mt-2 text-3xl font-bold leading-tight text-[var(--primary)] md:text-4xl">Book now for Magic Land Kids Summer Camp.</h2>
+              <p className="mt-4 text-base leading-8 text-[var(--muted)]">A lively five-day camp where children try pottery, adventure games, dance, culture, storytelling, public speaking, and team challenges inside Magic Land.</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {summerCampBatches.map((batch) => (
+                  <div key={batch.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-4">
+                    <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">{batch.label}</p>
+                    <p className="font-display mt-1 text-2xl font-bold text-[var(--primary)]">{batch.dates}</p>
+                    <p className="mt-2 text-xs font-semibold leading-5 text-[var(--muted)]">{batch.note}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-5 rounded-2xl bg-[#fff8e8] px-4 py-3 text-sm font-extrabold text-[var(--primary)]">Limited seats available. Pickup and drop-off can be discussed during confirmation.</p>
             </div>
           </article>
+          <section className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Activities included</p>
+                <h2 className="font-display mt-1 text-2xl font-bold text-[var(--primary)] md:text-3xl">A balanced mix of creativity, movement, teamwork, and confidence.</h2>
+              </div>
+              <span className="rounded-full bg-[var(--surface-3)] px-4 py-2 text-sm font-extrabold text-[var(--primary)]">Tokha, Kathmandu</span>
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {summerCampActivities.map(([title, copy]) => (
+                <article key={title} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-4">
+                  <h3 className="font-display text-lg font-bold leading-tight text-[var(--primary)]">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p>
+                </article>
+              ))}
+            </div>
+          </section>
           <div className="grid gap-4 md:grid-cols-3">
             {[
-              ['Creative Village', 'Pottery, painting, color play, craft sessions, and hands-on village activities.'],
-              ['Park Adventure', 'Rides, indoor games, arcade challenges, group play, and supervised movement.'],
-              ['Parent Friendly', 'Phone confirmation, clear schedules, and activity details before enrollment.'],
+              ['Creative Skills', 'Pottery training, arts and craft, color play, and hands-on village activities.'],
+              ['Active Fun', 'Bungee, zip line, adventure games, indoor and outdoor games, dance and Zumba.'],
+              ['Confidence Building', 'Storytelling, public speaking, yoga, meditation, teamwork, and Nepali culture.'],
             ].map(([title, copy]) => (
               <article key={title} className="storybook-card rounded-[1.5rem] p-5">
                 <h3 className="font-display text-xl font-bold text-[var(--primary)]">{title}</h3>
@@ -2270,7 +2331,8 @@ function SummerCampPage({ setPage }) {
         </section>
         <form onSubmit={submitSummerCamp} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
           <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Interest form</p>
-          <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">Request summer camp details</h3>
+          <h3 className="font-display mt-2 text-2xl font-bold leading-tight text-[var(--primary)]">Choose a batch and request a call back</h3>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[var(--muted)]">Magic Land will confirm seat availability, timing, transport, food details, and payment steps by phone.</p>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Parent / guardian name<input required className="soft-field" value={form.guardianName} onChange={(e) => updateForm('guardianName', e.target.value)} placeholder="Parent or guardian name" /></label>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" className="soft-field" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} placeholder="98XXXXXXXX" /></label>
@@ -2279,10 +2341,26 @@ function SummerCampPage({ setPage }) {
               <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Child name<input required className="soft-field" value={form.childName} onChange={(e) => updateForm('childName', e.target.value)} placeholder="Child name" /></label>
               <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Child age<input required type="number" min="3" max="18" className="soft-field" value={form.childAge} onChange={(e) => updateForm('childAge', e.target.value)} placeholder="Age" /></label>
             </div>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Preferred date / week<input required type="date" className="soft-field" value={form.preferredDate} onChange={(e) => updateForm('preferredDate', e.target.value)} /></label>
+            <fieldset className="grid gap-3">
+              <legend className="text-sm font-bold text-[var(--primary)]">Select preferred batch</legend>
+              <div className="grid gap-3">
+                {summerCampBatches.map((batch) => (
+                  <label key={batch.id} className={`cursor-pointer rounded-2xl border p-4 transition ${form.preferredDate === batch.value ? 'border-[var(--secondary)] bg-[var(--surface-3)] shadow-sm' : 'border-[var(--line)] bg-white'}`}>
+                    <input required type="radio" name="summer-camp-batch" value={batch.value} checked={form.preferredDate === batch.value} onChange={(e) => updateForm('preferredDate', e.target.value)} className="sr-only" />
+                    <span className="flex items-center justify-between gap-3">
+                      <span>
+                        <span className="block text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">{batch.label}</span>
+                        <span className="font-display mt-1 block text-xl font-bold text-[var(--primary)]">{batch.dates}</span>
+                      </span>
+                      <span className={`h-4 w-4 rounded-full border-2 ${form.preferredDate === batch.value ? 'border-[var(--secondary)] bg-[var(--secondary)]' : 'border-[var(--line)]'}`} />
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">School name, optional<input className="soft-field" value={form.schoolName} onChange={(e) => updateForm('schoolName', e.target.value)} placeholder="School name" /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Activities your child likes<textarea required className="soft-field min-h-28 resize-none" value={form.interests} onChange={(e) => updateForm('interests', e.target.value)} placeholder="Pottery, painting, rides, games, dancing, arcade, group play..." /></label>
-            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Notes, optional<textarea className="soft-field min-h-24 resize-none" value={form.note} onChange={(e) => updateForm('note', e.target.value)} placeholder="Preferred call time, food needs, siblings, or questions" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Child interests<textarea required className="soft-field min-h-24 resize-none" value={form.interests} onChange={(e) => updateForm('interests', e.target.value)} placeholder="Pottery, dance, zip line, bungee, storytelling, culture, games..." /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Notes, optional<textarea className="soft-field min-h-24 resize-none" value={form.note} onChange={(e) => updateForm('note', e.target.value)} placeholder="Transport needs, preferred call time, food needs, siblings, or questions" /></label>
             <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Sending...' : 'Submit Summer Camp Interest'}</button>
             {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
           </div>
@@ -2330,7 +2408,8 @@ function CareersPage({ setPage }) {
       try {
         sessionStorage.setItem('magicland:thankYou', JSON.stringify({
           title: 'Career application received',
-          message: 'Thank you for your interest in Magic Land. Our team will review your details and contact you if there is a suitable opening.',
+          message: 'Thank you for applying. Our HR team will review your details and connect with you soon if your profile matches an available role.',
+          requestType: 'career',
           requestId: result.id,
           paymentMethod: 'lead_request',
           ticketName: 'Career Application',
@@ -2568,24 +2647,34 @@ function ThankYouPage({ setPage }) {
     })
   }, [details.paymentMethod, details.requestId, details.ticketName, details.total])
 
+  const isCareerLead = details.requestType === 'career' || details.ticketName === 'Career Application'
+  const isSummerCampLead = details.requestType === 'summerCamp' || details.ticketName === 'Summer Camp Interest'
+  const isLeadRequest = isCareerLead || isSummerCampLead || details.paymentMethod === 'lead_request'
+  const leadLabel = isCareerLead ? 'Application' : isSummerCampLead ? 'Camp Interest' : 'Request'
+  const nextStepCopy = isCareerLead
+    ? 'Our HR team will review your application details and contact you by phone or email if there is a suitable opening.'
+    : isSummerCampLead
+      ? 'Our team will contact you with batch availability, activity schedule, pickup and drop-off details, and the next enrollment step.'
+      : 'Please keep your phone and email reachable. Magic Land will confirm the details soon.'
+
   return (
     <PageShell eyebrow="Thank You" title={details.title || 'Thank you for choosing Magic Land'}>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <section className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
-          <Ticket className="text-[var(--secondary)]" />
-          <h2 className="font-display mt-4 text-3xl font-bold text-[var(--primary)]">{details.message || 'Your request has been received. Magic Land will confirm the details soon.'}</h2>
+          {isCareerLead ? <ShieldCheck className="text-[var(--secondary)]" /> : <Ticket className="text-[var(--secondary)]" />}
+          <h2 className="font-display mt-4 text-2xl font-bold leading-tight text-[var(--primary)] md:text-3xl">{details.message || 'Your request has been received. Magic Land will confirm the details soon.'}</h2>
           <div className="mt-6 grid gap-3 text-sm font-bold text-[var(--muted)] md:grid-cols-2">
-            {details.ticketName && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Ticket</span>{details.ticketName}</div>}
-            {details.total && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Total</span>Rs. {Number(details.total).toLocaleString()}</div>}
-            {details.paymentMethod && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Payment</span>{details.paymentMethod === 'pay_at_park' ? 'Pay at park' : details.paymentMethod}</div>}
+            {details.ticketName && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">{isLeadRequest ? leadLabel : 'Ticket'}</span>{details.ticketName}</div>}
+            {!isLeadRequest && Number(details.total) > 0 && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Total</span>Rs. {Number(details.total).toLocaleString()}</div>}
+            {details.paymentMethod && !isLeadRequest && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Payment</span>{details.paymentMethod === 'pay_at_park' ? 'Pay at park' : details.paymentMethod}</div>}
             {details.requestId && <div className="rounded-2xl bg-[var(--surface-3)] p-4"><span className="block text-xs uppercase text-[var(--secondary)]">Reference</span>{String(details.requestId).slice(0, 12)}</div>}
           </div>
         </section>
         <aside className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm">
           <h3 className="font-display text-2xl font-bold text-[var(--primary)]">Next step</h3>
-          <p className="mt-3 leading-7 text-[var(--muted)]">Please keep your phone and email reachable. For online payments, wait for the payment received page after gateway checkout.</p>
+          <p className="mt-3 leading-7 text-[var(--muted)]">{isLeadRequest ? nextStepCopy : 'Please keep your phone and email reachable. For online payments, wait for the payment received page after gateway checkout.'}</p>
           <div className="mt-5 grid gap-3">
-            <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={() => setPage('tickets')}>Book another visit</button>
+            <button className="sunset rounded-full px-5 py-3 font-extrabold" onClick={() => setPage(isCareerLead ? 'careers' : isSummerCampLead ? 'summerCamp' : 'tickets')}>{isCareerLead ? 'Back to careers' : isSummerCampLead ? 'Back to summer camp' : 'Book another visit'}</button>
             <button className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-5 py-3 font-extrabold text-[var(--primary)]" onClick={() => setPage('home')}>Back to home</button>
           </div>
         </aside>
@@ -2817,6 +2906,10 @@ function Line({ label, value, strong }) {
 }
 
 function Footer({ setPage }) {
+  const planLinks = [
+    ...nav.slice(0, 6),
+    { id: 'summerCamp', label: 'Summer Camp' },
+  ]
   const guestCare = [
     { id: 'about', label: 'About Us' },
     { id: 'faq', label: 'FAQ' },
@@ -2844,7 +2937,7 @@ function Footer({ setPage }) {
             ))}
           </div>
         </div>
-        <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Plan Your Day</h3><div className="mt-4 grid gap-2">{nav.slice(0, 6).map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
+        <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Plan Your Day</h3><div className="mt-4 grid gap-2">{planLinks.map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
         <div><h3 className="font-display text-xl font-bold text-[var(--primary)]">Help & Park Info</h3><div className="mt-4 grid gap-2">{guestCare.map((item) => <button key={item.id} className="text-left text-[var(--muted)] hover:text-[var(--primary)]" onClick={() => setPage(item.id)}>{item.label}</button>)}</div></div>
       </div>
     </footer>

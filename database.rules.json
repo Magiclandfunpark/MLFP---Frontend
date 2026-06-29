@@ -33,7 +33,7 @@
       "$requestType": {
         ".read": "auth != null && (root.child('staff').child(auth.uid).exists() || auth.token.email.matches(/.*@magiclandfunpark\\.com$/))",
         "$requestId": {
-          ".write": "!data.exists() && ($requestType == 'bookingRequests' || $requestType == 'contactRequests' || $requestType == 'eventRequests' || $requestType == 'newsletterSubscribers') && newData.child('status').val() == 'new' && newData.child('source').isString() && newData.child('createdAt').isString()",
+          ".write": "!data.exists() && ($requestType == 'bookingRequests' || $requestType == 'contactRequests' || $requestType == 'eventRequests' || $requestType == 'newsletterSubscribers' || $requestType == 'summerCampRequests' || $requestType == 'careerRequests') && newData.child('status').val() == 'new' && newData.child('source').isString() && newData.child('createdAt').isString()",
           ".validate": true
         }
       }
