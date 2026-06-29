@@ -42,6 +42,8 @@ function requestLabel(type) {
   if (type === 'eventRequests') return 'Event request'
   if (type === 'contactRequests') return 'Guest care message'
   if (type === 'newsletterSubscribers') return 'Newsletter signup'
+  if (type === 'summerCampRequests') return 'Summer camp interest'
+  if (type === 'careerRequests') return 'Career application'
   return 'Booking request'
 }
 
@@ -49,6 +51,8 @@ function requestSubject(type, data) {
   if (type === 'eventRequests') return `New Magic Land event request - ${data.eventType || 'Event'}`
   if (type === 'contactRequests') return `New Magic Land contact request - ${data.topic || 'Guest care'}`
   if (type === 'newsletterSubscribers') return `New Magic Land newsletter signup - ${data.email || 'Guest'}`
+  if (type === 'summerCampRequests') return `New Magic Land summer camp interest - ${data.childName || data.guardianName || 'Guest'}`
+  if (type === 'careerRequests') return `New Magic Land career application - ${data.roleInterest || data.name || 'Candidate'}`
   return `New Magic Land booking request - ${data.ticketName || 'Ticket'}`
 }
 
@@ -56,6 +60,8 @@ function guestRequestSubject(type, data) {
   if (type === 'eventRequests') return `We received your Magic Land event request`
   if (type === 'contactRequests') return `We received your Magic Land message`
   if (type === 'newsletterSubscribers') return `Welcome to Magic Land updates`
+  if (type === 'summerCampRequests') return `We received your Magic Land summer camp interest`
+  if (type === 'careerRequests') return `We received your Magic Land career application`
   return `Your Magic Land booking request is received`
 }
 
@@ -108,6 +114,41 @@ function emailShell({ eyebrow, title, intro, children, ctaLabel, ctaUrl }) {
 }
 
 function requestRows(type, data) {
+  if (type === 'summerCampRequests') {
+    return rows([
+      ['Request type', requestLabel(type)],
+      ['Parent / guardian', data.guardianName || '-'],
+      ['Phone', data.phone || '-'],
+      ['Email', data.email || '-'],
+      ['Child name', data.childName || '-'],
+      ['Child age', data.childAge || '-'],
+      ['Preferred date / week', data.preferredDate || '-'],
+      ['School', data.schoolName || '-'],
+      ['Activity interests', data.interests || '-'],
+      ['Note', data.note || '-'],
+      ['Reference', data.firestoreId || data.requestId || '-'],
+      ['Source', data.source || '-'],
+      ['Created at', data.createdAt || '-'],
+    ])
+  }
+
+  if (type === 'careerRequests') {
+    return rows([
+      ['Request type', requestLabel(type)],
+      ['Name', data.name || '-'],
+      ['Phone', data.phone || '-'],
+      ['Email', data.email || '-'],
+      ['Role interest', data.roleInterest || '-'],
+      ['Availability', data.availability || '-'],
+      ['Experience', data.experience || '-'],
+      ['Portfolio / profile', data.portfolio || '-'],
+      ['Message', data.message || '-'],
+      ['Reference', data.firestoreId || data.requestId || '-'],
+      ['Source', data.source || '-'],
+      ['Created at', data.createdAt || '-'],
+    ])
+  }
+
   return rows([
     ['Request type', requestLabel(type)],
     ['Name', data.name || '-'],
@@ -446,9 +487,12 @@ function requestText(type, data) {
     '',
     `Request type: ${requestLabel(type)}`,
     `Name: ${data.name || '-'}`,
+    `Guardian: ${data.guardianName || '-'}`,
     `Phone: ${data.phone || '-'}`,
     `Email: ${data.email || '-'}`,
     `Ticket/Event: ${data.ticketName || data.eventType || data.topic || '-'}`,
+    `Child: ${data.childName || '-'}`,
+    `Role interest: ${data.roleInterest || '-'}`,
     `Visit/Start/Event date: ${data.visitDate || data.startDate || data.eventDate || '-'}`,
     `Guests: ${data.guests || data.guestCount || '-'}`,
     `Total/Price: ${data.total ? money(data.total) : data.price || '-'}`,

@@ -162,6 +162,8 @@ const nav = [
 const moreNav = [
   { id: 'dining', label: 'Dining', icon: Utensils },
   { id: 'events', label: 'Events', icon: CalendarDays },
+  { id: 'summerCamp', label: 'Summer Camp', icon: Sparkles },
+  { id: 'careers', label: 'Careers', icon: ShieldCheck },
   { id: 'about', label: 'About Us', icon: FerrisWheel },
   { id: 'faq', label: 'FAQ', icon: Bell },
   { id: 'privacy', label: 'Privacy', icon: Wallet },
@@ -184,6 +186,8 @@ const pagePaths = {
   map: '/map',
   dining: '/dining',
   events: '/events',
+  summerCamp: '/summer-camp',
+  careers: '/careers',
   about: '/about',
   faq: '/faq',
   privacy: '/privacy',
@@ -206,6 +210,11 @@ const pathAliases = {
   '/map': 'map',
   '/dining': 'dining',
   '/events': 'events',
+  '/summer-camp': 'summerCamp',
+  '/summer': 'summerCamp',
+  '/camp': 'summerCamp',
+  '/careers': 'careers',
+  '/career': 'careers',
   '/about': 'about',
   '/faq': 'faq',
   '/privacy': 'privacy',
@@ -370,6 +379,8 @@ function PublicApp() {
         {page === 'map' && <MapPage />}
         {page === 'dining' && <DiningPage />}
         {page === 'events' && <EventsPage />}
+        {page === 'summerCamp' && <SummerCampPage setPage={navigate} />}
+        {page === 'careers' && <CareersPage setPage={navigate} />}
         {page === 'about' && <AboutPage />}
         {page === 'faq' && <FAQPage />}
         {page === 'privacy' && <PrivacyPage />}
@@ -1280,6 +1291,7 @@ function HomePage({ setPage }) {
       </section>
 
       <YearlyPassFeature onSelect={openYearlyPass} />
+      <SummerCampBanner setPage={setPage} />
 
       <div className="hidden md:block">
         <DesktopAttractions setPage={setPage} />
@@ -1292,6 +1304,30 @@ function HomePage({ setPage }) {
       </div>
       {trailerOpen && <TrailerModal onClose={() => setTrailerOpen(false)} />}
     </>
+  )
+}
+
+function SummerCampBanner({ setPage }) {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-5 md:px-8 md:py-8">
+      <div className="grid overflow-hidden rounded-[1.5rem] border border-[var(--line)] bg-white shadow-lg shadow-[rgba(27,36,90,0.08)] md:grid-cols-[1fr_auto] md:items-center">
+        <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:p-6">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--surface-3)] text-[var(--secondary)]">
+            <Sparkles size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--secondary)]">Summer Camp Interest</p>
+            <h2 className="font-display mt-1 text-2xl font-bold leading-tight text-[var(--primary)] md:text-3xl">Creative play, rides, games, and supervised summer fun.</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[var(--muted)]">Share your child’s details and Magic Land will call back with schedules, activities, batches, and next steps.</p>
+          </div>
+        </div>
+        <div className="border-t border-[var(--line)] p-5 md:border-l md:border-t-0 md:p-6">
+          <button className="sunset inline-flex min-h-12 w-full items-center justify-center rounded-full px-6 py-3 font-extrabold shadow-sm md:w-auto" onClick={() => setPage('summerCamp')}>
+            Book Summer Camp
+          </button>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -2148,6 +2184,213 @@ function PrivacyPage() {
 
 function TermsPage() {
   return <InfoPage eyebrow="Terms & Conditions" title="Simple park terms for safer family visits" items={['Tickets are valid according to the selected type, date, guest count, and park rules.', 'Guests should follow staff guidance, age suitability notes, safety signs, and queue instructions.', 'Birthday, group, school, refund, and cancellation requests are handled through guest care and may depend on booking status.']} />
+}
+
+function SummerCampPage({ setPage }) {
+  const [form, setForm] = useState({
+    guardianName: '',
+    phone: '',
+    email: '',
+    childName: '',
+    childAge: '',
+    preferredDate: '',
+    schoolName: '',
+    interests: '',
+    note: '',
+  })
+  const [status, setStatus] = useState({ type: '', message: '' })
+  const updateForm = (field, value) => {
+    const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
+    setForm((current) => ({ ...current, [field]: nextValue }))
+  }
+  const submitSummerCamp = async (event) => {
+    event.preventDefault()
+    setStatus({ type: 'loading', message: 'Sending summer camp interest...' })
+    try {
+      const result = await createPublicRequest('summerCampRequests', {
+        guardianName: form.guardianName.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        childName: form.childName.trim(),
+        childAge: Number(form.childAge) || 0,
+        preferredDate: form.preferredDate,
+        schoolName: form.schoolName.trim(),
+        interests: form.interests.trim(),
+        note: form.note.trim(),
+      })
+      trackEvent('summer_camp_request_submitted', {
+        request_id: result.id,
+        child_age: Number(form.childAge) || 0,
+        store: result.store,
+      })
+      try {
+        sessionStorage.setItem('magicland:thankYou', JSON.stringify({
+          title: 'Summer camp interest received',
+          message: 'Thank you. Magic Land will contact you with camp schedule, activities, and next steps.',
+          requestId: result.id,
+          paymentMethod: 'lead_request',
+          ticketName: 'Summer Camp Interest',
+          total: 0,
+        }))
+      } catch {
+        // Thank-you page can still show default copy.
+      }
+      setForm({ guardianName: '', phone: '', email: '', childName: '', childAge: '', preferredDate: '', schoolName: '', interests: '', note: '' })
+      setPage('thankYou')
+    } catch (error) {
+      console.error('Summer camp request failed', error)
+      setStatus({ type: 'error', message: 'Could not submit right now. Please try again or contact Magic Land.' })
+    }
+  }
+
+  return (
+    <PageShell eyebrow="Summer Camp" title="Creative play, rides, games, and supervised summer fun">
+      <div className="grid gap-6 lg:grid-cols-[1fr_430px]">
+        <section className="grid content-start gap-5">
+          <article className="overflow-hidden rounded-[2rem] bg-white shadow-xl">
+            <SmartImage src={img.creativeFamily} alt="Children enjoying creative activities at Magic Land" className="h-72 w-full object-cover" />
+            <div className="p-6">
+              <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">For kids and parents</p>
+              <h2 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">A summer program built around play, creativity, and confidence.</h2>
+              <p className="mt-3 leading-8 text-[var(--muted)]">Collect camp interest now, then Magic Land can confirm dates, age groups, activity batches, food options, and payment details by phone.</p>
+            </div>
+          </article>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              ['Creative Village', 'Pottery, painting, color play, craft sessions, and hands-on village activities.'],
+              ['Park Adventure', 'Rides, indoor games, arcade challenges, group play, and supervised movement.'],
+              ['Parent Friendly', 'Phone confirmation, clear schedules, and activity details before enrollment.'],
+            ].map(([title, copy]) => (
+              <article key={title} className="storybook-card rounded-[1.5rem] p-5">
+                <h3 className="font-display text-xl font-bold text-[var(--primary)]">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        <form onSubmit={submitSummerCamp} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Interest form</p>
+          <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">Request summer camp details</h3>
+          <div className="mt-5 grid gap-4">
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Parent / guardian name<input required className="soft-field" value={form.guardianName} onChange={(e) => updateForm('guardianName', e.target.value)} placeholder="Parent or guardian name" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" className="soft-field" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input required type="email" className="soft-field" value={form.email} onChange={(e) => updateForm('email', e.target.value)} placeholder="parent@example.com" /></label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Child name<input required className="soft-field" value={form.childName} onChange={(e) => updateForm('childName', e.target.value)} placeholder="Child name" /></label>
+              <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Child age<input required type="number" min="3" max="18" className="soft-field" value={form.childAge} onChange={(e) => updateForm('childAge', e.target.value)} placeholder="Age" /></label>
+            </div>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Preferred date / week<input required type="date" className="soft-field" value={form.preferredDate} onChange={(e) => updateForm('preferredDate', e.target.value)} /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">School name, optional<input className="soft-field" value={form.schoolName} onChange={(e) => updateForm('schoolName', e.target.value)} placeholder="School name" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Activities your child likes<textarea required className="soft-field min-h-28 resize-none" value={form.interests} onChange={(e) => updateForm('interests', e.target.value)} placeholder="Pottery, painting, rides, games, dancing, arcade, group play..." /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Notes, optional<textarea className="soft-field min-h-24 resize-none" value={form.note} onChange={(e) => updateForm('note', e.target.value)} placeholder="Preferred call time, food needs, siblings, or questions" /></label>
+            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Sending...' : 'Submit Summer Camp Interest'}</button>
+            {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
+          </div>
+        </form>
+      </div>
+    </PageShell>
+  )
+}
+
+function CareersPage({ setPage }) {
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    roleInterest: '',
+    experience: '',
+    availability: '',
+    portfolio: '',
+    message: '',
+  })
+  const [status, setStatus] = useState({ type: '', message: '' })
+  const updateForm = (field, value) => {
+    const nextValue = field === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
+    setForm((current) => ({ ...current, [field]: nextValue }))
+  }
+  const submitCareer = async (event) => {
+    event.preventDefault()
+    setStatus({ type: 'loading', message: 'Sending career application...' })
+    try {
+      const result = await createPublicRequest('careerRequests', {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        roleInterest: form.roleInterest.trim(),
+        experience: form.experience.trim(),
+        availability: form.availability.trim(),
+        portfolio: form.portfolio.trim(),
+        message: form.message.trim(),
+      })
+      trackEvent('career_request_submitted', {
+        request_id: result.id,
+        role_interest: form.roleInterest,
+        store: result.store,
+      })
+      try {
+        sessionStorage.setItem('magicland:thankYou', JSON.stringify({
+          title: 'Career application received',
+          message: 'Thank you for your interest in Magic Land. Our team will review your details and contact you if there is a suitable opening.',
+          requestId: result.id,
+          paymentMethod: 'lead_request',
+          ticketName: 'Career Application',
+          total: 0,
+        }))
+      } catch {
+        // Thank-you page can still show default copy.
+      }
+      setForm({ name: '', phone: '', email: '', roleInterest: '', experience: '', availability: '', portfolio: '', message: '' })
+      setPage('thankYou')
+    } catch (error) {
+      console.error('Career request failed', error)
+      setStatus({ type: 'error', message: 'Could not submit right now. Please try again or contact Magic Land.' })
+    }
+  }
+
+  return (
+    <PageShell eyebrow="Careers" title="Join the Magic Land guest experience team">
+      <div className="grid gap-6 lg:grid-cols-[1fr_430px]">
+        <section className="grid content-start gap-5">
+          <article className="overflow-hidden rounded-[2rem] bg-white shadow-xl">
+            <SmartImage src={img.dining} alt="Magic Land team and guest care" className="h-72 w-full object-cover" />
+            <div className="p-6">
+              <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Hiring interest</p>
+              <h2 className="font-display mt-2 text-3xl font-bold text-[var(--primary)]">Warm, responsible people make the park feel magical.</h2>
+              <p className="mt-3 leading-8 text-[var(--muted)]">Submit your details for roles around guest care, ride operations, events, food service, creative activities, and park support.</p>
+            </div>
+          </article>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              ['Guest Care', 'Friendly communication, queue support, birthday support, and visitor guidance.'],
+              ['Operations', 'Ride support, entry assistance, safety checks, and daily park coordination.'],
+              ['Creative & Events', 'Painting, pottery, school groups, summer camp activities, and celebrations.'],
+            ].map(([title, copy]) => (
+              <article key={title} className="storybook-card rounded-[1.5rem] p-5">
+                <h3 className="font-display text-xl font-bold text-[var(--primary)]">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        <form onSubmit={submitCareer} className="rounded-[2rem] border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Application form</p>
+          <h3 className="font-display mt-2 text-2xl font-bold text-[var(--primary)]">Send your details</h3>
+          <div className="mt-5 grid gap-4">
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Full name<input required className="soft-field" value={form.name} onChange={(e) => updateForm('name', e.target.value)} placeholder="Your full name" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Phone number<input required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength="10" maxLength="10" className="soft-field" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} placeholder="98XXXXXXXX" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Email address<input required type="email" className="soft-field" value={form.email} onChange={(e) => updateForm('email', e.target.value)} placeholder="you@example.com" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Role interest<input required className="soft-field" value={form.roleInterest} onChange={(e) => updateForm('roleInterest', e.target.value)} placeholder="Guest care, ride operator, event support..." /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Experience summary<textarea required className="soft-field min-h-28 resize-none" value={form.experience} onChange={(e) => updateForm('experience', e.target.value)} placeholder="Tell us about your work experience or strengths" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Availability<input required className="soft-field" value={form.availability} onChange={(e) => updateForm('availability', e.target.value)} placeholder="Full-time, part-time, weekends, holidays" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Portfolio or profile link, optional<input type="url" className="soft-field" value={form.portfolio} onChange={(e) => updateForm('portfolio', e.target.value)} placeholder="https://..." /></label>
+            <label className="grid gap-2 text-sm font-bold text-[var(--primary)]">Message, optional<textarea className="soft-field min-h-24 resize-none" value={form.message} onChange={(e) => updateForm('message', e.target.value)} placeholder="Anything else we should know?" /></label>
+            <button disabled={status.type === 'loading'} className="sunset rounded-full px-6 py-4 font-extrabold shadow-sm disabled:opacity-70">{status.type === 'loading' ? 'Sending...' : 'Submit Career Interest'}</button>
+            {status.message && <p className={`text-sm font-bold leading-6 ${status.type === 'error' ? 'text-[var(--secondary)]' : 'text-[var(--primary)]'}`}>{status.message}</p>}
+          </div>
+        </form>
+      </div>
+    </PageShell>
+  )
 }
 
 function InfoPage({ eyebrow, title, items }) {
